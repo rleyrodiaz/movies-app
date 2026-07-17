@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}{{ s.title }}{% endblock %}
+
+{% block content %}
+
+<div class="mb-4 flex items-center gap-4">
+  {% if request.query_params.get('back') == 'watchlist' %}
+<a href="/watchlist" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver a mi watchlist</a>
+{% else %}
+<a href="/feed" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver al feed</a>
+{% endif %}
+</div>
+
+{% if request.query_params.get("duplicate") %}
+<div class="mb-4 bg-yellow-900/30 border border-yellow-800 text-yellow-300 text-sm px-4 py-3 rounded-xl">
+  Esta película o serie ya había sido sugerida. Estás viendo la sugerencia existente.
+</div>
+{% endif %}
+
+<div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+
+  {# ── Header: poster + info ── #}
+  <div class="flex flex-col sm:flex-row gap-5 p-5 sm:p-6">
+    <div class="shrink-0 flex justify-center sm:justify-start">
+      {% if s.poster_path %}
+      <img src="{{ poster_url(s.poster_path, 'w342') }}" alt="{{ s.title }}"
+           class="w-40 sm:w-36 rounded-xl shadow-2xl object-cover">
+      {% else %}
+      <div class="w-40 sm:w-36 h-56 sm:h-52 bg-gray-800 rounded-xl flex items-center justify-center text-4xl text-gray-600">+</div>
+      {% endif %}
+    </div>
+
+    <div class="flex-1 min-w-0">
+
+      {# ── Badges + nombre (esquina derecha) ── #}
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="flex items-center gap-2 flex-wrap">
+          {% if s.media_type.value == 'movie' %}
+          <span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>
+          {% else %}
+          <span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>
+          {% endif %}
+          {% if s.release_date %}<span class="text-xs text-gray-500">{{ s.release_date.year }}</span>{% endif %}
+          {% if s.tmdb_rating %}
+          <span class="text-xs text-gray-500" title="Calificación de TMDB">&#9733; {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
+          {% endif %}
+          {% if suggester_entry and suggester_entry.rating %}
+          <span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full"
+                title="Calificación de {{ s.suggester.display_name }}">
+            &#9733; {{ suggester_entry.rating }}/10
+          </span>
+          {% endif %}
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-sm font-semibold text-white">{{ s.suggester.display_name }}</p>
+          <p class="text-xs text-gray-600 mt-0.5">{{ s.created_at.strftime('%d/%m/%Y') }}</p>
+        </div>
+      </div>
+
+      <h1 class="text-2xl font-bold text-white mb-3 leading-tight">{{ s.title }}</h1>
+
+      {% if s.overview %}
+      <p class="text-gray-400 text-sm leading-relaxed mb-4">{{ s.overview }}</p>
+      {% endif %}
+
+      {# ── Metadata ── #}
+      {% if s.genres_list or s.origin_country or s.cast_list or (s.media_type.value == 'tv' and s.episode_count) %}
+      <div class="grid grid-cols-2 gap-x-6 gap-y-3 pt-4 border-t border-gray-800 text-sm">
+        {% if s.release_date %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Año</p>
+          <p class="text-gray-300">{{ s.release_date.year }}</p>
+        </div>
+        {% endif %}
+        {% if s.genres_list %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Género</p>
+          <p class="text-gray-300">{{ s.genres_list | join(', ') }}</p>
+        </div>
+        {% endif %}
+        {% if s.origin_country %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">País</p>
+          <p class="text-gray-300">{{ s.origin_country }}</p>
+        </div>
+        {% endif %}
+        {% if s.media_type.value == 'tv' and s.season_count %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Temporadas</p>
+          <p class="text-gray-300">{{ s.season_count }}</p>
+        </div>
+        {% endif %}
+        {% if s.media_type.value == 'tv' and s.episode_count %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Episodios</p>
+          <p class="text-gray-300">{{ s.episode_count }}</p>
+        </div>
+        {% endif %}
+        {% if s.cast_list %}
+        <div class="col-span-2">
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
+          <p class="text-gray-300">{{ s.cast_list | join(' · ') }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Plataformas de streaming ── #}
+  <div class="border-t border-gray-800 px-6 py-4">
+    <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+    <div class="flex flex-wrap gap-2">
+      {% if s.providers_list %}
+        {% for p in s.providers_list %}
+        <span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">{{ p }}</span>
+        {% endfor %}
+      {% else %}
+        <span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Watchlist ── #}
+  <div class="border-t border-gray-800 px-6 py-4">
+    <div class="flex items-center gap-2 flex-wrap">
+      <form method="post" action="/watchlist/{{ s.id }}">
+        <input type="hidden" name="status" value="pending">
+        {% if watchlist_entry and watchlist_entry.status.value == 'pending' %}
+        <button type="submit"
+          class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-violet-700 hover:bg-violet-800 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 3a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2H5z"/>
+          </svg>
+          Watchlist
+        </button>
+        {% else %}
+        <button type="submit"
+          class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z"/>
+          </svg>
+          Watchlist
+        </button>
+        {% endif %}
+      </form>
+
+      {% if is_owner and can_delete %}
+      <form method="post" action="/suggestions/{{ s.id }}/delete" class="ml-auto"
+            onsubmit="return confirm('¿Borrar esta sugerencia?')">
+        <button type="submit" class="text-xs text-red-700 hover:text-red-400 transition-colors">Borrar sugerencia</button>
+      </form>
+      {% elif is_owner %}
+      <span class="text-xs text-gray-700 ml-auto cursor-not-allowed select-none"
+            title="Alguien la tiene en su watchlist">
+        Borrar sugerencia
+      </span>
+      {% else %}
+      <span class="text-xs text-gray-700 ml-auto cursor-not-allowed select-none"
+            title="Solo quien la sugirió puede borrarla">
+        Borrar sugerencia
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Comentarios ── #}
+  <div id="comments" class="border-t border-gray-800 px-6 py-6">
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
+      Comentarios{% if comments %} <span class="text-gray-600 font-normal normal-case">({{ comments|length }})</span>{% endif %}
+    </h2>
+
+    {% if comments %}
+    <div class="space-y-4 mb-6">
+      {% for c in comments %}
+      <div class="group flex items-start gap-3">
+        <div class="flex-1 bg-gray-800/60 rounded-xl px-4 py-3">
+          <div class="flex items-baseline justify-between gap-2 mb-1">
+            <span class="text-sm font-medium text-gray-300">{{ c.user.display_name }}</span>
+            <span class="text-xs text-gray-600 shrink-0">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+          </div>
+          <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{{ c.body }}</p>
+        </div>
+        {% if user.id == c.user_id or user.role in ['admin', 'superadmin'] %}
+        <form method="post" action="/comments/{{ c.id }}/delete"
+              class="opacity-0 group-hover:opacity-100 transition-opacity pt-2">
+          <button type="submit" class="text-xs text-gray-600 hover:text-red-400 transition-colors">Borrar</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-600 mb-6">Todavía no hay comentarios.</p>
+    {% endif %}
+
+    <form method="post" action="/suggestions/{{ s.id }}/comments" class="flex gap-3 items-end">
+      <textarea name="body" required rows="2" placeholder="Escribí tu comentario..."
+        class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+               transition-colors resize-none"></textarea>
+      <button type="submit"
+        class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-3 rounded-xl transition-colors shrink-0">
+        Comentar
+      </button>
+    </form>
+  </div>
+
+</div>
+
+<script>
+function setRating(n) {
+  document.getElementById('rating-val').value = n;
+  document.getElementById('rating-form').submit();
+}
+</script>
+{% endblock %}

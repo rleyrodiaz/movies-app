@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>movieLeyro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #0D0D0F;
+      --surface:    #15151A;
+      --border:     #2A2A35;
+      --gold:       #C8A96E;
+      --gold-glow:  rgba(200,169,110,0.10);
+      --text:       #F0EDE8;
+      --muted:      #7A7680;
+      --subtle:     #3A3A45;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(to bottom, rgba(13,13,15,0.92) 0%, transparent 100%);
+    }
+
+    .nav-brand {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.03em;
+      text-decoration: none;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100svh;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('/static/img/landingpage02.jpg');
+      background-size: cover;
+      background-position: center top;
+      z-index: 0;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right,
+        rgba(13,13,15,0.97) 0%,
+        rgba(13,13,15,0.88) 42%,
+        rgba(13,13,15,0.52) 68%,
+        rgba(13,13,15,0.12) 100%
+      );
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-content {
+      max-width: 640px;
+      padding: 8rem 2.5rem 5rem;
+      margin-left: max(2.5rem, 6vw);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1.75rem;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 2rem;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+    }
+
+    .headline {
+      font-size: clamp(3.2rem, 7.5vw, 5.75rem);
+      font-weight: 900;
+      line-height: 1.02;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      text-wrap: balance;
+      margin-bottom: 1.5rem;
+    }
+
+    .headline em {
+      font-style: italic;
+      font-weight: 400;
+      color: var(--gold);
+    }
+
+    .hero-sub {
+      font-size: 1.05rem;
+      font-weight: 300;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 40ch;
+      margin-bottom: 2.75rem;
+    }
+
+    .cta-row {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--gold);
+      color: #0D0D0F;
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.03em;
+      padding: 0.875rem 2.25rem;
+      text-decoration: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.86;
+      transform: translateY(-1px);
+    }
+
+    .cta-secondary {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .cta-secondary a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: 500;
+      border-bottom: 1px solid rgba(200,169,110,0.3);
+      padding-bottom: 1px;
+      transition: border-color 0.15s;
+    }
+
+    .cta-secondary a:hover { border-color: var(--gold); }
+
+    /* ── FEATURES ── */
+    .features {
+      padding: 5rem 2.5rem;
+      background: var(--bg);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--border);
+    }
+
+    .feature {
+      padding: 2.5rem 2rem;
+      border-right: 1px solid var(--border);
+    }
+
+    .feature:last-child { border-right: none; }
+
+    .feature-mark {
+      width: 2.25rem;
+      height: 2.25rem;
+      border: 1px solid rgba(200,169,110,0.3);
+      background: var(--gold-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      color: var(--gold);
+      font-size: 0.95rem;
+    }
+
+    .feature h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.65rem;
+      line-height: 1.2;
+    }
+
+    .feature p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ── INVITE STRIP ── */
+    .invite-strip {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 4.5rem 2.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .invite-strip::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(200,169,110,0.04) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .invite-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.9rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1.75rem;
+    }
+
+    .invite-badge span {
+      width: 5px;
+      height: 5px;
+      background: var(--gold);
+      border-radius: 50%;
+      opacity: 0.7;
+    }
+
+    .invite-strip h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.9rem;
+      text-wrap: balance;
+    }
+
+    .invite-strip p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      max-width: 46ch;
+      margin: 0 auto 2.25rem;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    .btn-ghost {
+      display: inline-block;
+      border: 1px solid var(--subtle);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.75rem 2rem;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 2rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+    }
+
+    footer p {
+      font-size: 0.72rem;
+      color: var(--subtle);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .hero {
+        align-items: flex-end;
+      }
+
+      .hero::before {
+        background-position: 65% top;
+      }
+
+      .hero::after {
+        background: linear-gradient(to bottom,
+          rgba(13,13,15,0.6) 0%,
+          rgba(13,13,15,0.94) 55%,
+          rgba(13,13,15,1) 100%
+        );
+      }
+
+      .hero-content {
+        margin-left: 0;
+        padding: 2rem 1.5rem 4rem;
+        max-width: 100%;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .feature {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .feature:last-child { border-bottom: none; }
+
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { gap: 0.9rem !important; font-size: 0.8rem !important; }
+      .nav-links .nav-hide-mobile { display: none !important; }
+
+      .features { padding: 3.5rem 1.5rem; }
+
+      .invite-strip { padding: 3rem 1.5rem; }
+
+      footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-primary, .btn-ghost { transition: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-brand">movieLeyro</a>
+
+  {% if user %}
+  <div class="nav-links" style="display:flex;align-items:center;gap:1.5rem;font-size:0.875rem">
+    <a href="/feed" style="color:var(--muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Feed</a>
+    <a href="/watchlist" class="nav-hide-mobile" style="color:var(--muted);text-decoration:none;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">Mi watchlist</a>
+    <a href="/suggestions/new" class="btn-primary nav-hide-mobile" style="padding:0.5rem 1.25rem">+ Sugerir</a>
+    <div style="display:flex;align-items:center;gap:0.75rem;border-left:1px solid var(--border);padding-left:1.25rem">
+      <span style="color:var(--text);font-weight:500">{{ user.display_name }}</span>
+      <form method="post" action="/logout" style="margin:0">
+        <button type="submit" style="background:none;border:none;cursor:pointer;font-size:0.78rem;color:var(--muted);transition:color 0.15s" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">Salir</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content">
+    <p class="eyebrow">Solo por invitación</p>
+
+    <h1 class="headline display">
+      Tu club de<br>cine <em>privado</em>
+    </h1>
+
+    <p class="hero-sub">
+      Sugerí películas y series, armá tu watchlist y calificá lo que viste — con tu grupo, sin ruido.
+    </p>
+
+    <div class="cta-row">
+      {% if not user %}
+      <button onclick="openLoginModal()" class="btn-primary">Iniciar sesión →</button>
+      <span class="cta-secondary">
+        ¿Tenés invitación? <a href="#" onclick="openLoginModal();return false;">Registrate</a>
+      </span>
+      {% else %}
+      <a href="/feed" class="btn-primary">Ir al feed →</a>
+      <a href="/feed" class="btn-ghost">Ver sugerencias →</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section style="background:var(--bg)">
+  <div class="features">
+    <p class="section-label">Qué podés hacer</p>
+
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-mark">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="1" y="3" width="14" height="10" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M6 6l4 2-4 2V6z" fill="currentColor"/>
+          </svg>
+        </div>
+        <h3>Sugerencias</h3>
+        <p>Proponé películas y series con ficha completa: género, reparto, año, país de origen y plataformas disponibles en Argentina.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-mark">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l3.5 3.5L13 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>Watchlist personal</h3>
+        <p>Guardá lo que querés ver, marcá lo que ya viste y puntualo del 1 al 10. Anotá también dónde lo viste — Netflix, cine, Disney+.</p>
+      </div>
+
+      <div class="feature">
+        <div class="feature-mark">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M2 3.5h12M2 7h8M2 10.5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Comentarios</h3>
+        <p>Opiná después de ver algo. El grupo debate, recomienda y se pone de acuerdo en qué ver el próximo finde.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INVITE STRIP -->
+<section class="invite-strip">
+  <div class="invite-badge"><span></span>Acceso restringido</div>
+  <h2 class="display">Solo entrás si alguien te invitó</h2>
+  <p>
+    La app es privada — no hay registro público. Si recibiste un link de invitación, podés crear tu cuenta y empezar a sugerir.
+  </p>
+  <button onclick="openLoginModal()" class="btn-ghost">Ya tengo cuenta → Iniciar sesión</button>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>MovieLeyro &nbsp;·&nbsp; Privado</p>
+  <div style="display:flex;align-items:center;gap:0.6rem">
+    <p style="font-size:0.65rem;color:var(--subtle);letter-spacing:0.08em;text-transform:uppercase">Datos provistos por</p>
+    <img src="/static/img/Logo_tmdb_short.svg" alt="TMDB" style="height:14px;opacity:0.45;filter:grayscale(30%)">
+  </div>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div id="login-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
+     data-autoopen="{{ '1' if login_error else '0' }}"
+     style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:1.5rem">
+  <!-- Backdrop -->
+  <div onclick="closeLoginModal()"
+       style="position:absolute;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)"></div>
+  <!-- Panel -->
+  <div style="position:relative;z-index:1;width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);padding:2.25rem 2rem">
+    <button onclick="closeLoginModal()" aria-label="Cerrar"
+            style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem;line-height:1;transition:color 0.15s"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">&times;</button>
+
+    <p class="eyebrow" id="modal-title" style="margin-bottom:1.25rem">Acceso</p>
+    <h2 class="display" style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:1.75rem">Iniciar sesión</h2>
+
+    {% if login_error %}
+    <div id="modal-error-banner" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem">
+      {{ login_error }}
+    </div>
+    {% else %}
+    <div id="modal-error-banner" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem"></div>
+    {% endif %}
+
+    <form method="post" action="/login" style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Email</label>
+        <input type="email" name="email" required autocomplete="email" autofocus
+               style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+               onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Contraseña</label>
+        <div style="position:relative">
+          <input type="password" name="password" id="modal-pw" required autocomplete="current-password"
+                 style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 2.5rem 0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+                 onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <button type="button" onclick="toggleModalPw()" tabindex="-1"
+                  style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.75rem;padding:0"
+                  id="modal-pw-toggle">Ver</button>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:0.25rem;text-align:center;cursor:pointer;border:none;width:100%">
+        Entrar
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function openLoginModal() {
+  const m = document.getElementById('login-modal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => { const em = m.querySelector('input[type=email]'); if(em) em.focus(); }, 50);
+}
+function closeLoginModal() {
+  document.getElementById('login-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function toggleModalPw() {
+  const pw = document.getElementById('modal-pw');
+  const btn = document.getElementById('modal-pw-toggle');
+  if (pw.type === 'password') { pw.type = 'text'; btn.textContent = 'Ocultar'; }
+  else { pw.type = 'password'; btn.textContent = 'Ver'; }
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeLoginModal();
+});
+window.addEventListener('DOMContentLoaded', function() {
+  if (document.getElementById('login-modal').dataset.autoopen === '1') openLoginModal();
+});
+</script>
+
+</body>
+</html>

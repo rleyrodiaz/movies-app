@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Nueva sugerencia{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/suggestions/new" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Mis sugerencias</a>
+  </div>
+
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-white">Nueva sugerencia</h1>
+    <p class="text-gray-500 text-sm mt-1">Buscá la película o serie que querés sugerir.</p>
+  </div>
+
+  {# Search box #}
+  <div class="relative mb-2">
+    <input
+      id="search-input"
+      type="text"
+      placeholder="Escribí el título..."
+      autocomplete="off"
+      class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white
+             placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+             transition-colors"
+    >
+    <div id="search-spinner" class="hidden absolute right-3 top-3.5">
+      <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+    </div>
+  </div>
+
+  {# Search results dropdown #}
+  <div id="search-results" class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-4 hidden"></div>
+
+  {# Selected preview + rating + comment #}
+  <div id="confirm-section" class="hidden">
+
+    <div id="preview" class="mb-5"></div>
+
+    {# Rating (required) #}
+    <div class="mb-5">
+      <p class="text-sm text-gray-400 mb-2 font-medium">
+        Tu calificación <span class="text-red-500">*</span>
+        <span id="rating-label" class="text-yellow-400 ml-2 font-semibold"></span>
+      </p>
+      <div class="flex items-center gap-1 flex-wrap" id="rating-buttons">
+        {% for i in range(1, 11) %}
+        <button type="button" data-val="{{ i }}" onclick="setRating({{ i }})"
+          class="rating-btn w-9 h-9 text-sm font-semibold rounded-lg transition-colors
+                 bg-gray-800 hover:bg-gray-700 text-gray-400">
+          {{ i }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Comment (optional) #}
+    <div class="mb-5">
+      <p class="text-sm text-gray-400 mb-2 font-medium">Comentario <span class="text-gray-600 font-normal">(opcional)</span></p>
+      <textarea id="comment-input" rows="3" placeholder="¿Qué te pareció? ¿Por qué la recomendás?..."
+        class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+               transition-colors resize-none"></textarea>
+    </div>
+
+    {# Hidden form #}
+    <form id="suggest-form" method="post" action="/suggestions">
+      <input type="hidden" id="f_tmdb_id"      name="tmdb_id">
+      <input type="hidden" id="f_media_type"   name="media_type">
+      <input type="hidden" id="f_title"        name="title">
+      <input type="hidden" id="f_poster_path"  name="poster_path">
+      <input type="hidden" id="f_overview"     name="overview">
+      <input type="hidden" id="f_release_date" name="release_date">
+      <input type="hidden" id="f_rating"       name="rating" value="0">
+      <input type="hidden" id="f_comment"      name="comment_body" value="">
+
+      <button id="submit-btn" type="submit" disabled
+        class="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 rounded-xl
+               transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+        Sugerir
+      </button>
+      <p id="rating-warning" class="text-red-400 text-xs text-center mt-2 hidden">Elegí una calificación antes de sugerir.</p>
+    </form>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  const searchInput   = document.getElementById('search-input');
+  const resultsBox    = document.getElementById('search-results');
+  const spinner       = document.getElementById('search-spinner');
+  const confirmSection = document.getElementById('confirm-section');
+  const preview       = document.getElementById('preview');
+  const submitBtn     = document.getElementById('submit-btn');
+  const ratingWarning = document.getElementById('rating-warning');
+  const ratingLabel   = document.getElementById('rating-label');
+
+  let debounceTimer = null;
+  let cachedResults = [];
+  let selectedRating = 0;
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q), 400);
+  });
+
+  async function doSearch(q) {
+    spinner.classList.remove('hidden');
+    try {
+      const resp = await fetch('/suggestions/search?q=' + encodeURIComponent(q));
+      if (resp.status === 401) { window.location = '/login'; return; }
+      cachedResults = await resp.json();
+      renderResults(cachedResults);
+    } catch { hideResults(); }
+    finally { spinner.classList.add('hidden'); }
+  }
+
+  function renderResults(items) {
+    if (!items.length) {
+      resultsBox.innerHTML = '<p class="text-gray-500 text-sm text-center py-5">Sin resultados.</p>';
+      resultsBox.classList.remove('hidden');
+      return;
+    }
+    resultsBox.innerHTML = items.map((item, i) => {
+      const already = item.already_suggested;
+      return `
+        <button type="button" data-idx="${i}"
+          class="result-item flex items-center gap-3 w-full text-left px-4 py-3
+                 hover:bg-gray-800 transition-colors border-b border-gray-800 last:border-0">
+          ${item.poster_url_sm
+            ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 rounded object-cover" style="height:52px">`
+            : `<div class="w-9 shrink-0 flex items-center justify-center text-gray-600" style="height:52px">🎬</div>`
+          }
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-sm font-medium truncate">${esc(item.title)}</p>
+            <div class="flex items-center gap-2 mt-0.5">
+              <span class="text-gray-500 text-xs">
+                ${item.media_type === 'movie' ? 'Película' : 'Serie'}
+                ${item.release_date ? '· ' + esc(item.release_date.slice(0, 4)) : ''}
+              </span>
+              ${already
+                ? `<span class="text-xs text-yellow-500 font-medium">Ya sugerida por ${esc(item.suggested_by_name)}</span>`
+                : ''
+              }
+            </div>
+          </div>
+          ${already ? '<span class="text-gray-600 text-xs shrink-0">Ver →</span>' : ''}
+        </button>
+      `;
+    }).join('');
+    resultsBox.classList.remove('hidden');
+
+    resultsBox.querySelectorAll('.result-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = cachedResults[parseInt(btn.dataset.idx)];
+        if (item.already_suggested) {
+          window.location = '/suggestions/' + item.existing_id;
+        } else {
+          selectItem(item);
+        }
+      });
+    });
+  }
+
+  function selectItem(item) {
+    hideResults();
+    searchInput.value = item.title;
+    resetRating();
+
+    document.getElementById('f_tmdb_id').value      = item.tmdb_id;
+    document.getElementById('f_media_type').value   = item.media_type;
+    document.getElementById('f_title').value        = item.title;
+    document.getElementById('f_poster_path').value  = item.poster_path || '';
+    document.getElementById('f_overview').value     = item.overview || '';
+    document.getElementById('f_release_date').value = item.release_date || '';
+
+    const year = item.release_date ? item.release_date.slice(0, 4) : '';
+    const typeBadge = item.media_type === 'movie'
+      ? '<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>'
+      : '<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>';
+
+    preview.innerHTML = `
+      <div class="flex items-start gap-4 bg-gray-900 border border-violet-800 rounded-xl p-4">
+        ${item.poster_url_sm
+          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-16 rounded-lg shrink-0 object-cover" style="height:96px">`
+          : `<div class="w-16 shrink-0 bg-gray-800 rounded-lg flex items-center justify-center text-gray-500" style="height:96px">🎬</div>`
+        }
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1.5">${typeBadge}${year ? `<span class="text-xs text-gray-500">${esc(year)}</span>` : ''}</div>
+          <h3 class="text-white font-semibold text-base mb-1">${esc(item.title)}</h3>
+          ${item.overview ? `<p class="text-gray-400 text-xs leading-relaxed line-clamp-3">${esc(item.overview)}</p>` : ''}
+        </div>
+      </div>
+    `;
+
+    confirmSection.classList.remove('hidden');
+  }
+
+  window.setRating = function(n) {
+    selectedRating = n;
+    document.getElementById('f_rating').value = n;
+    ratingLabel.textContent = n + '/10';
+    document.querySelectorAll('.rating-btn').forEach(btn => {
+      const v = parseInt(btn.dataset.val);
+      btn.className = btn.className
+        .replace('bg-yellow-500 text-black', 'bg-gray-800 text-gray-400')
+        .replace('bg-gray-800 text-gray-400', 'bg-gray-800 text-gray-400');
+      if (v === n) {
+        btn.classList.remove('bg-gray-800', 'text-gray-400');
+        btn.classList.add('bg-yellow-500', 'text-black');
+      } else {
+        btn.classList.remove('bg-yellow-500', 'text-black');
+        btn.classList.add('bg-gray-800', 'text-gray-400');
+      }
+    });
+    ratingWarning.classList.add('hidden');
+    submitBtn.disabled = false;
+  };
+
+  function resetRating() {
+    selectedRating = 0;
+    document.getElementById('f_rating').value = 0;
+    ratingLabel.textContent = '';
+    document.querySelectorAll('.rating-btn').forEach(btn => {
+      btn.classList.remove('bg-yellow-500', 'text-black');
+      btn.classList.add('bg-gray-800', 'text-gray-400');
+    });
+    submitBtn.disabled = true;
+  }
+
+  document.getElementById('suggest-form').addEventListener('submit', function(e) {
+    document.getElementById('f_comment').value = document.getElementById('comment-input').value;
+    if (selectedRating < 1) {
+      e.preventDefault();
+      ratingWarning.classList.remove('hidden');
+    }
+  });
+
+  searchInput.addEventListener('keydown', () => {
+    if (!confirmSection.classList.contains('hidden')) {
+      confirmSection.classList.add('hidden');
+      document.getElementById('f_tmdb_id').value = '';
+      resetRating();
+    }
+  });
+
+  function hideResults() {
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+  }
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,410 @@
+import json
+from datetime import date
+
+from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+
+from app.db import get_db_dep
+from app.exceptions import AccessDenied
+from app.models.activity_log import ActivityAction
+from app.models.comment import Comment
+from app.models.suggestion import MediaType, Suggestion
+from app.models.user import User, UserRole
+from app.models.watchlist import WatchlistEntry, WatchlistStatus
+from app.services import tmdb
+from app.services.activity_log import log_activity
+from app.services.auth import get_current_user, require_user
+
+router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/", response_class=HTMLResponse)
+def landing(
+    request: Request,
+    current_user: User | None = Depends(get_current_user),
+    login_error: str = Query(default=""),
+):
+    return templates.TemplateResponse(
+        "landing.html",
+        {"request": request, "user": current_user, "login_error": login_error},
+    )
+
+
+@router.get("/feed", response_class=HTMLResponse)
+def feed(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+    genre: str = Query(default=""),
+    media: str = Query(default=""),
+    by: str = Query(default=""),
+    sort: str = Query(default=""),
+):
+    all_suggestions = db.scalars(
+        select(Suggestion)
+        .options(joinedload(Suggestion.suggester))
+        .order_by(Suggestion.created_at.desc())
+    ).unique().all()
+
+    # Build filter option data
+    all_genres: list[str] = sorted({g for s in all_suggestions for g in s.genres_list})
+    suggesters: dict[int, User] = {}
+    for s in all_suggestions:
+        if s.suggester and s.suggested_by not in suggesters:
+            suggesters[s.suggested_by] = s.suggester
+
+    # Normalize filter values
+    f_media = media if media in ("movie", "tv") else ""
+    f_genre = genre.strip()
+    f_sort = sort if sort in ("name", "rating") else ""
+    try:
+        f_by = int(by)
+    except (ValueError, TypeError):
+        f_by = 0
+
+    # Apply filters
+    suggestions = list(all_suggestions)
+    if f_media:
+        suggestions = [s for s in suggestions if s.media_type.value == f_media]
+    if f_by:
+        suggestions = [s for s in suggestions if s.suggested_by == f_by]
+    if f_genre:
+        suggestions = [s for s in suggestions if f_genre in s.genres_list]
+
+    # Apply sort (default: most recent, already sorted by query)
+    if f_sort == "name":
+        suggestions = sorted(suggestions, key=lambda s: s.title.lower())
+    elif f_sort == "rating":
+        suggestions = sorted(suggestions, key=lambda s: s.tmdb_rating or 0, reverse=True)
+
+    entries = db.scalars(
+        select(WatchlistEntry).where(WatchlistEntry.user_id == current_user.id)
+    ).all()
+    watchlist_map = {e.suggestion_id: e for e in entries}
+
+    active_filters = sum([bool(f_genre), bool(f_media), bool(f_by)])
+
+    return templates.TemplateResponse(
+        "feed.html",
+        {
+            "request": request,
+            "user": current_user,
+            "suggestions": suggestions,
+            "watchlist_map": watchlist_map,
+            "all_genres": all_genres,
+            "suggesters": suggesters,
+            "f_genre": f_genre,
+            "f_media": f_media,
+            "f_by": f_by,
+            "f_sort": f_sort,
+            "active_filters": active_filters,
+        },
+    )
+
+
+@router.get("/suggestions/search")
+def tmdb_search(
+    q: str = "",
+    current_user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db_dep),
+):
+    if current_user is None:
+        return JSONResponse({"error": "not_authenticated"}, status_code=401)
+    if len(q.strip()) < 2:
+        return JSONResponse([])
+    results = tmdb.search_multi(q.strip())
+    if results:
+        tmdb_ids = [r["tmdb_id"] for r in results]
+        existing = db.scalars(
+            select(Suggestion)
+            .options(joinedload(Suggestion.suggester))
+            .where(Suggestion.tmdb_id.in_(tmdb_ids))
+        ).unique().all()
+        existing_map = {(s.tmdb_id, s.media_type.value): s for s in existing}
+        for r in results:
+            match = existing_map.get((r["tmdb_id"], r["media_type"]))
+            if match:
+                r["already_suggested"] = True
+                r["suggested_by_name"] = match.suggester.display_name if match.suggester else "alguien"
+                r["existing_id"] = match.id
+            else:
+                r["already_suggested"] = False
+                r["existing_id"] = None
+    return JSONResponse(results)
+
+
+@router.get("/suggestions/new", response_class=HTMLResponse)
+def my_suggestions(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    suggestions = db.scalars(
+        select(Suggestion)
+        .where(Suggestion.suggested_by == current_user.id)
+        .options(joinedload(Suggestion.comments).joinedload(Comment.user))
+        .order_by(Suggestion.created_at.desc())
+    ).unique().all()
+    sug_ids = [s.id for s in suggestions]
+
+    entries = db.scalars(
+        select(WatchlistEntry).where(
+            WatchlistEntry.user_id == current_user.id,
+            WatchlistEntry.suggestion_id.in_(sug_ids) if sug_ids else False,
+        )
+    ).all()
+    rating_map = {e.suggestion_id: e for e in entries}
+
+    # Suggestions that other users added to their watchlist cannot be deleted
+    locked_ids: set[int] = set()
+    if sug_ids:
+        locked_ids = set(db.scalars(
+            select(WatchlistEntry.suggestion_id).where(
+                WatchlistEntry.suggestion_id.in_(sug_ids),
+                WatchlistEntry.user_id != current_user.id,
+            )
+        ).all())
+
+    can_delete_map = {s.id: s.id not in locked_ids for s in suggestions}
+
+    return templates.TemplateResponse(
+        "suggestion_new.html",
+        {
+            "request": request,
+            "user": current_user,
+            "suggestions": suggestions,
+            "rating_map": rating_map,
+            "can_delete_map": can_delete_map,
+        },
+    )
+
+
+@router.get("/suggestions/add", response_class=HTMLResponse)
+def suggestion_add(
+    request: Request,
+    current_user: User = Depends(require_user),
+):
+    return RedirectResponse("/suggestions/new", status_code=303)
+
+
+@router.post("/suggestions")
+def suggestion_create(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+    tmdb_id: int = Form(...),
+    media_type: str = Form(...),
+    title: str = Form(...),
+    poster_path: str = Form(""),
+    overview: str = Form(""),
+    release_date: str = Form(""),
+    rating: int = Form(0),
+    comment_body: str = Form(""),
+):
+    if media_type not in ("movie", "tv"):
+        return RedirectResponse("/suggestions/add", status_code=303)
+
+    # Check if already suggested by anyone
+    existing = db.scalar(
+        select(Suggestion).where(
+            Suggestion.tmdb_id == tmdb_id,
+            Suggestion.media_type == MediaType(media_type),
+        )
+    )
+    if existing:
+        return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
+
+    detail = tmdb.get_detail(tmdb_id, media_type) or {}
+    final_title = detail.get("title") or title
+    final_poster = detail.get("poster_path") or poster_path or None
+    final_overview = detail.get("overview") or overview or None
+    final_date_str = detail.get("release_date") or release_date or None
+
+    parsed_date: date | None = None
+    if final_date_str:
+        try:
+            parsed_date = date.fromisoformat(final_date_str[:10])
+        except ValueError:
+            pass
+
+    def _jsondump(v: list) -> str | None:
+        return json.dumps(v, ensure_ascii=False) if v else None
+
+    suggestion = Suggestion(
+        tmdb_id=tmdb_id,
+        media_type=MediaType(media_type),
+        title=final_title,
+        poster_path=final_poster,
+        overview=final_overview,
+        release_date=parsed_date,
+        suggested_by=current_user.id,
+        genres=_jsondump(detail.get("genres", [])),
+        origin_country=detail.get("origin_country") or None,
+        cast_summary=_jsondump(detail.get("cast", [])),
+        providers=_jsondump(detail.get("providers", [])),
+        episode_count=detail.get("episode_count"),
+        season_count=detail.get("season_count"),
+        tmdb_rating=detail.get("tmdb_rating"),
+    )
+    db.add(suggestion)
+    db.flush()
+
+    # Auto-create watchlist entry (watched + rating)
+    valid_rating = rating if 1 <= rating <= 10 else None
+    entry = WatchlistEntry(
+        user_id=current_user.id,
+        suggestion_id=suggestion.id,
+        status=WatchlistStatus.watched,
+        rating=valid_rating,
+    )
+    db.add(entry)
+
+    # Optional comment
+    body = comment_body.strip()
+    if body:
+        comment = Comment(suggestion_id=suggestion.id, user_id=current_user.id, body=body)
+        db.add(comment)
+        db.flush()
+        log_activity(
+            db, ActivityAction.comment_created,
+            user_id=current_user.id,
+            target_type="comment",
+            target_id=comment.id,
+            detail={"suggestion_id": suggestion.id},
+        )
+
+    log_activity(
+        db, ActivityAction.suggestion_created,
+        user_id=current_user.id,
+        target_type="suggestion",
+        target_id=suggestion.id,
+        detail={"title": final_title, "media_type": media_type},
+    )
+    return RedirectResponse("/suggestions/new", status_code=303)
+
+
+@router.get("/suggestions/{suggestion_id}", response_class=HTMLResponse)
+def suggestion_detail(
+    suggestion_id: int,
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    suggestion = db.scalar(
+        select(Suggestion)
+        .options(
+            joinedload(Suggestion.suggester),
+            joinedload(Suggestion.comments).joinedload(Comment.user),
+        )
+        .where(Suggestion.id == suggestion_id)
+    )
+    if suggestion is None:
+        return RedirectResponse("/feed", status_code=303)
+
+    watchlist_entry = db.scalar(
+        select(WatchlistEntry).where(
+            WatchlistEntry.user_id == current_user.id,
+            WatchlistEntry.suggestion_id == suggestion_id,
+        )
+    )
+    suggester_entry = db.scalar(
+        select(WatchlistEntry).where(
+            WatchlistEntry.user_id == suggestion.suggested_by,
+            WatchlistEntry.suggestion_id == suggestion_id,
+        )
+    )
+    comments = sorted(suggestion.comments, key=lambda c: c.created_at)
+
+    is_owner = suggestion.suggested_by == current_user.id
+    can_delete = is_owner and not db.scalar(
+        select(WatchlistEntry.id).where(
+            WatchlistEntry.suggestion_id == suggestion_id,
+            WatchlistEntry.user_id != suggestion.suggested_by,
+        )
+    )
+
+    return templates.TemplateResponse(
+        "suggestion_detail.html",
+        {
+            "request": request,
+            "user": current_user,
+            "s": suggestion,
+            "poster_url": tmdb.poster_url,
+            "watchlist_entry": watchlist_entry,
+            "suggester_entry": suggester_entry,
+            "comments": comments,
+            "is_owner": is_owner,
+            "can_delete": can_delete,
+        },
+    )
+
+
+@router.post("/suggestions/{suggestion_id}/comments")
+def comment_create(
+    suggestion_id: int,
+    body: str = Form(...),
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    if db.get(Suggestion, suggestion_id) is None:
+        return RedirectResponse("/feed", status_code=303)
+    body = body.strip()
+    if not body:
+        return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)
+    comment = Comment(suggestion_id=suggestion_id, user_id=current_user.id, body=body)
+    db.add(comment)
+    db.flush()
+    log_activity(
+        db, ActivityAction.comment_created,
+        user_id=current_user.id,
+        target_type="comment",
+        target_id=comment.id,
+        detail={"suggestion_id": suggestion_id},
+    )
+    return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)
+
+
+@router.post("/suggestions/{suggestion_id}/delete")
+def suggestion_delete(
+    suggestion_id: int,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    suggestion = db.get(Suggestion, suggestion_id)
+    if suggestion is None:
+        return RedirectResponse("/feed", status_code=303)
+    if suggestion.suggested_by != current_user.id:
+        raise AccessDenied()
+    # Block deletion if any other user has it in their watchlist
+    locked = db.scalar(
+        select(WatchlistEntry.id).where(
+            WatchlistEntry.suggestion_id == suggestion_id,
+            WatchlistEntry.user_id != current_user.id,
+        )
+    )
+    if locked:
+        return RedirectResponse(f"/suggestions/{suggestion_id}?locked=1", status_code=303)
+    db.delete(suggestion)
+    return RedirectResponse("/suggestions/new", status_code=303)
+
+
+@router.post("/comments/{comment_id}/delete")
+def comment_delete(
+    comment_id: int,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    comment = db.get(Comment, comment_id)
+    if comment is None:
+        return RedirectResponse("/feed", status_code=303)
+    is_owner = comment.user_id == current_user.id
+    is_admin = current_user.role in (UserRole.admin, UserRole.superadmin)
+    if not (is_owner or is_admin):
+        raise AccessDenied()
+    suggestion_id = comment.suggestion_id
+    db.delete(comment)
+    return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)

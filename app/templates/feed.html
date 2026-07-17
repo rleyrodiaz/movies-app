@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Feed{% endblock %}
+
+{% block content %}
+
+{# ── Header bar ── #}
+<div class="flex items-center gap-3 mb-5 flex-wrap">
+  <button onclick="openFilterModal()"
+    class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-colors
+           {% if active_filters %}bg-violet-700 hover:bg-violet-800 text-white{% else %}bg-gray-800 hover:bg-gray-700 text-gray-300{% endif %}">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M9 16h6"/>
+    </svg>
+    Filtros
+    {% if active_filters %}
+    <span class="bg-white/20 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">{{ active_filters }}</span>
+    {% endif %}
+  </button>
+
+  {% if active_filters or f_sort %}
+  <a href="/feed" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
+  {% endif %}
+
+  <span class="text-sm text-gray-600 ml-auto">
+    {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}
+  </span>
+</div>
+
+{# ── Mosaic ── #}
+{% if not suggestions %}
+<div class="text-center py-24 text-gray-600">
+  {% if active_filters %}
+  <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
+  <a href="/feed" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver todas →</a>
+  {% else %}
+  <p class="text-lg text-gray-500">Todavía no hay sugerencias.</p>
+  <a href="/suggestions/new" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Hacer una sugerencia →</a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+  {% for s in suggestions %}
+  {% set entry = watchlist_map.get(s.id) %}
+  <a href="/suggestions/{{ s.id }}" class="group block">
+
+    {# Poster #}
+    <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
+      {% if s.poster_path %}
+      <img src="https://image.tmdb.org/t/p/w342{{ s.poster_path }}" alt="{{ s.title }}"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+      {% else %}
+      <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
+      {% endif %}
+
+      {# Type badge — top left #}
+      <div class="absolute top-2 left-2">
+        {% if s.media_type.value == 'movie' %}
+        <span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>
+        {% else %}
+        <span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>
+        {% endif %}
+      </div>
+
+      {# User rating badge — top right #}
+      {% if entry and entry.rating %}
+      <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+        {{ entry.rating }}/10
+      </div>
+      {% endif %}
+
+      {# Hover overlay #}
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
+        <p class="text-white text-xs leading-snug line-clamp-3">{{ s.overview or '' }}</p>
+      </div>
+    </div>
+
+    {# Info below poster #}
+    <div class="mt-2 px-0.5">
+      <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ s.title }}</p>
+      <div class="flex items-center gap-1 text-xs mt-0.5 flex-wrap">
+        {% if s.release_date %}<span class="text-gray-500">{{ s.release_date.year }}</span>{% endif %}
+        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }}</span>{% endif %}
+      </div>
+      <p class="text-xs text-gray-600 mt-0.5 truncate">{{ s.suggester.display_name }}</p>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+
+{# ── Filter Modal ── #}
+<div id="filter-backdrop" onclick="handleFilterBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+
+  <div id="filter-box"
+    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm shadow-2xl
+           max-h-[90vh] flex flex-col overflow-hidden">
+
+    {# Modal header #}
+    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800 shrink-0">
+      <h2 class="text-base font-bold text-white">Filtros y orden</h2>
+      <button onclick="closeFilterModal()" class="text-gray-500 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+    </div>
+
+    {# Scrollable form body #}
+    <form method="get" action="/feed" class="overflow-y-auto px-6 py-5 space-y-6">
+
+      {# Tipo #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Tipo</p>
+        <div class="flex gap-4 flex-wrap">
+          {% for val, label in [('', 'Todos'), ('movie', 'Películas'), ('tv', 'Series')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="media" value="{{ val }}"
+                   {% if f_media == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Género #}
+      {% if all_genres %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Género</p>
+        <select name="genre"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
+                 focus:outline-none focus:border-violet-500 transition-colors">
+          <option value="">Todos los géneros</option>
+          {% for g in all_genres %}
+          <option value="{{ g }}" {% if f_genre == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      {# Recomendado por #}
+      {% if suggesters|length > 1 %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Recomendado por</p>
+        <select name="by"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
+                 focus:outline-none focus:border-violet-500 transition-colors">
+          <option value="" {% if not f_by %}selected{% endif %}>Todos</option>
+          {% for uid, u in suggesters.items() %}
+          <option value="{{ uid }}" {% if f_by == uid %}selected{% endif %}>{{ u.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      {# Ordenar #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Ordenar por</p>
+        <div class="space-y-2.5">
+          {% for val, label in [('', 'Más recientes'), ('name', 'Nombre A–Z'), ('rating', 'Calificación TMDB')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="sort" value="{{ val }}"
+                   {% if f_sort == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Actions #}
+      <div class="flex gap-3 pt-1">
+        <button type="submit"
+          class="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors">
+          Aplicar
+        </button>
+        <a href="/feed"
+          class="px-5 py-2.5 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700
+                 rounded-lg transition-colors flex items-center">
+          Limpiar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openFilterModal() {
+  const el = document.getElementById('filter-backdrop');
+  el.classList.remove('hidden');
+  el.classList.add('flex');
+}
+function closeFilterModal() {
+  const el = document.getElementById('filter-backdrop');
+  el.classList.add('hidden');
+  el.classList.remove('flex');
+}
+function handleFilterBackdrop(e) {
+  if (e.target === document.getElementById('filter-backdrop')) closeFilterModal();
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeFilterModal();
+});
+</script>
+
+{% endblock %}

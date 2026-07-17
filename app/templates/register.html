@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+  <div class="w-full max-w-sm">
+
+    <div class="text-center mb-8">
+      <div class="text-4xl mb-3 text-violet-400">&#9654;</div>
+      <h1 class="text-2xl font-bold text-white">Crear cuenta</h1>
+      <p class="text-gray-500 text-sm mt-1">Fuiste invitado a Movies &amp; Series</p>
+    </div>
+
+    {% if invitation_invalid %}
+    <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-xl px-5 py-4 text-center">
+      <p class="font-medium mb-1">Link inválido o expirado</p>
+      <p class="text-sm text-red-400">Este link de invitación ya fue usado o venció. Pedí uno nuevo al administrador.</p>
+    </div>
+
+    {% else %}
+
+    {% if errors %}
+    <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 mb-4 text-sm space-y-1">
+      {% for e in errors %}
+      <p>• {{ e }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/register/{{ token }}" class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+      <div>
+        <label class="block text-sm text-gray-400 mb-1.5" for="display_name">¿Cómo te llamamos?</label>
+        <input
+          type="text" id="display_name" name="display_name" required autofocus
+          value="{{ form.display_name if form else '' }}"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors text-sm"
+          placeholder="Tu nombre"
+        >
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1.5" for="email">Email</label>
+        <input
+          type="email" id="email" name="email" required
+          value="{{ form.email if form else '' }}"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors text-sm"
+          placeholder="tu@email.com"
+        >
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1.5" for="password">Contraseña</label>
+        <input
+          type="password" id="password" name="password" required minlength="8"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors text-sm"
+          placeholder="Mínimo 8 caracteres"
+        >
+      </div>
+
+      <div>
+        <label class="block text-sm text-gray-400 mb-1.5" for="confirm_password">Repetir contraseña</label>
+        <input
+          type="password" id="confirm_password" name="confirm_password" required minlength="8"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors text-sm"
+          placeholder="••••••••"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg
+               transition-colors text-sm mt-2"
+      >
+        Crear cuenta
+      </button>
+    </form>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
