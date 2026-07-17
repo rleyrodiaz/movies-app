@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Settings — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-8">
+
+  <h1 class="text-2xl font-bold text-white">Settings</h1>
+
+  {# Mensajes de resultado #}
+  {% if msg == 'init_ok' %}
+  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+    Base de datos inicializada correctamente.
+  </div>
+  {% elif msg == 'reset_ok' %}
+  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+    Base de datos reseteada. Redirigiendo al login...
+  </div>
+  {% elif msg == 'confirm_error' %}
+  <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+    Texto de confirmación incorrecto. No se realizó ninguna acción.
+  </div>
+  {% endif %}
+
+  {# Inicializar DB #}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+    <h2 class="text-base font-semibold text-white mb-1">Inicializar base de datos</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      Crea las tablas que no existen. Operación segura — no toca datos existentes.
+    </p>
+    <form method="post" action="/admin/settings/init">
+      <button type="submit"
+        class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+        Inicializar DB
+      </button>
+    </form>
+  </div>
+
+  {# Reset DB #}
+  <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
+    <h2 class="text-base font-semibold text-red-400 mb-1">Resetear base de datos</h2>
+    <p class="text-sm text-gray-500 mb-1">
+      Elimina <strong class="text-gray-300">todos los datos</strong> (sugerencias, comentarios, usuarios, invitaciones, watchlists)
+      y recrea las tablas desde cero.
+    </p>
+    <p class="text-sm text-gray-500 mb-4">
+      Tu cuenta de superadmin se vuelve a crear automáticamente con las mismas credenciales.
+      Todos los demás usuarios perderán el acceso.
+    </p>
+
+    <form method="post" action="/admin/settings/reset" id="reset-form">
+      <label class="block text-sm text-gray-400 mb-1.5" for="confirm-input">
+        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">RESET</code> para confirmar
+      </label>
+      <div class="flex gap-2">
+        <input
+          type="text" id="confirm-input" name="confirm"
+          autocomplete="off" placeholder="RESET"
+          class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm
+                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-40"
+        >
+        <button
+          id="reset-btn"
+          type="submit"
+          disabled
+          class="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg
+                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Resetear todo
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('confirm-input').addEventListener('input', function () {
+  document.getElementById('reset-btn').disabled = this.value !== 'RESET';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block title %}Mi watchlist{% endblock %}
+
+{% block content %}
+
+{# ── Header ── #}
+<div class="flex items-center gap-3 mb-5 flex-wrap">
+  <button onclick="openFilterModal()"
+    class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg transition-colors
+           {% if active_filters %}bg-violet-700 hover:bg-violet-800 text-white{% else %}bg-gray-800 hover:bg-gray-700 text-gray-300{% endif %}">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 8h10M11 12h2M9 16h6"/>
+    </svg>
+    Filtros
+    {% if active_filters %}
+    <span class="bg-white/20 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">{{ active_filters }}</span>
+    {% endif %}
+  </button>
+
+  {% if active_filters or f_sort %}
+  <a href="/watchlist" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
+  {% endif %}
+
+  <span class="text-sm text-gray-600 ml-auto">
+    {{ entries|length }}{% if entries|length != total %}/{{ total }}{% endif %}
+    título{{ 's' if total != 1 else '' }}
+  </span>
+</div>
+
+{# ── Mosaic ── #}
+{% if not entries %}
+<div class="text-center py-24 text-gray-600">
+  {% if active_filters %}
+  <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
+  <a href="/watchlist" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver todos →</a>
+  {% else %}
+  <p class="text-lg text-gray-500">Tu watchlist está vacía.</p>
+  <a href="/feed" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver sugerencias →</a>
+  {% endif %}
+</div>
+
+{% else %}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+  {% for e in entries %}
+  <button type="button" onclick="openWDetail({{ e.suggestion.id }})" class="group block text-left">
+
+    <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
+      {% if e.suggestion.poster_path %}
+      <img src="https://image.tmdb.org/t/p/w342{{ e.suggestion.poster_path }}" alt="{{ e.suggestion.title }}"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+      {% else %}
+      <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
+      {% endif %}
+
+      {# Type badge TL #}
+      <div class="absolute top-2 left-2">
+        {% if e.suggestion.media_type.value == 'movie' %}
+        <span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>
+        {% else %}
+        <span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>
+        {% endif %}
+      </div>
+
+      {# Status badge TR #}
+      {% if e.status.value == 'pending' %}
+      <div class="absolute top-2 right-2 bg-blue-900/80 text-blue-300 text-xs font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm">
+        Por ver
+      </div>
+      {% elif e.rating %}
+      <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
+        {{ e.rating }}/10
+      </div>
+      {% endif %}
+
+      {# Hover overlay #}
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-3">
+        <p class="text-white text-xs leading-snug line-clamp-3">{{ e.suggestion.overview or '' }}</p>
+      </div>
+    </div>
+
+    <div class="mt-2 px-0.5">
+      <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ e.suggestion.title }}</p>
+      <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+        {% if e.suggestion.release_date %}<span class="text-gray-500">{{ e.suggestion.release_date.year }}</span>{% endif %}
+        {% if e.suggestion.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(e.suggestion.tmdb_rating) }}</span>{% endif %}
+      </p>
+      <p class="text-xs text-gray-600 mt-0.5 truncate">{{ e.suggestion.suggester.display_name }}</p>
+    </div>
+
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+
+{# ── Filter Modal ── #}
+<div id="filter-backdrop" onclick="handleFilterBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+
+  <div id="filter-box"
+    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm shadow-2xl
+           max-h-[90vh] flex flex-col overflow-hidden">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800 shrink-0">
+      <h2 class="text-base font-bold text-white">Filtros y orden</h2>
+      <button onclick="closeFilterModal()" class="text-gray-500 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+    </div>
+
+    <form method="get" action="/watchlist" class="overflow-y-auto px-6 py-5 space-y-6">
+
+      {# Estado #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Estado</p>
+        <div class="flex gap-4 flex-wrap">
+          {% for val, label in [('', 'Todos'), ('pending', 'Por ver'), ('watched', 'Ya vi')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="status_filter" value="{{ val }}"
+                   {% if f_status == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Tipo #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Tipo</p>
+        <div class="flex gap-4 flex-wrap">
+          {% for val, label in [('', 'Todos'), ('movie', 'Películas'), ('tv', 'Series')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="media" value="{{ val }}"
+                   {% if f_media == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# Género #}
+      {% if all_genres %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Género</p>
+        <select name="genre"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
+                 focus:outline-none focus:border-violet-500 transition-colors">
+          <option value="">Todos los géneros</option>
+          {% for g in all_genres %}
+          <option value="{{ g }}" {% if f_genre == g %}selected{% endif %}>{{ g }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      {# Recomendado por #}
+      {% if suggesters|length > 1 %}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Recomendado por</p>
+        <select name="by"
+          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
+                 focus:outline-none focus:border-violet-500 transition-colors">
+          <option value="" {% if not f_by %}selected{% endif %}>Todos</option>
+          {% for uid, u in suggesters.items() %}
+          <option value="{{ uid }}" {% if f_by == uid %}selected{% endif %}>{{ u.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      {# Ordenar #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Ordenar por</p>
+        <div class="space-y-2.5">
+          {% for val, label in [('', 'Más recientes'), ('name', 'Nombre A–Z'), ('rating', 'Calificación TMDB')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="sort" value="{{ val }}"
+                   {% if f_sort == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="flex gap-3 pt-1">
+        <button type="submit"
+          class="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors">
+          Aplicar
+        </button>
+        <a href="/watchlist"
+          class="px-5 py-2.5 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700
+                 rounded-lg transition-colors flex items-center">
+          Limpiar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+{# ── Detail Modal ── #}
+<div id="wdetail-backdrop" onclick="handleWDetailBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+
+  <div id="wdetail-box"
+    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-0">
+      <button onclick="closeWDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Mi watchlist</button>
+      <button onclick="closeWDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    </div>
+
+    <div id="wdetail-content" class="p-6"></div>
+  </div>
+</div>
+
+
+{# ── Datos embebidos ── #}
+<script>
+const WENTRIES = {
+  {% for e in entries %}
+  {{ e.suggestion.id }}: {
+    id: {{ e.suggestion.id }},
+    status: {{ e.status.value | tojson }},
+    title: {{ e.suggestion.title | tojson }},
+    poster_path: {{ (e.suggestion.poster_path or '') | tojson }},
+    media_type: {{ e.suggestion.media_type.value | tojson }},
+    year: {{ e.suggestion.release_date.year if e.suggestion.release_date else 'null' }},
+    overview: {{ (e.suggestion.overview or '') | tojson }},
+    genres: {{ e.suggestion.genres_list | tojson }},
+    country: {{ (e.suggestion.origin_country or '') | tojson }},
+    cast: {{ e.suggestion.cast_list | tojson }},
+    providers: {{ e.suggestion.providers_list | tojson }},
+    season_count: {{ e.suggestion.season_count if e.suggestion.season_count else 'null' }},
+    episode_count: {{ e.suggestion.episode_count if e.suggestion.episode_count else 'null' }},
+    tmdb_rating: {{ e.suggestion.tmdb_rating if e.suggestion.tmdb_rating else 'null' }},
+    rating: {{ e.rating if e.rating else 'null' }},
+    watched_on: {{ (e.watched_on or '') | tojson }},
+    suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
+  },
+  {% endfor %}
+};
+</script>
+
+<script>
+/* ── Filter modal ── */
+function openFilterModal() {
+  const el = document.getElementById('filter-backdrop');
+  el.classList.remove('hidden'); el.classList.add('flex');
+}
+function closeFilterModal() {
+  const el = document.getElementById('filter-backdrop');
+  el.classList.add('hidden'); el.classList.remove('flex');
+}
+function handleFilterBackdrop(e) {
+  if (e.target === document.getElementById('filter-backdrop')) closeFilterModal();
+}
+
+/* ── Watchlist detail modal ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _wSelectedRating = null;
+
+function openWDetail(id) {
+  const e = WENTRIES[id];
+  if (!e) return;
+  _wSelectedRating = e.rating;
+  document.getElementById('wdetail-content').innerHTML = buildWDetailHTML(e);
+  document.getElementById('wdetail-backdrop').classList.remove('hidden');
+  document.getElementById('wdetail-backdrop').classList.add('flex');
+}
+
+function closeWDetail() {
+  document.getElementById('wdetail-backdrop').classList.add('hidden');
+  document.getElementById('wdetail-backdrop').classList.remove('flex');
+}
+
+function handleWDetailBackdrop(ev) {
+  if (ev.target === document.getElementById('wdetail-backdrop')) closeWDetail();
+}
+
+function buildWDetailHTML(e) {
+  const posterUrl = e.poster_path ? `https://image.tmdb.org/t/p/w342${e.poster_path}` : null;
+
+  const typeBadge = e.media_type === 'movie'
+    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
+    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+
+  const ratingBtns = Array.from({length:10}, (_,i) => {
+    const n = i+1;
+    const active = e.rating === n;
+    return `<button type="button" onclick="selectWRating(${e.id},${n})"
+      id="wrbtn-${e.id}-${n}"
+      class="w-8 h-8 text-xs font-semibold rounded-lg transition-colors
+             ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
+  }).join('');
+
+  const ratingSection = e.status === 'watched' ? `
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+        Tu calificación
+        <span id="wrating-label-${e.id}" class="text-yellow-400 font-semibold normal-case ml-1">
+          ${e.rating ? e.rating + '/10' : ''}
+        </span>
+      </p>
+      <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
+      <div class="flex gap-2 mb-3">
+        <input type="text" id="wwatched-on-${e.id}" value="${esc(e.watched_on)}"
+          placeholder="¿Dónde la viste? Netflix, cine…" maxlength="100"
+          class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors">
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="saveWRating(${e.id})"
+          class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+          Guardar
+        </button>
+        <span id="wsave-ok-${e.id}" class="text-xs text-green-400 hidden">Guardado ✓</span>
+      </div>
+    </div>` : `
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <button onclick="markWatched(${e.id})"
+        class="w-full bg-green-900/40 hover:bg-green-900/70 text-green-400 border border-green-900
+               text-sm font-medium py-2.5 rounded-lg transition-colors">
+        Marcar vista
+      </button>
+    </div>`;
+
+  return `
+    <div class="flex gap-5">
+      <div class="shrink-0">
+        ${posterUrl
+          ? `<img src="${posterUrl}" alt="${esc(e.title)}" class="w-28 rounded-xl shadow-2xl object-cover">`
+          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            ${typeBadge}
+            ${e.year ? `<span class="text-xs text-gray-500">${e.year}</span>` : ''}
+            ${e.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${e.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-semibold text-white">${esc(e.suggester_name)}</p>
+          </div>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(e.title)}</h2>
+        ${e.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(e.overview)}</p>` : ''}
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+      <div class="flex flex-wrap gap-2">
+        ${e.providers && e.providers.length
+          ? e.providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
+          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+        }
+      </div>
+    </div>
+
+    ${ratingSection}
+
+    <div class="mt-4 pt-3 border-t border-gray-800 flex justify-between items-center">
+      <a href="/suggestions/${e.id}?back=watchlist" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Ver detalle completo →</a>
+      <button onclick="removeFromWatchlist(${e.id}, '${e.status}')"
+        class="text-xs text-red-700 hover:text-red-400 transition-colors">
+        Quitar de watchlist
+      </button>
+    </div>`;
+}
+
+function selectWRating(id, n) {
+  _wSelectedRating = n;
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`wrbtn-${id}-${i}`);
+    if (!btn) continue;
+    btn.classList.toggle('bg-yellow-500', i === n);
+    btn.classList.toggle('text-black',    i === n);
+    btn.classList.toggle('bg-gray-800',   i !== n);
+    btn.classList.toggle('text-gray-400', i !== n);
+  }
+  const label = document.getElementById(`wrating-label-${id}`);
+  if (label) label.textContent = n + '/10';
+  const ok = document.getElementById(`wsave-ok-${id}`);
+  if (ok) ok.classList.add('hidden');
+}
+
+async function saveWRating(id) {
+  const n = _wSelectedRating;
+  const watchedOn = document.getElementById(`wwatched-on-${id}`)?.value || '';
+  const fd = new FormData();
+  fd.append('rating', n || 0);
+  fd.append('watched_on', watchedOn);
+  try {
+    await fetch(`/watchlist/${id}/rate`, { method: 'POST', body: fd });
+    WENTRIES[id].rating = n;
+    WENTRIES[id].watched_on = watchedOn;
+    const ok = document.getElementById(`wsave-ok-${id}`);
+    if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 2000); }
+  } catch(e) {}
+}
+
+async function markWatched(id) {
+  const fd = new FormData();
+  fd.append('status', 'watched');
+  try {
+    await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
+  } catch(e) {}
+  location.reload();
+}
+
+async function removeFromWatchlist(id, status) {
+  const fd = new FormData();
+  fd.append('status', status);
+  try {
+    await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
+  } catch(e) {}
+  location.reload();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeWDetail(); closeFilterModal(); }
+});
+</script>
+
+{% endblock %}

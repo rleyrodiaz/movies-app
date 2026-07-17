@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Activity log — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Activity log</h1>
+      <p class="text-gray-500 text-sm mt-0.5">Últimas {{ entries|length }} acciones del sistema.</p>
+    </div>
+  </div>
+
+  {% if not entries %}
+  <div class="text-center py-16 text-gray-600">
+    <p>Todavía no hay actividad registrada.</p>
+  </div>
+
+  {% else %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-800 text-left text-xs text-gray-500 uppercase tracking-wide">
+            <th class="px-4 py-3 font-medium">Fecha/Hora</th>
+            <th class="px-4 py-3 font-medium">Usuario</th>
+            <th class="px-4 py-3 font-medium">Acción</th>
+            <th class="px-4 py-3 font-medium">Target</th>
+            <th class="px-4 py-3 font-medium">Detalle</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800/60">
+          {% for entry in entries %}
+          <tr class="hover:bg-gray-800/40 transition-colors">
+
+            <td class="px-4 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">
+              {{ entry.created_at.strftime('%d/%m/%Y') }}<br>
+              <span class="text-gray-700">{{ entry.created_at.strftime('%H:%M:%S') }}</span>
+            </td>
+
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% if entry.user %}
+              <span class="text-gray-300">{{ entry.user.display_name }}</span>
+              <span class="block text-xs text-gray-600">{{ entry.user.role.value }}</span>
+              {% else %}
+              <span class="text-gray-600 italic">Sistema</span>
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% set label = action_labels.get(entry.action.value, entry.action.value) %}
+              {% if entry.action.value in ['db_reset'] %}
+              <span class="text-xs bg-red-900/50 text-red-400 border border-red-900 px-2 py-0.5 rounded-full">
+                {{ label }}
+              </span>
+              {% elif entry.action.value in ['db_initialized'] %}
+              <span class="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-900 px-2 py-0.5 rounded-full">
+                {{ label }}
+              </span>
+              {% elif entry.action.value in ['user_registered', 'invitation_used'] %}
+              <span class="text-xs bg-green-900/50 text-green-400 border border-green-900 px-2 py-0.5 rounded-full">
+                {{ label }}
+              </span>
+              {% else %}
+              <span class="text-gray-400 text-xs">{{ label }}</span>
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">
+              {% if entry.target_type %}
+              {{ entry.target_type }}
+              {% if entry.target_id %}#{{ entry.target_id }}{% endif %}
+              {% else %}
+              —
+              {% endif %}
+            </td>
+
+            <td class="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">
+              {{ entry.detail or '—' }}
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

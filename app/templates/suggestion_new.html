@@ -1,0 +1,667 @@
+{% extends "base.html" %}
+{% block title %}Mis sugerencias{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-white">Mis sugerencias</h1>
+  <button onclick="openAddModal()"
+     class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+    + Nueva sugerencia
+  </button>
+</div>
+
+{% if not suggestions %}
+<div class="text-center py-20 text-gray-600">
+  <p class="text-lg text-gray-500">Todavía no sugeriste nada.</p>
+  <p class="text-sm mt-1">Cuando sugerís una película o serie aparece acá con tu calificación.</p>
+  <button onclick="openAddModal()" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">
+    Hacer tu primera sugerencia →
+  </button>
+</div>
+
+{% else %}
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+  {% for s in suggestions %}
+  {% set entry = rating_map.get(s.id) %}
+  <button type="button" onclick="openDetail({{ s.id }})" class="group block text-left">
+    <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
+      {% if s.poster_path %}
+      <img src="https://image.tmdb.org/t/p/w342{{ s.poster_path }}" alt="{{ s.title }}"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+      {% else %}
+      <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
+      {% endif %}
+
+      {% if entry and entry.rating %}
+      <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full backdrop-blur-sm rating-badge-{{ s.id }}">
+        {{ entry.rating }}/10
+      </div>
+      {% endif %}
+
+      <div class="absolute top-2 left-2">
+        {% if s.media_type.value == 'movie' %}
+        <span class="text-xs bg-blue-900/80 text-blue-300 px-2 py-0.5 rounded-full backdrop-blur-sm">Película</span>
+        {% else %}
+        <span class="text-xs bg-violet-900/80 text-violet-300 px-2 py-0.5 rounded-full backdrop-blur-sm">Serie</span>
+        {% endif %}
+      </div>
+
+      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+        <p class="text-white text-xs leading-snug line-clamp-3">{{ s.overview or '' }}</p>
+      </div>
+    </div>
+    <div class="mt-2 px-0.5">
+      <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors">{{ s.title }}</p>
+      <p class="text-gray-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+        {% if s.release_date %}<span>{{ s.release_date.year }}</span>{% endif %}
+        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }}</span>{% endif %}
+      </p>
+    </div>
+  </button>
+  {% endfor %}
+</div>
+{% endif %}
+
+
+{# ── MODAL: CONFIRMAR BORRADO ── #}
+<div id="confirm-delete-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+    <h3 class="text-white font-semibold text-base mb-2">¿Borrar sugerencia?</h3>
+    <p class="text-gray-400 text-sm mb-6">Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="closeConfirmDelete()"
+        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+        Cancelar
+      </button>
+      <button id="confirm-delete-btn"
+        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
+        Borrar
+      </button>
+    </div>
+  </div>
+</div>
+
+{# ── MODAL: DETALLE ── #}
+<div id="detail-backdrop"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)"
+     onclick="handleDetailBackdrop(event)">
+
+  <div id="detail-box"
+       class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-0">
+      <button onclick="closeDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver a + Sugerir</button>
+      <button onclick="closeDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    </div>
+
+    <div id="detail-content" class="p-6"></div>
+  </div>
+</div>
+
+
+{# ── MODAL: NUEVA SUGERENCIA ── #}
+<div id="add-backdrop"
+     class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)"
+     onclick="handleAddBackdrop(event)">
+
+  <div id="add-box"
+       class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800">
+      <h2 class="text-lg font-bold text-white">Nueva sugerencia</h2>
+      <button onclick="closeAddModal()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    </div>
+
+    <div class="px-6 py-5 space-y-4">
+      <div class="relative">
+        <input id="search-input" type="text" placeholder="Buscá por título..."
+          autocomplete="off"
+          class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <div id="search-spinner" class="hidden absolute right-3 top-3.5">
+          <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+        </div>
+      </div>
+
+      <div id="search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+
+      <div id="confirm-section" class="hidden space-y-4">
+        <div id="preview"></div>
+
+        <div>
+          <p class="text-sm text-gray-400 mb-2 font-medium">
+            Tu calificación <span class="text-red-500">*</span>
+            <span id="rating-label" class="text-yellow-400 ml-1 font-semibold"></span>
+          </p>
+          <div class="flex items-center gap-1 flex-wrap">
+            {% for i in range(1, 11) %}
+            <button type="button" data-val="{{ i }}" onclick="setAddRating({{ i }})"
+              class="add-rating-btn w-9 h-9 text-sm font-semibold rounded-lg transition-colors bg-gray-700 hover:bg-gray-600 text-gray-400">
+              {{ i }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <p class="text-sm text-gray-400 mb-2 font-medium">
+            Comentario <span class="text-gray-600 font-normal">(opcional)</span>
+          </p>
+          <textarea id="comment-input" rows="2" placeholder="¿Por qué la recomendás?..."
+            class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white
+                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                   transition-colors resize-none"></textarea>
+        </div>
+
+        <form id="suggest-form" method="post" action="/suggestions">
+          <input type="hidden" id="f_tmdb_id"      name="tmdb_id">
+          <input type="hidden" id="f_media_type"   name="media_type">
+          <input type="hidden" id="f_title"        name="title">
+          <input type="hidden" id="f_poster_path"  name="poster_path">
+          <input type="hidden" id="f_overview"     name="overview">
+          <input type="hidden" id="f_release_date" name="release_date">
+          <input type="hidden" id="f_rating"       name="rating" value="0">
+          <input type="hidden" id="f_comment"      name="comment_body" value="">
+          <button id="submit-btn" type="submit" disabled
+            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 rounded-xl
+                   transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            Sugerir
+          </button>
+          <p id="rating-warning" class="text-red-400 text-xs text-center mt-2 hidden">
+            Elegí una calificación antes de sugerir.
+          </p>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{# ── Datos embebidos ── #}
+<script>
+const SUGGESTER_NAME = {{ user.display_name | tojson }};
+const SUGGESTIONS = {
+  {% for s in suggestions %}
+  {% set entry = rating_map.get(s.id) %}
+  {{ s.id }}: {
+    id: {{ s.id }},
+    title: {{ s.title | tojson }},
+    poster_path: {{ (s.poster_path or '') | tojson }},
+    media_type: {{ s.media_type.value | tojson }},
+    year: {{ s.release_date.year if s.release_date else 'null' }},
+    overview: {{ (s.overview or '') | tojson }},
+    genres: {{ s.genres_list | tojson }},
+    country: {{ (s.origin_country or '') | tojson }},
+    cast: {{ s.cast_list | tojson }},
+    providers: {{ s.providers_list | tojson }},
+    episode_count: {{ s.episode_count if s.episode_count else 'null' }},
+    season_count: {{ s.season_count if s.season_count else 'null' }},
+    tmdb_rating: {{ s.tmdb_rating if s.tmdb_rating else 'null' }},
+    rating: {{ entry.rating if entry and entry.rating else 'null' }},
+    can_delete: {{ 'true' if can_delete_map.get(s.id) else 'false' }},
+    comments: [{% for c in s.comments | sort(attribute='created_at') %}{ id:{{ c.id }}, user:{{ c.user.display_name | tojson }}, body:{{ c.body | tojson }}, date:{{ c.created_at.strftime('%d/%m/%Y %H:%M') | tojson }} },{% endfor %}],
+  },
+  {% endfor %}
+};
+</script>
+
+
+<script>
+/* ── DETAIL MODAL ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function openDetail(id) {
+  const s = SUGGESTIONS[id];
+  if (!s) return;
+
+  const posterUrl = s.poster_path
+    ? `https://image.tmdb.org/t/p/w342${s.poster_path}`
+    : null;
+
+  const typeBadge = s.media_type === 'movie'
+    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
+    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+
+  const ratingBtns = Array.from({length:10}, (_,i) => {
+    const n = i+1;
+    const active = s.rating === n;
+    return `<button type="button" onclick="updateDetailRating(${id},${n})"
+      id="drbtn-${id}-${n}"
+      class="detail-rb w-8 h-8 text-xs font-semibold rounded-lg transition-colors
+             ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
+  }).join('');
+
+  const providersHtml = `<div class="border-t border-gray-800 pt-4 mt-4">
+    <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+    <div class="flex flex-wrap gap-2">
+      ${s.providers.length
+        ? s.providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
+        : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+      }
+    </div>
+  </div>`;
+
+  const metaItems = [];
+  if (s.year)          metaItems.push(['Año', s.year]);
+  if (s.genres.length) metaItems.push(['Género', s.genres.join(', ')]);
+  if (s.country)       metaItems.push(['País', s.country]);
+  if (s.media_type === 'tv' && s.season_count)   metaItems.push(['Temporadas', s.season_count]);
+  if (s.media_type === 'tv' && s.episode_count)  metaItems.push(['Episodios', s.episode_count]);
+
+  const metaHtml = metaItems.length
+    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+         ${metaItems.map(([k,v]) => `
+           <div>
+             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
+             <p class="text-gray-300">${esc(String(v))}</p>
+           </div>`).join('')}
+         ${s.cast.length ? `<div class="col-span-2">
+           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
+           <p class="text-gray-300">${esc(s.cast.join(' · '))}</p>
+         </div>` : ''}
+       </div>`
+    : '';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="flex gap-5">
+      <div class="shrink-0">
+        ${posterUrl
+          ? `<img src="${posterUrl}" alt="${esc(s.title)}" class="w-28 rounded-xl shadow-2xl" style="object-fit:cover">`
+          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div id="detail-badges-${id}" class="flex items-center gap-2 flex-wrap">
+            ${typeBadge}
+            ${s.year ? `<span class="text-xs text-gray-500">${s.year}</span>` : ''}
+            ${s.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${s.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
+            ${s.rating ? `<span id="detail-pr-${id}" class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full">&#9733; ${s.rating}/10</span>` : ''}
+          </div>
+          <div class="text-right shrink-0">
+            <p class="text-sm font-semibold text-white">${esc(SUGGESTER_NAME)}</p>
+          </div>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(s.title)}</h2>
+        ${s.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(s.overview)}</p>` : ''}
+      </div>
+    </div>
+
+    ${metaHtml}
+    ${providersHtml}
+
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Comentarios</p>
+      <div id="detail-comments-${id}" class="space-y-3 mb-3">
+        ${s.comments.length
+          ? s.comments.map(c => `
+            <div class="bg-gray-800/60 rounded-xl px-4 py-3">
+              <div class="flex justify-between items-baseline gap-2 mb-1">
+                <span class="text-sm font-medium text-gray-300">${esc(c.user)}</span>
+                <span class="text-xs text-gray-600">${esc(c.date)}</span>
+              </div>
+              <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(c.body)}</p>
+            </div>`).join('')
+          : `<p class="text-sm text-gray-600">Sin comentarios todavía.</p>`
+        }
+      </div>
+      <div class="flex gap-2 items-end">
+        <textarea id="detail-comment-input-${id}" rows="2" placeholder="Escribí un comentario..."
+          class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors resize-none"></textarea>
+        <button onclick="submitDetailComment(${id})"
+          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shrink-0">
+          Comentar
+        </button>
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">
+        Tu calificación
+        <span id="detail-rating-label" class="text-yellow-400 font-semibold normal-case ml-1">
+          ${s.rating ? s.rating + '/10' : ''}
+        </span>
+      </p>
+      <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button onclick="saveDetailRating(${s.id})"
+          class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+          Guardar calificación
+        </button>
+        <span id="detail-save-ok" class="text-xs text-green-400 hidden">Guardado ✓</span>
+        ${s.can_delete
+          ? `<button onclick="deleteDetail(${s.id})"
+               class="ml-auto text-xs text-red-700 hover:text-red-400 transition-colors">
+               Borrar sugerencia
+             </button>`
+          : `<span class="ml-auto text-xs text-gray-700 cursor-not-allowed select-none"
+                  title="No se puede borrar: alguien la tiene en su watchlist">
+               Borrar sugerencia
+             </span>`
+        }
+      </div>
+    </div>
+  `;
+
+  document.getElementById('detail-backdrop').classList.remove('hidden');
+  document.getElementById('detail-backdrop').classList.add('flex');
+}
+
+function closeDetail() {
+  document.getElementById('detail-backdrop').classList.add('hidden');
+  document.getElementById('detail-backdrop').classList.remove('flex');
+}
+
+function handleDetailBackdrop(e) {
+  if (e.target === document.getElementById('detail-backdrop')) closeDetail();
+}
+
+let _detailSelectedRating = null;
+let _detailCurrentId = null;
+
+function updateDetailRating(suggestionId, n) {
+  _detailSelectedRating = n;
+  _detailCurrentId = suggestionId;
+
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`drbtn-${suggestionId}-${i}`);
+    if (!btn) continue;
+    const active = i === n;
+    btn.classList.toggle('bg-yellow-500', active);
+    btn.classList.toggle('text-black',    active);
+    btn.classList.toggle('bg-gray-800',   !active);
+    btn.classList.toggle('text-gray-400', !active);
+  }
+  const label = document.getElementById('detail-rating-label');
+  if (label) label.textContent = n + '/10';
+
+  const ok = document.getElementById('detail-save-ok');
+  if (ok) ok.classList.add('hidden');
+}
+
+async function saveDetailRating(suggestionId) {
+  const n = _detailSelectedRating;
+  if (!n) return;
+
+  const fd = new FormData();
+  fd.append('rating', n);
+  fd.append('watched_on', '');
+  try {
+    await fetch(`/watchlist/${suggestionId}/rate`, { method:'POST', body:fd });
+  } catch(e) {}
+
+  SUGGESTIONS[suggestionId].rating = n;
+  SUGGESTIONS[suggestionId]._needsReload = true;
+
+  // Update the personal rating badge inside the modal
+  let prBadge = document.getElementById(`detail-pr-${suggestionId}`);
+  if (prBadge) {
+    prBadge.textContent = `★ ${n}/10`;
+  } else {
+    const badgesDiv = document.getElementById(`detail-badges-${suggestionId}`);
+    if (badgesDiv) {
+      const span = document.createElement('span');
+      span.id = `detail-pr-${suggestionId}`;
+      span.className = 'text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full';
+      span.textContent = `★ ${n}/10`;
+      badgesDiv.appendChild(span);
+    }
+  }
+
+  const ok = document.getElementById('detail-save-ok');
+  if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 1500); }
+}
+
+async function submitDetailComment(suggestionId) {
+  const textarea = document.getElementById(`detail-comment-input-${suggestionId}`);
+  const body = textarea.value.trim();
+  if (!body) return;
+  const fd = new FormData();
+  fd.append('body', body);
+  try {
+    await fetch(`/suggestions/${suggestionId}/comments`, { method: 'POST', body: fd });
+    const list = document.getElementById(`detail-comments-${suggestionId}`);
+    const noMsg = list.querySelector('p.text-gray-600');
+    if (noMsg) noMsg.remove();
+    const div = document.createElement('div');
+    div.className = 'bg-gray-800/60 rounded-xl px-4 py-3';
+    div.innerHTML = `<div class="flex justify-between items-baseline gap-2 mb-1">
+      <span class="text-sm font-medium text-gray-300">${esc(SUGGESTER_NAME)}</span>
+      <span class="text-xs text-gray-600">ahora</span>
+    </div>
+    <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(body)}</p>`;
+    list.appendChild(div);
+    textarea.value = '';
+    SUGGESTIONS[suggestionId]._needsReload = true;
+  } catch(e) {}
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeConfirmDelete();
+    closeDetail();
+    closeAddModal();
+  }
+});
+
+function deleteDetail(suggestionId) {
+  const backdrop = document.getElementById('confirm-delete-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+
+  const btn = document.getElementById('confirm-delete-btn');
+  btn.onclick = async () => {
+    try {
+      await fetch(`/suggestions/${suggestionId}/delete`, { method:'POST', body:new FormData() });
+    } catch(e) {}
+    location.reload();
+  };
+}
+
+function closeConfirmDelete() {
+  const backdrop = document.getElementById('confirm-delete-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
+}
+
+// Reload if rating was set for the first time (badge needs to appear)
+document.getElementById('detail-backdrop').addEventListener('hidden', () => {});
+const origClose = window.closeDetail;
+window.closeDetail = function() {
+  const open = Object.values(SUGGESTIONS).find(s => s._needsReload);
+  origClose();
+  if (open) location.reload();
+};
+
+
+/* ── ADD MODAL ── */
+window.openAddModal = function () {
+  document.getElementById('add-backdrop').classList.remove('hidden');
+  document.getElementById('add-backdrop').classList.add('flex');
+  setTimeout(() => document.getElementById('search-input').focus(), 50);
+};
+
+window.closeAddModal = function () {
+  document.getElementById('add-backdrop').classList.add('hidden');
+  document.getElementById('add-backdrop').classList.remove('flex');
+  resetAddForm();
+};
+
+window.handleAddBackdrop = function (e) {
+  if (e.target === document.getElementById('add-backdrop')) closeAddModal();
+};
+
+(function () {
+  const searchInput    = document.getElementById('search-input');
+  const resultsBox     = document.getElementById('search-results');
+  const spinner        = document.getElementById('search-spinner');
+  const confirmSection = document.getElementById('confirm-section');
+  const preview        = document.getElementById('preview');
+  const submitBtn      = document.getElementById('submit-btn');
+  const ratingWarning  = document.getElementById('rating-warning');
+  const ratingLabel    = document.getElementById('rating-label');
+
+  let debounceTimer = null;
+  let cachedResults = [];
+  let selectedRating = 0;
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q), 400);
+  });
+
+  async function doSearch(q) {
+    spinner.classList.remove('hidden');
+    try {
+      const resp = await fetch('/suggestions/search?q=' + encodeURIComponent(q));
+      if (resp.status === 401) { window.location = '/login'; return; }
+      cachedResults = await resp.json();
+      renderResults(cachedResults);
+    } catch { hideResults(); }
+    finally { spinner.classList.add('hidden'); }
+  }
+
+  function renderResults(items) {
+    if (!items.length) {
+      resultsBox.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Sin resultados.</p>';
+      resultsBox.classList.remove('hidden');
+      return;
+    }
+    resultsBox.innerHTML = items.map((item, i) => {
+      const already = item.already_suggested;
+      return `
+        <button type="button" data-idx="${i}"
+          class="result-item flex items-center gap-3 w-full text-left px-4 py-3
+                 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0">
+          ${item.poster_url_sm
+            ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 rounded object-cover" style="height:52px">`
+            : `<div class="w-9 shrink-0 flex items-center justify-center text-gray-600" style="height:52px">🎬</div>`}
+          <div class="flex-1 min-w-0">
+            <p class="text-white text-sm font-medium truncate">${esc(item.title)}</p>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span class="text-gray-500 text-xs">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
+              ${already ? `<span class="text-xs text-yellow-500 font-medium">Ya sugerida por ${esc(item.suggested_by_name)}</span>` : ''}
+            </div>
+          </div>
+          ${already ? '<span class="text-gray-600 text-xs shrink-0">Ver →</span>' : ''}
+        </button>`;
+    }).join('');
+    resultsBox.classList.remove('hidden');
+
+    resultsBox.querySelectorAll('.result-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = cachedResults[parseInt(btn.dataset.idx)];
+        if (item.already_suggested) {
+          window.location = '/suggestions/' + item.existing_id;
+        } else {
+          selectItem(item);
+        }
+      });
+    });
+  }
+
+  function selectItem(item) {
+    hideResults();
+    searchInput.value = item.title;
+    resetRating();
+    document.getElementById('f_tmdb_id').value      = item.tmdb_id;
+    document.getElementById('f_media_type').value   = item.media_type;
+    document.getElementById('f_title').value        = item.title;
+    document.getElementById('f_poster_path').value  = item.poster_path || '';
+    document.getElementById('f_overview').value     = item.overview || '';
+    document.getElementById('f_release_date').value = item.release_date || '';
+
+    const year = item.release_date ? item.release_date.slice(0,4) : '';
+    const typeBadge = item.media_type === 'movie'
+      ? '<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>'
+      : '<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>';
+
+    preview.innerHTML = `
+      <div class="flex items-start gap-3 bg-gray-800 border border-violet-800 rounded-xl p-3">
+        ${item.poster_url_sm
+          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-14 rounded-lg shrink-0 object-cover" style="height:84px">`
+          : `<div class="w-14 shrink-0 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500" style="height:84px">🎬</div>`}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            ${typeBadge}
+            ${year ? `<span class="text-xs text-gray-500">${esc(year)}</span>` : ''}
+            ${item.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${item.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
+          </div>
+          <p class="text-white font-semibold text-sm mb-1">${esc(item.title)}</p>
+          ${item.overview ? `<p class="text-gray-400 text-xs leading-relaxed line-clamp-2">${esc(item.overview)}</p>` : ''}
+        </div>
+      </div>`;
+    confirmSection.classList.remove('hidden');
+  }
+
+  window.setAddRating = function (n) {
+    selectedRating = n;
+    document.getElementById('f_rating').value = n;
+    ratingLabel.textContent = n + '/10';
+    document.querySelectorAll('.add-rating-btn').forEach(btn => {
+      const v = parseInt(btn.dataset.val);
+      btn.classList.toggle('bg-yellow-500', v === n);
+      btn.classList.toggle('text-black',    v === n);
+      btn.classList.toggle('bg-gray-700',   v !== n);
+      btn.classList.toggle('text-gray-400', v !== n);
+    });
+    ratingWarning.classList.add('hidden');
+    submitBtn.disabled = false;
+  };
+
+  function resetRating() {
+    selectedRating = 0;
+    document.getElementById('f_rating').value = 0;
+    ratingLabel.textContent = '';
+    document.querySelectorAll('.add-rating-btn').forEach(btn => {
+      btn.classList.remove('bg-yellow-500','text-black');
+      btn.classList.add('bg-gray-700','text-gray-400');
+    });
+    submitBtn.disabled = true;
+  }
+
+  window.resetAddForm = function () {
+    searchInput.value = '';
+    hideResults();
+    confirmSection.classList.add('hidden');
+    preview.innerHTML = '';
+    document.getElementById('comment-input').value = '';
+    document.getElementById('f_tmdb_id').value = '';
+    resetRating();
+  };
+
+  document.getElementById('suggest-form').addEventListener('submit', function (e) {
+    document.getElementById('f_comment').value = document.getElementById('comment-input').value;
+    if (selectedRating < 1) {
+      e.preventDefault();
+      ratingWarning.classList.remove('hidden');
+    }
+  });
+
+  searchInput.addEventListener('keydown', () => {
+    if (!confirmSection.classList.contains('hidden')) {
+      confirmSection.classList.add('hidden');
+      preview.innerHTML = '';
+      document.getElementById('f_tmdb_id').value = '';
+      resetRating();
+    }
+  });
+
+  function hideResults() {
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+  }
+})();
+</script>
+
+{% endblock %}
