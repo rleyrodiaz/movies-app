@@ -41,7 +41,6 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for s in suggestions %}
-  {% set entry = watchlist_map.get(s.id) %}
   <a href="/suggestions/{{ s.id }}" class="group block">
 
     {# Poster #}
@@ -62,10 +61,11 @@
         {% endif %}
       </div>
 
-      {# User rating badge — top right #}
-      {% if entry and entry.rating %}
-      <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm">
-        {{ entry.rating }}/10
+      {# Average user rating badge — top right #}
+      {% if s.avg_rating %}
+      <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm"
+           title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
+        {{ s.avg_rating }}/10
       </div>
       {% endif %}
 
@@ -81,7 +81,7 @@
       <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ s.title }}</p>
       <div class="flex items-center gap-1 text-xs mt-0.5 flex-wrap">
         {% if s.release_date %}<span class="text-gray-500">{{ s.release_date.year }}</span>{% endif %}
-        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }}</span>{% endif %}
+        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
       </div>
       <p class="text-xs text-gray-600 mt-0.5 truncate">{{ s.suggester.display_name }}</p>
     </div>
@@ -108,6 +108,21 @@
 
     {# Scrollable form body #}
     <form method="get" action="/feed" class="overflow-y-auto px-6 py-5 space-y-6">
+
+      {# Visto #}
+      <div>
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Visto</p>
+        <div class="flex gap-4 flex-wrap">
+          {% for val, label in [('', 'Todos'), ('pending', 'No vistas'), ('watched', 'Ya vistas')] %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="status_filter" value="{{ val }}"
+                   {% if f_status == val %}checked{% endif %}
+                   class="accent-violet-500 w-4 h-4">
+            <span class="text-sm text-gray-300">{{ label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
 
       {# Tipo #}
       <div>

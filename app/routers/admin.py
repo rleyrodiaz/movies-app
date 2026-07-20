@@ -5,19 +5,53 @@ from urllib.parse import quote_plus
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, text
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session, joinedload
 
 from app.config import get_settings
 from app.db import Base, engine, get_db_dep
 from app.models.activity_log import ActivityAction, ActivityLog
+from app.models.comment import Comment
 from app.models.invitation import Invitation
+from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
+from app.models.watchlist import WatchlistEntry
 from app.services.activity_log import log_activity
 from app.services.auth import clear_session, require_admin, require_superadmin
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="app/templates")
+
+# Tablas que se pueden regenerar selectivamente desde Settings.
+# El orden de borrado (hijos antes que padres) se define aparte en RESET_DELETE_ORDER.
+RESET_TABLES = {
+    "suggestions": {
+        "label": "Sugerencias",
+        "model": Suggestion,
+        "desc": "Elimina todas las sugerencias. También borra sus comentarios y entradas de watchlist asociadas.",
+    },
+    "comments": {
+        "label": "Comentarios",
+        "model": Comment,
+        "desc": "Elimina todos los comentarios, sin tocar las sugerencias.",
+    },
+    "watchlist": {
+        "label": "Watchlist",
+        "model": WatchlistEntry,
+        "desc": "Elimina las entradas de watchlist y calificaciones de todos los usuarios.",
+    },
+    "invitations": {
+        "label": "Invitaciones",
+        "model": Invitation,
+        "desc": "Elimina todas las invitaciones, usadas y pendientes.",
+    },
+    "activity_log": {
+        "label": "Activity log",
+        "model": ActivityLog,
+        "desc": "Borra el historial completo de actividad.",
+    },
+}
+RESET_DELETE_ORDER = ["watchlist", "comments", "suggestions", "invitations", "activity_log"]
 
 
 @router.get("/invitations", response_class=HTMLResponse)
@@ -130,11 +164,20 @@ def activity_log_page(
 def settings_page(
     request: Request,
     current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
     msg: str = "",
 ):
+    stats = {key: db.scalar(select(func.count()).select_from(cfg["model"])) for key, cfg in RESET_TABLES.items()}
+    stats["users"] = db.scalar(select(func.count()).select_from(User))
     return templates.TemplateResponse(
         "admin_settings.html",
-        {"request": request, "user": current_user, "msg": msg},
+        {
+            "request": request,
+            "user": current_user,
+            "msg": msg,
+            "reset_tables": RESET_TABLES,
+            "stats": stats,
+        },
     )
 
 
@@ -146,6 +189,31 @@ def settings_init(
     Base.metadata.create_all(bind=engine)
     log_activity(db, ActivityAction.db_initialized, user_id=current_user.id)
     return RedirectResponse("/admin/settings?msg=init_ok", status_code=303)
+
+
+@router.post("/settings/reset-tables")
+def settings_reset_tables(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    confirm: str = Form(""),
+    tables: list[str] = Form(default=[]),
+):
+    if confirm.strip() != "RESET":
+        return RedirectResponse("/admin/settings?msg=confirm_error", status_code=303)
+
+    selected = [key for key in RESET_DELETE_ORDER if key in tables and key in RESET_TABLES]
+    if not selected:
+        return RedirectResponse("/admin/settings?msg=no_selection", status_code=303)
+
+    for key in selected:
+        db.execute(delete(RESET_TABLES[key]["model"]))
+
+    log_activity(
+        db, ActivityAction.db_reset,
+        user_id=current_user.id,
+        detail={"tables": selected},
+    )
+    return RedirectResponse("/admin/settings?msg=reset_tables_ok", status_code=303)
 
 
 @router.post("/settings/reset")

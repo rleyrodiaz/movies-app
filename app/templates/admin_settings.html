@@ -19,6 +19,14 @@
   <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
     Texto de confirmación incorrecto. No se realizó ninguna acción.
   </div>
+  {% elif msg == 'reset_tables_ok' %}
+  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+    Tablas seleccionadas regeneradas correctamente.
+  </div>
+  {% elif msg == 'no_selection' %}
+  <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+    No seleccionaste ninguna tabla. No se realizó ninguna acción.
+  </div>
   {% endif %}
 
   {# Inicializar DB #}
@@ -35,11 +43,58 @@
     </form>
   </div>
 
+  {# Reset selectivo por tabla #}
+  <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
+    <h2 class="text-base font-semibold text-red-400 mb-1">Regenerar tablas específicas</h2>
+    <p class="text-sm text-gray-500 mb-4">
+      Elegí qué datos borrar. Usuarios y el resto de las tablas no seleccionadas quedan intactos.
+    </p>
+
+    <form method="post" action="/admin/settings/reset-tables" id="reset-tables-form">
+      <div class="space-y-3 mb-5">
+        {% for key, cfg in reset_tables.items() %}
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="tables" value="{{ key }}"
+            class="reset-table-chk mt-1 accent-red-600 w-4 h-4 shrink-0">
+          <div>
+            <div class="text-sm font-medium text-gray-200">
+              {{ cfg.label }}
+              <span class="text-gray-600 font-normal">({{ stats.get(key, 0) }})</span>
+            </div>
+            <div class="text-xs text-gray-500">{{ cfg.desc }}</div>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+
+      <label class="block text-sm text-gray-400 mb-1.5" for="confirm-tables-input">
+        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">RESET</code> para confirmar
+      </label>
+      <div class="flex gap-2">
+        <input
+          type="text" id="confirm-tables-input" name="confirm"
+          autocomplete="off" placeholder="RESET"
+          class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm
+                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-40"
+        >
+        <button
+          id="reset-tables-btn"
+          type="submit"
+          disabled
+          class="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg
+                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Regenerar seleccionadas
+        </button>
+      </div>
+    </form>
+  </div>
+
   {# Reset DB #}
   <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
-    <h2 class="text-base font-semibold text-red-400 mb-1">Resetear base de datos</h2>
+    <h2 class="text-base font-semibold text-red-400 mb-1">Resetear todo (incluye usuarios)</h2>
     <p class="text-sm text-gray-500 mb-1">
-      Elimina <strong class="text-gray-300">todos los datos</strong> (sugerencias, comentarios, usuarios, invitaciones, watchlists)
+      Elimina <strong class="text-gray-300">todos los datos</strong> (sugerencias, comentarios, usuarios ({{ stats.get('users', 0) }}), invitaciones, watchlists)
       y recrea las tablas desde cero.
     </p>
     <p class="text-sm text-gray-500 mb-4">
@@ -77,5 +132,13 @@
 document.getElementById('confirm-input').addEventListener('input', function () {
   document.getElementById('reset-btn').disabled = this.value !== 'RESET';
 });
+
+function updateResetTablesBtn() {
+  const anyChecked = [...document.querySelectorAll('.reset-table-chk')].some(c => c.checked);
+  const confirmOk = document.getElementById('confirm-tables-input').value === 'RESET';
+  document.getElementById('reset-tables-btn').disabled = !(anyChecked && confirmOk);
+}
+document.getElementById('confirm-tables-input').addEventListener('input', updateResetTablesBtn);
+document.querySelectorAll('.reset-table-chk').forEach(c => c.addEventListener('change', updateResetTablesBtn));
 </script>
 {% endblock %}

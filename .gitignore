@@ -18,3 +18,7 @@ env/
 # Databases
 *.db
 *.sqlite3
+
+create_superadmin.py
+tmdb.py
+movies.xlsx

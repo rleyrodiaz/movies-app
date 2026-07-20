@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db import get_db_dep
 from app.models.activity_log import ActivityAction
@@ -29,8 +29,16 @@ def watchlist_page(
 ):
     all_entries = db.scalars(
         select(WatchlistEntry)
-        .options(joinedload(WatchlistEntry.suggestion).joinedload(Suggestion.suggester))
-        .where(WatchlistEntry.user_id == current_user.id)
+        .options(
+            joinedload(WatchlistEntry.suggestion).options(
+                joinedload(Suggestion.suggester),
+                selectinload(Suggestion.watchlist_entries),
+            )
+        )
+        .where(
+            WatchlistEntry.user_id == current_user.id,
+            WatchlistEntry.hidden_from_watchlist.is_(False),
+        )
         .order_by(WatchlistEntry.updated_at.desc())
     ).unique().all()
 
@@ -107,10 +115,11 @@ def watchlist_update(
         )
     )
 
-    if entry and entry.status == WatchlistStatus(status):
+    if entry and entry.status == WatchlistStatus(status) and not entry.hidden_from_watchlist:
         db.delete(entry)
     elif entry:
         entry.status = WatchlistStatus(status)
+        entry.hidden_from_watchlist = False
     else:
         if db.get(Suggestion, suggestion_id) is None:
             return RedirectResponse("/watchlist", status_code=303)
@@ -135,6 +144,7 @@ def watchlist_rate(
     suggestion_id: int,
     rating: int = Form(0),
     watched_on: str = Form(""),
+    opinion: str = Form(""),
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
 ):
@@ -145,18 +155,27 @@ def watchlist_rate(
         )
     )
     clean_watched_on = watched_on.strip() or None
+    clean_opinion = opinion.strip() or None
+    valid_rating = rating if 1 <= rating <= 10 else None
+
     if entry:
-        if rating != 0:
-            entry.rating = rating if 1 <= rating <= 10 else None
         entry.watched_on = clean_watched_on
+        entry.opinion = clean_opinion
+        if valid_rating is not None:
+            entry.rating = valid_rating
+            entry.status = WatchlistStatus.watched
+            # Ya calificada: sale de "Mi watchlist", como con las propias sugerencias.
+            entry.hidden_from_watchlist = True
     else:
         suggestion = db.get(Suggestion, suggestion_id)
-        if suggestion and 1 <= rating <= 10:
+        if suggestion and valid_rating is not None:
             db.add(WatchlistEntry(
                 user_id=current_user.id,
                 suggestion_id=suggestion_id,
                 status=WatchlistStatus.watched,
-                rating=rating,
+                rating=valid_rating,
                 watched_on=clean_watched_on,
+                opinion=clean_opinion,
+                hidden_from_watchlist=True,
             ))
     return RedirectResponse("/watchlist", status_code=303)

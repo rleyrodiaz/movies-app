@@ -32,9 +32,9 @@
       <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
       {% endif %}
 
-      {% if entry and entry.rating %}
+      {% if s.avg_rating %}
       <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full backdrop-blur-sm rating-badge-{{ s.id }}">
-        {{ entry.rating }}/10
+        {{ s.avg_rating }}/10
       </div>
       {% endif %}
 
@@ -54,7 +54,11 @@
       <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors">{{ s.title }}</p>
       <p class="text-gray-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
         {% if s.release_date %}<span>{{ s.release_date.year }}</span>{% endif %}
-        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }}</span>{% endif %}
+        {% if s.avg_rating %}
+        <span class="text-yellow-400" title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">· ★ {{ "%.1f"|format(s.avg_rating) }}</span>
+        {% elif s.tmdb_rating %}
+        <span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
+        {% endif %}
       </p>
     </div>
   </button>
@@ -118,7 +122,7 @@
 
     <div class="px-6 py-5 space-y-4">
       <div class="relative">
-        <input id="search-input" type="text" placeholder="Buscá por título..."
+        <input id="search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..."
           autocomplete="off"
           class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
                  placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
@@ -126,6 +130,29 @@
         <div id="search-spinner" class="hidden absolute right-3 top-3.5">
           <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
         </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <select id="filter-genre"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+          <option value="">Todos los géneros</option>
+          {% for g in genres %}
+          <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+        <input id="filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <input id="filter-director" type="text" placeholder="Director" autocomplete="off"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <input id="filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
       </div>
 
       <div id="search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
@@ -202,6 +229,8 @@ const SUGGESTIONS = {
     episode_count: {{ s.episode_count if s.episode_count else 'null' }},
     season_count: {{ s.season_count if s.season_count else 'null' }},
     tmdb_rating: {{ s.tmdb_rating if s.tmdb_rating else 'null' }},
+    avg_rating: {{ s.avg_rating if s.avg_rating else 'null' }},
+    rating_count: {{ s.rating_count }},
     rating: {{ entry.rating if entry and entry.rating else 'null' }},
     can_delete: {{ 'true' if can_delete_map.get(s.id) else 'false' }},
     comments: [{% for c in s.comments | sort(attribute='created_at') %}{ id:{{ c.id }}, user:{{ c.user.display_name | tojson }}, body:{{ c.body | tojson }}, date:{{ c.created_at.strftime('%d/%m/%Y %H:%M') | tojson }} },{% endfor %}],
@@ -282,10 +311,15 @@ function openDetail(id) {
             ${typeBadge}
             ${s.year ? `<span class="text-xs text-gray-500">${s.year}</span>` : ''}
             ${s.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${s.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
-            ${s.rating ? `<span id="detail-pr-${id}" class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full">&#9733; ${s.rating}/10</span>` : ''}
+            ${s.avg_rating ? `<span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full" title="Promedio de ${s.rating_count} calificaci${s.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${s.avg_rating}/10</span>` : ''}
           </div>
           <div class="text-right shrink-0">
-            <p class="text-sm font-semibold text-white">${esc(SUGGESTER_NAME)}</p>
+            <p class="text-sm font-semibold text-white flex items-center justify-end gap-1.5" title="Recomendado por">
+              <svg class="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
+              </svg>
+              ${esc(SUGGESTER_NAME)}
+            </p>
           </div>
         </div>
         <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(s.title)}</h2>
@@ -399,22 +433,8 @@ async function saveDetailRating(suggestionId) {
   } catch(e) {}
 
   SUGGESTIONS[suggestionId].rating = n;
+  // El promedio de calificaciones se recalcula en el servidor; se refresca al recargar.
   SUGGESTIONS[suggestionId]._needsReload = true;
-
-  // Update the personal rating badge inside the modal
-  let prBadge = document.getElementById(`detail-pr-${suggestionId}`);
-  if (prBadge) {
-    prBadge.textContent = `★ ${n}/10`;
-  } else {
-    const badgesDiv = document.getElementById(`detail-badges-${suggestionId}`);
-    if (badgesDiv) {
-      const span = document.createElement('span');
-      span.id = `detail-pr-${suggestionId}`;
-      span.className = 'text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full';
-      span.textContent = `★ ${n}/10`;
-      badgesDiv.appendChild(span);
-    }
-  }
 
   const ok = document.getElementById('detail-save-ok');
   if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 1500); }
@@ -508,22 +528,51 @@ window.handleAddBackdrop = function (e) {
   const submitBtn      = document.getElementById('submit-btn');
   const ratingWarning  = document.getElementById('rating-warning');
   const ratingLabel    = document.getElementById('rating-label');
+  const filterGenre    = document.getElementById('filter-genre');
+  const filterMinRating = document.getElementById('filter-min-rating');
+  const filterDirector = document.getElementById('filter-director');
+  const filterActor    = document.getElementById('filter-actor');
 
   let debounceTimer = null;
   let cachedResults = [];
   let selectedRating = 0;
 
-  searchInput.addEventListener('input', () => {
+  function getFilters() {
+    return {
+      genre: filterGenre.value.trim(),
+      min_rating: filterMinRating.value.trim(),
+      director: filterDirector.value.trim(),
+      actor: filterActor.value.trim(),
+    };
+  }
+
+  function hasActiveFilters(f) {
+    return !!(f.genre || f.min_rating || f.director || f.actor);
+  }
+
+  function triggerSearch() {
     clearTimeout(debounceTimer);
     const q = searchInput.value.trim();
-    if (q.length < 2) { hideResults(); return; }
-    debounceTimer = setTimeout(() => doSearch(q), 400);
-  });
+    const filters = getFilters();
+    if (q.length < 2 && !hasActiveFilters(filters)) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q, filters), 400);
+  }
 
-  async function doSearch(q) {
+  searchInput.addEventListener('input', triggerSearch);
+  filterGenre.addEventListener('change', triggerSearch);
+  filterMinRating.addEventListener('input', triggerSearch);
+  filterDirector.addEventListener('input', triggerSearch);
+  filterActor.addEventListener('input', triggerSearch);
+
+  async function doSearch(q, filters) {
     spinner.classList.remove('hidden');
     try {
-      const resp = await fetch('/suggestions/search?q=' + encodeURIComponent(q));
+      const params = new URLSearchParams({ q });
+      if (filters.genre)      params.set('genre', filters.genre);
+      if (filters.min_rating) params.set('min_rating', filters.min_rating);
+      if (filters.director)   params.set('director', filters.director);
+      if (filters.actor)      params.set('actor', filters.actor);
+      const resp = await fetch('/suggestions/search?' + params.toString());
       if (resp.status === 401) { window.location = '/login'; return; }
       cachedResults = await resp.json();
       renderResults(cachedResults);
@@ -632,6 +681,10 @@ window.handleAddBackdrop = function (e) {
 
   window.resetAddForm = function () {
     searchInput.value = '';
+    filterGenre.value = '';
+    filterMinRating.value = '';
+    filterDirector.value = '';
+    filterActor.value = '';
     hideResults();
     confirmSection.classList.add('hidden');
     preview.innerHTML = '';
