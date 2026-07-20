@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
@@ -43,10 +43,11 @@ def feed(
     media: str = Query(default=""),
     by: str = Query(default=""),
     sort: str = Query(default=""),
+    status_filter: str = Query(default=""),
 ):
     all_suggestions = db.scalars(
         select(Suggestion)
-        .options(joinedload(Suggestion.suggester))
+        .options(joinedload(Suggestion.suggester), selectinload(Suggestion.watchlist_entries))
         .order_by(Suggestion.created_at.desc())
     ).unique().all()
 
@@ -57,10 +58,16 @@ def feed(
         if s.suggester and s.suggested_by not in suggesters:
             suggesters[s.suggested_by] = s.suggester
 
+    entries = db.scalars(
+        select(WatchlistEntry).where(WatchlistEntry.user_id == current_user.id)
+    ).all()
+    watchlist_map = {e.suggestion_id: e for e in entries}
+
     # Normalize filter values
     f_media = media if media in ("movie", "tv") else ""
     f_genre = genre.strip()
     f_sort = sort if sort in ("name", "rating") else ""
+    f_status = status_filter if status_filter in ("pending", "watched") else ""
     try:
         f_by = int(by)
     except (ValueError, TypeError):
@@ -74,6 +81,16 @@ def feed(
         suggestions = [s for s in suggestions if s.suggested_by == f_by]
     if f_genre:
         suggestions = [s for s in suggestions if f_genre in s.genres_list]
+    if f_status == "watched":
+        suggestions = [
+            s for s in suggestions
+            if watchlist_map.get(s.id) and watchlist_map[s.id].status == WatchlistStatus.watched
+        ]
+    elif f_status == "pending":
+        suggestions = [
+            s for s in suggestions
+            if not (watchlist_map.get(s.id) and watchlist_map[s.id].status == WatchlistStatus.watched)
+        ]
 
     # Apply sort (default: most recent, already sorted by query)
     if f_sort == "name":
@@ -81,12 +98,7 @@ def feed(
     elif f_sort == "rating":
         suggestions = sorted(suggestions, key=lambda s: s.tmdb_rating or 0, reverse=True)
 
-    entries = db.scalars(
-        select(WatchlistEntry).where(WatchlistEntry.user_id == current_user.id)
-    ).all()
-    watchlist_map = {e.suggestion_id: e for e in entries}
-
-    active_filters = sum([bool(f_genre), bool(f_media), bool(f_by)])
+    active_filters = sum([bool(f_genre), bool(f_media), bool(f_by), bool(f_status)])
 
     return templates.TemplateResponse(
         "feed.html",
@@ -94,13 +106,13 @@ def feed(
             "request": request,
             "user": current_user,
             "suggestions": suggestions,
-            "watchlist_map": watchlist_map,
             "all_genres": all_genres,
             "suggesters": suggesters,
             "f_genre": f_genre,
             "f_media": f_media,
             "f_by": f_by,
             "f_sort": f_sort,
+            "f_status": f_status,
             "active_filters": active_filters,
         },
     )
@@ -109,14 +121,29 @@ def feed(
 @router.get("/suggestions/search")
 def tmdb_search(
     q: str = "",
+    genre: str = "",
+    min_rating: float = Query(default=0.0),
+    director: str = "",
+    actor: str = "",
     current_user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db_dep),
 ):
     if current_user is None:
         return JSONResponse({"error": "not_authenticated"}, status_code=401)
-    if len(q.strip()) < 2:
+
+    q = q.strip()
+    genre = genre.strip()
+    director = director.strip()
+    actor = actor.strip()
+    has_filters = bool(genre or min_rating or director or actor)
+
+    if len(q) >= 2:
+        results = tmdb.search_multi(q, genre=genre, min_rating=min_rating, director=director, actor=actor)
+    elif has_filters:
+        results = tmdb.discover(genre=genre, min_rating=min_rating, director=director, actor=actor)
+    else:
         return JSONResponse([])
-    results = tmdb.search_multi(q.strip())
+
     if results:
         tmdb_ids = [r["tmdb_id"] for r in results]
         existing = db.scalars(
@@ -146,7 +173,10 @@ def my_suggestions(
     suggestions = db.scalars(
         select(Suggestion)
         .where(Suggestion.suggested_by == current_user.id)
-        .options(joinedload(Suggestion.comments).joinedload(Comment.user))
+        .options(
+            joinedload(Suggestion.comments).joinedload(Comment.user),
+            selectinload(Suggestion.watchlist_entries),
+        )
         .order_by(Suggestion.created_at.desc())
     ).unique().all()
     sug_ids = [s.id for s in suggestions]
@@ -179,6 +209,7 @@ def my_suggestions(
             "suggestions": suggestions,
             "rating_map": rating_map,
             "can_delete_map": can_delete_map,
+            "genres": tmdb.get_all_genre_names(),
         },
     )
 
@@ -253,13 +284,15 @@ def suggestion_create(
     db.add(suggestion)
     db.flush()
 
-    # Auto-create watchlist entry (watched + rating)
+    # Auto-create watchlist entry (watched + rating) to store the suggester's own
+    # rating, but hidden from "Mi watchlist" until explicitly added from the feed.
     valid_rating = rating if 1 <= rating <= 10 else None
     entry = WatchlistEntry(
         user_id=current_user.id,
         suggestion_id=suggestion.id,
         status=WatchlistStatus.watched,
         rating=valid_rating,
+        hidden_from_watchlist=True,
     )
     db.add(entry)
 
@@ -299,32 +332,26 @@ def suggestion_detail(
         .options(
             joinedload(Suggestion.suggester),
             joinedload(Suggestion.comments).joinedload(Comment.user),
+            selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
         )
         .where(Suggestion.id == suggestion_id)
     )
     if suggestion is None:
         return RedirectResponse("/feed", status_code=303)
 
-    watchlist_entry = db.scalar(
-        select(WatchlistEntry).where(
-            WatchlistEntry.user_id == current_user.id,
-            WatchlistEntry.suggestion_id == suggestion_id,
-        )
+    watchlist_entry = next(
+        (e for e in suggestion.watchlist_entries if e.user_id == current_user.id), None
     )
-    suggester_entry = db.scalar(
-        select(WatchlistEntry).where(
-            WatchlistEntry.user_id == suggestion.suggested_by,
-            WatchlistEntry.suggestion_id == suggestion_id,
-        )
+    watched_entries = sorted(
+        (e for e in suggestion.watchlist_entries if e.rating is not None),
+        key=lambda e: e.updated_at,
+        reverse=True,
     )
     comments = sorted(suggestion.comments, key=lambda c: c.created_at)
 
     is_owner = suggestion.suggested_by == current_user.id
-    can_delete = is_owner and not db.scalar(
-        select(WatchlistEntry.id).where(
-            WatchlistEntry.suggestion_id == suggestion_id,
-            WatchlistEntry.user_id != suggestion.suggested_by,
-        )
+    can_delete = is_owner and not any(
+        e.user_id != suggestion.suggested_by for e in suggestion.watchlist_entries
     )
 
     return templates.TemplateResponse(
@@ -335,7 +362,7 @@ def suggestion_detail(
             "s": suggestion,
             "poster_url": tmdb.poster_url,
             "watchlist_entry": watchlist_entry,
-            "suggester_entry": suggester_entry,
+            "watched_entries": watched_entries,
             "comments": comments,
             "is_owner": is_owner,
             "can_delete": can_delete,

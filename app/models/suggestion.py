@@ -62,3 +62,18 @@ class Suggestion(Base):
     @property
     def providers_list(self) -> list[str]:
         return self._parse(self.providers)
+
+    @property
+    def rated_entries(self) -> list["WatchlistEntry"]:
+        return [e for e in self.watchlist_entries if e.rating is not None]
+
+    @property
+    def avg_rating(self) -> float | None:
+        rated = self.rated_entries
+        if not rated:
+            return None
+        return round(sum(e.rating for e in rated) / len(rated), 1)
+
+    @property
+    def rating_count(self) -> int:
+        return len(self.rated_entries)

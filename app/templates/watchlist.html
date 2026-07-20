@@ -83,7 +83,11 @@
       <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ e.suggestion.title }}</p>
       <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
         {% if e.suggestion.release_date %}<span class="text-gray-500">{{ e.suggestion.release_date.year }}</span>{% endif %}
-        {% if e.suggestion.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(e.suggestion.tmdb_rating) }}</span>{% endif %}
+        {% if e.suggestion.avg_rating %}
+        <span class="text-yellow-400" title="Promedio de {{ e.suggestion.rating_count }} calificaci{{ 'ón' if e.suggestion.rating_count == 1 else 'ones' }}">· ★ {{ "%.1f"|format(e.suggestion.avg_rating) }}</span>
+        {% elif e.suggestion.tmdb_rating %}
+        <span class="text-amber-500">· ★ {{ "%.1f"|format(e.suggestion.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
+        {% endif %}
       </p>
       <p class="text-xs text-gray-600 mt-0.5 truncate">{{ e.suggestion.suggester.display_name }}</p>
     </div>
@@ -238,7 +242,10 @@ const WENTRIES = {
     season_count: {{ e.suggestion.season_count if e.suggestion.season_count else 'null' }},
     episode_count: {{ e.suggestion.episode_count if e.suggestion.episode_count else 'null' }},
     tmdb_rating: {{ e.suggestion.tmdb_rating if e.suggestion.tmdb_rating else 'null' }},
+    avg_rating: {{ e.suggestion.avg_rating if e.suggestion.avg_rating else 'null' }},
+    rating_count: {{ e.suggestion.rating_count }},
     rating: {{ e.rating if e.rating else 'null' }},
+    opinion: {{ (e.opinion or '') | tojson }},
     watched_on: {{ (e.watched_on or '') | tojson }},
     suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
   },
@@ -301,10 +308,10 @@ function buildWDetailHTML(e) {
              ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
   }).join('');
 
-  const ratingSection = e.status === 'watched' ? `
+  const ratingSection = `
     <div class="border-t border-gray-800 pt-4 mt-4">
       <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
-        Tu calificación
+        Marcar como vista
         <span id="wrating-label-${e.id}" class="text-yellow-400 font-semibold normal-case ml-1">
           ${e.rating ? e.rating + '/10' : ''}
         </span>
@@ -316,20 +323,16 @@ function buildWDetailHTML(e) {
           class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-white
                  placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors">
       </div>
+      <textarea id="wopinion-${e.id}" rows="2" placeholder="Tu opinión (opcional)..."
+        class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3">${esc(e.opinion)}</textarea>
       <div class="flex items-center gap-3">
         <button onclick="saveWRating(${e.id})"
-          class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
-          Guardar
+          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+          Guardar y marcar vista
         </button>
-        <span id="wsave-ok-${e.id}" class="text-xs text-green-400 hidden">Guardado ✓</span>
       </div>
-    </div>` : `
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <button onclick="markWatched(${e.id})"
-        class="w-full bg-green-900/40 hover:bg-green-900/70 text-green-400 border border-green-900
-               text-sm font-medium py-2.5 rounded-lg transition-colors">
-        Marcar vista
-      </button>
+      <p id="wrating-warning-${e.id}" class="text-red-400 text-xs mt-2 hidden">Elegí una calificación antes de guardar.</p>
     </div>`;
 
   return `
@@ -345,9 +348,15 @@ function buildWDetailHTML(e) {
             ${typeBadge}
             ${e.year ? `<span class="text-xs text-gray-500">${e.year}</span>` : ''}
             ${e.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${e.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
+            ${e.avg_rating ? `<span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating}/10</span>` : ''}
           </div>
           <div class="text-right shrink-0">
-            <p class="text-sm font-semibold text-white">${esc(e.suggester_name)}</p>
+            <p class="text-sm font-semibold text-white flex items-center justify-end gap-1.5" title="Recomendado por">
+              <svg class="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
+              </svg>
+              ${esc(e.suggester_name)}
+            </p>
           </div>
         </div>
         <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(e.title)}</h2>
@@ -388,31 +397,27 @@ function selectWRating(id, n) {
   }
   const label = document.getElementById(`wrating-label-${id}`);
   if (label) label.textContent = n + '/10';
-  const ok = document.getElementById(`wsave-ok-${id}`);
-  if (ok) ok.classList.add('hidden');
+  const warning = document.getElementById(`wrating-warning-${id}`);
+  if (warning) warning.classList.add('hidden');
 }
 
 async function saveWRating(id) {
   const n = _wSelectedRating;
+  if (!n) {
+    const warning = document.getElementById(`wrating-warning-${id}`);
+    if (warning) warning.classList.remove('hidden');
+    return;
+  }
   const watchedOn = document.getElementById(`wwatched-on-${id}`)?.value || '';
+  const opinion = document.getElementById(`wopinion-${id}`)?.value || '';
   const fd = new FormData();
-  fd.append('rating', n || 0);
+  fd.append('rating', n);
   fd.append('watched_on', watchedOn);
+  fd.append('opinion', opinion);
   try {
     await fetch(`/watchlist/${id}/rate`, { method: 'POST', body: fd });
-    WENTRIES[id].rating = n;
-    WENTRIES[id].watched_on = watchedOn;
-    const ok = document.getElementById(`wsave-ok-${id}`);
-    if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 2000); }
   } catch(e) {}
-}
-
-async function markWatched(id) {
-  const fd = new FormData();
-  fd.append('status', 'watched');
-  try {
-    await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
-  } catch(e) {}
+  // Ya calificada: sale de "Mi watchlist", hay que recargar la grilla.
   location.reload();
 }
 
