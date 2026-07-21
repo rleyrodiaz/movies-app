@@ -10,9 +10,8 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction
-from app.models.comment import Comment
 from app.models.suggestion import MediaType, Suggestion
-from app.models.user import User, UserRole
+from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
@@ -190,8 +189,7 @@ def my_suggestions(
         select(Suggestion)
         .where(Suggestion.suggested_by == current_user.id)
         .options(
-            joinedload(Suggestion.comments).joinedload(Comment.user),
-            selectinload(Suggestion.watchlist_entries),
+            selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
         )
         .order_by(Suggestion.created_at.desc())
     ).unique().all()
@@ -300,31 +298,20 @@ def suggestion_create(
     db.add(suggestion)
     db.flush()
 
-    # Auto-create watchlist entry (watched + rating) to store the suggester's own
-    # rating, but hidden from "Mi watchlist" until explicitly added from the feed.
+    # Auto-create watchlist entry (watched + rating + comentario opcional) para
+    # guardar la opinión del sugerente, pero oculta de "Mi watchlist" hasta que
+    # se agregue explícitamente desde el feed.
     valid_rating = rating if 1 <= rating <= 10 else None
+    clean_comment = comment_body.strip() or None
     entry = WatchlistEntry(
         user_id=current_user.id,
         suggestion_id=suggestion.id,
         status=WatchlistStatus.watched,
         rating=valid_rating,
+        comment=clean_comment,
         hidden_from_watchlist=True,
     )
     db.add(entry)
-
-    # Optional comment
-    body = comment_body.strip()
-    if body:
-        comment = Comment(suggestion_id=suggestion.id, user_id=current_user.id, body=body)
-        db.add(comment)
-        db.flush()
-        log_activity(
-            db, ActivityAction.comment_created,
-            user_id=current_user.id,
-            target_type="comment",
-            target_id=comment.id,
-            detail={"suggestion_id": suggestion.id},
-        )
 
     log_activity(
         db, ActivityAction.suggestion_created,
@@ -347,7 +334,6 @@ def suggestion_detail(
         select(Suggestion)
         .options(
             joinedload(Suggestion.suggester),
-            joinedload(Suggestion.comments).joinedload(Comment.user),
             selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
         )
         .where(Suggestion.id == suggestion_id)
@@ -363,7 +349,6 @@ def suggestion_detail(
         key=lambda e: e.updated_at,
         reverse=True,
     )
-    comments = sorted(suggestion.comments, key=lambda c: c.created_at)
 
     is_owner = suggestion.suggested_by == current_user.id
     can_delete = is_owner and not any(
@@ -381,37 +366,11 @@ def suggestion_detail(
             "poster_url": tmdb.poster_url,
             "watchlist_entry": watchlist_entry,
             "watched_entries": watched_entries,
-            "comments": comments,
             "is_owner": is_owner,
             "can_delete": can_delete,
             "nav_active": nav_active,
         },
     )
-
-
-@router.post("/suggestions/{suggestion_id}/comments")
-def comment_create(
-    suggestion_id: int,
-    body: str = Form(...),
-    current_user: User = Depends(require_user),
-    db: Session = Depends(get_db_dep),
-):
-    if db.get(Suggestion, suggestion_id) is None:
-        return RedirectResponse("/feed", status_code=303)
-    body = body.strip()
-    if not body:
-        return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)
-    comment = Comment(suggestion_id=suggestion_id, user_id=current_user.id, body=body)
-    db.add(comment)
-    db.flush()
-    log_activity(
-        db, ActivityAction.comment_created,
-        user_id=current_user.id,
-        target_type="comment",
-        target_id=comment.id,
-        detail={"suggestion_id": suggestion_id},
-    )
-    return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)
 
 
 @router.post("/suggestions/{suggestion_id}/delete")
@@ -436,21 +395,3 @@ def suggestion_delete(
         return RedirectResponse(f"/suggestions/{suggestion_id}?locked=1", status_code=303)
     db.delete(suggestion)
     return RedirectResponse("/suggestions/new", status_code=303)
-
-
-@router.post("/comments/{comment_id}/delete")
-def comment_delete(
-    comment_id: int,
-    current_user: User = Depends(require_user),
-    db: Session = Depends(get_db_dep),
-):
-    comment = db.get(Comment, comment_id)
-    if comment is None:
-        return RedirectResponse("/feed", status_code=303)
-    is_owner = comment.user_id == current_user.id
-    is_admin = current_user.role in (UserRole.admin, UserRole.superadmin)
-    if not (is_owner or is_admin):
-        raise AccessDenied()
-    suggestion_id = comment.suggestion_id
-    db.delete(comment)
-    return RedirectResponse(f"/suggestions/{suggestion_id}#comments", status_code=303)

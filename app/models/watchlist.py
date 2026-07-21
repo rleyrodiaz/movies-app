@@ -29,7 +29,7 @@ class WatchlistEntry(Base):
         default=WatchlistStatus.pending,
     )
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    opinion: Mapped[str | None] = mapped_column(Text, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     watched_on: Mapped[str | None] = mapped_column(String(100), nullable=True)
     hidden_from_watchlist: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"

@@ -245,7 +245,7 @@ const WENTRIES = {
     avg_rating: {{ e.suggestion.avg_rating if e.suggestion.avg_rating else 'null' }},
     rating_count: {{ e.suggestion.rating_count }},
     rating: {{ e.rating if e.rating else 'null' }},
-    opinion: {{ (e.opinion or '') | tojson }},
+    comment: {{ (e.comment or '') | tojson }},
     watched_on: {{ (e.watched_on or '') | tojson }},
     suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
   },
@@ -317,9 +317,9 @@ function buildWDetailHTML(e) {
         </span>
       </p>
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
-      <textarea id="wopinion-${e.id}" rows="2" placeholder="Tu opinión (opcional)..."
+      <textarea id="wcomment-${e.id}" rows="2" placeholder="Tu comentario (opcional)..."
         class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3">${esc(e.opinion)}</textarea>
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3">${esc(e.comment)}</textarea>
       <div class="flex items-center gap-3">
         <button id="wsave-btn-${e.id}" onclick="saveWRating(${e.id})" ${e.rating ? '' : 'disabled'}
           title="${e.rating ? '' : 'Elegí una calificación antes de guardar'}"
@@ -399,14 +399,13 @@ function selectWRating(id, n) {
 async function saveWRating(id) {
   const n = _wSelectedRating;
   if (!n) return;
-  const opinion = document.getElementById(`wopinion-${id}`)?.value || '';
+  const comment = document.getElementById(`wcomment-${id}`)?.value || '';
   const fd = new FormData();
   fd.append('rating', n);
-  fd.append('opinion', opinion);
+  fd.append('comment', comment);
   try {
     await fetch(`/watchlist/${id}/rate`, { method: 'POST', body: fd });
   } catch(e) {}
-  // Ya calificada: sale de "Mi watchlist", hay que recargar la grilla.
   location.reload();
 }
 

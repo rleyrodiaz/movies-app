@@ -193,10 +193,10 @@
           <span class="text-sm font-medium text-gray-300">{{ e.user.display_name }}</span>
           <span class="text-xs text-yellow-400 font-semibold">&#9733; {{ e.rating }}/10</span>
         </div>
-        {% if e.opinion %}
-        <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{{ e.opinion }}</p>
+        {% if e.comment %}
+        <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{{ e.comment }}</p>
         {% else %}
-        <p class="text-xs text-gray-600 italic">Sin opinión escrita.</p>
+        <p class="text-xs text-gray-600 italic">Sin comentario.</p>
         {% endif %}
         {% if e.watched_on %}
         <p class="text-xs text-gray-600 mt-1">Vista en {{ e.watched_on }}</p>
@@ -206,48 +206,6 @@
     </div>
   </div>
   {% endif %}
-
-  {# ── Comentarios ── #}
-  <div id="comments" class="border-t border-gray-800 px-6 py-6">
-    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">
-      Comentarios{% if comments %} <span class="text-gray-600 font-normal normal-case">({{ comments|length }})</span>{% endif %}
-    </h2>
-
-    {% if comments %}
-    <div class="space-y-4 mb-6">
-      {% for c in comments %}
-      <div class="group flex items-start gap-3">
-        <div class="flex-1 bg-gray-800/60 rounded-xl px-4 py-3">
-          <div class="flex items-baseline justify-between gap-2 mb-1">
-            <span class="text-sm font-medium text-gray-300">{{ c.user.display_name }}</span>
-            <span class="text-xs text-gray-600 shrink-0">{{ c.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
-          </div>
-          <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{{ c.body }}</p>
-        </div>
-        {% if user.id == c.user_id or user.role in ['admin', 'superadmin'] %}
-        <form method="post" action="/comments/{{ c.id }}/delete"
-              class="opacity-0 group-hover:opacity-100 transition-opacity pt-2">
-          <button type="submit" class="text-xs text-gray-600 hover:text-red-400 transition-colors">Borrar</button>
-        </form>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text-sm text-gray-600 mb-6">Todavía no hay comentarios.</p>
-    {% endif %}
-
-    <form method="post" action="/suggestions/{{ s.id }}/comments" class="flex gap-3 items-end">
-      <textarea name="body" required rows="2" placeholder="Escribí tu comentario..."
-        class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-               transition-colors resize-none"></textarea>
-      <button type="submit"
-        class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-3 rounded-xl transition-colors shrink-0">
-        Comentar
-      </button>
-    </form>
-  </div>
 
 </div>
 

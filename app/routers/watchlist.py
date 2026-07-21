@@ -144,7 +144,7 @@ def watchlist_rate(
     suggestion_id: int,
     rating: int = Form(0),
     watched_on: str = Form(""),
-    opinion: str = Form(""),
+    comment: str = Form(""),
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
 ):
@@ -155,12 +155,12 @@ def watchlist_rate(
         )
     )
     clean_watched_on = watched_on.strip() or None
-    clean_opinion = opinion.strip() or None
+    clean_comment = comment.strip() or None
     valid_rating = rating if 1 <= rating <= 10 else None
 
     if entry:
         entry.watched_on = clean_watched_on
-        entry.opinion = clean_opinion
+        entry.comment = clean_comment
         if valid_rating is not None:
             entry.rating = valid_rating
             entry.status = WatchlistStatus.watched
@@ -173,6 +173,6 @@ def watchlist_rate(
                 status=WatchlistStatus.watched,
                 rating=valid_rating,
                 watched_on=clean_watched_on,
-                opinion=clean_opinion,
+                comment=clean_comment,
             ))
     return RedirectResponse("/watchlist", status_code=303)

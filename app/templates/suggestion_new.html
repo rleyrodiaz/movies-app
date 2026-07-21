@@ -236,8 +236,9 @@ const SUGGESTIONS = {
     avg_rating: {{ s.avg_rating if s.avg_rating else 'null' }},
     rating_count: {{ s.rating_count }},
     rating: {{ entry.rating if entry and entry.rating else 'null' }},
+    comment: {{ (entry.comment or '') | tojson if entry else '""' }},
     can_delete: {{ 'true' if can_delete_map.get(s.id) else 'false' }},
-    comments: [{% for c in s.comments | sort(attribute='created_at') %}{ id:{{ c.id }}, user:{{ c.user.display_name | tojson }}, body:{{ c.body | tojson }}, date:{{ c.created_at.strftime('%d/%m/%Y %H:%M') | tojson }} },{% endfor %}],
+    entries: [{% for e in s.watchlist_entries | sort(attribute='updated_at', reverse=True) %}{% if e.rating %}{ user:{{ e.user.display_name | tojson }}, rating:{{ e.rating }}, comment:{{ (e.comment or '') | tojson }} },{% endif %}{% endfor %}],
   },
   {% endfor %}
 };
@@ -335,29 +336,21 @@ function openDetail(id) {
     ${providersHtml}
 
     <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Comentarios</p>
-      <div id="detail-comments-${id}" class="space-y-3 mb-3">
-        ${s.comments.length
-          ? s.comments.map(c => `
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Opiniones</p>
+      <div id="detail-entries-${id}" class="space-y-3">
+        ${s.entries.length
+          ? s.entries.map(e => `
             <div class="bg-gray-800/60 rounded-xl px-4 py-3">
               <div class="flex justify-between items-baseline gap-2 mb-1">
-                <span class="text-sm font-medium text-gray-300">${esc(c.user)}</span>
-                <span class="text-xs text-gray-600">${esc(c.date)}</span>
+                <span class="text-sm font-medium text-gray-300">${esc(e.user)}</span>
+                <span class="text-xs text-yellow-400 font-semibold">&#9733; ${e.rating}/10</span>
               </div>
-              <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(c.body)}</p>
+              ${e.comment
+                ? `<p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(e.comment)}</p>`
+                : `<p class="text-xs text-gray-600 italic">Sin comentario.</p>`}
             </div>`).join('')
-          : `<p class="text-sm text-gray-600">Sin comentarios todavía.</p>`
+          : `<p class="text-sm text-gray-600">Todavía nadie opinó.</p>`
         }
-      </div>
-      <div class="flex gap-2 items-end">
-        <textarea id="detail-comment-input-${id}" rows="2" placeholder="Escribí un comentario..."
-          class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors resize-none"></textarea>
-        <button onclick="submitDetailComment(${id})"
-          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shrink-0">
-          Comentar
-        </button>
       </div>
     </div>
 
@@ -369,6 +362,10 @@ function openDetail(id) {
         </span>
       </p>
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
+      <textarea id="detail-comment-input-${id}" rows="2" placeholder="Tu comentario (opcional)..."
+        class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+               transition-colors resize-none mb-3">${esc(s.comment || '')}</textarea>
       <div class="flex items-center gap-3 flex-wrap">
         <button onclick="saveDetailRating(${s.id})"
           class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
@@ -429,43 +426,22 @@ async function saveDetailRating(suggestionId) {
   const n = _detailSelectedRating;
   if (!n) return;
 
+  const commentText = document.getElementById(`detail-comment-input-${suggestionId}`)?.value || '';
   const fd = new FormData();
   fd.append('rating', n);
   fd.append('watched_on', '');
+  fd.append('comment', commentText);
   try {
     await fetch(`/watchlist/${suggestionId}/rate`, { method:'POST', body:fd });
   } catch(e) {}
 
   SUGGESTIONS[suggestionId].rating = n;
-  // El promedio de calificaciones se recalcula en el servidor; se refresca al recargar.
+  SUGGESTIONS[suggestionId].comment = commentText;
+  // El promedio y la lista de opiniones se recalculan en el servidor; se refrescan al recargar.
   SUGGESTIONS[suggestionId]._needsReload = true;
 
   const ok = document.getElementById('detail-save-ok');
   if (ok) { ok.classList.remove('hidden'); setTimeout(() => ok.classList.add('hidden'), 1500); }
-}
-
-async function submitDetailComment(suggestionId) {
-  const textarea = document.getElementById(`detail-comment-input-${suggestionId}`);
-  const body = textarea.value.trim();
-  if (!body) return;
-  const fd = new FormData();
-  fd.append('body', body);
-  try {
-    await fetch(`/suggestions/${suggestionId}/comments`, { method: 'POST', body: fd });
-    const list = document.getElementById(`detail-comments-${suggestionId}`);
-    const noMsg = list.querySelector('p.text-gray-600');
-    if (noMsg) noMsg.remove();
-    const div = document.createElement('div');
-    div.className = 'bg-gray-800/60 rounded-xl px-4 py-3';
-    div.innerHTML = `<div class="flex justify-between items-baseline gap-2 mb-1">
-      <span class="text-sm font-medium text-gray-300">${esc(SUGGESTER_NAME)}</span>
-      <span class="text-xs text-gray-600">ahora</span>
-    </div>
-    <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(body)}</p>`;
-    list.appendChild(div);
-    textarea.value = '';
-    SUGGESTIONS[suggestionId]._needsReload = true;
-  } catch(e) {}
 }
 
 document.addEventListener('keydown', e => {
