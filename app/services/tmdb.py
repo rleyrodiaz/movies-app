@@ -220,6 +220,18 @@ def get_detail(tmdb_id: int, media_type: str) -> dict | None:
             if p.get("name")
         ]
 
+        # Director (para series, si no hay crédito de "Director" se usan los creadores)
+        director_names = [
+            p["name"]
+            for p in d.get("credits", {}).get("crew", [])
+            if p.get("job") == "Director" and p.get("name")
+        ]
+        if media_type == "tv":
+            for c in d.get("created_by", []):
+                if c.get("name") and c["name"] not in director_names:
+                    director_names.append(c["name"])
+        director = ", ".join(director_names[:3]) if director_names else None
+
         # Plataformas para Argentina (flatrate = suscripción, luego rent/buy)
         wp_ar = d.get("watch/providers", {}).get("results", {}).get("AR", {})
         providers: list[str] = []
@@ -255,6 +267,7 @@ def get_detail(tmdb_id: int, media_type: str) -> dict | None:
             "release_date": d.get("release_date") or d.get("first_air_date") or "",
             "genres": genres,
             "origin_country": origin,
+            "director": director,
             "cast": cast,
             "providers": providers,
             "episode_count": episode_count,

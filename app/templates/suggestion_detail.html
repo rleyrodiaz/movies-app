@@ -21,10 +21,10 @@
 
   {# ── Header: poster + info ── #}
   <div class="flex flex-col sm:flex-row gap-5 p-5 sm:p-6">
-    <div class="shrink-0 flex justify-center sm:justify-start">
+    <div class="shrink-0 self-start flex justify-center sm:justify-start">
       {% if s.poster_path %}
       <img src="{{ poster_url(s.poster_path, 'w342') }}" alt="{{ s.title }}"
-           class="w-40 sm:w-36 rounded-xl shadow-2xl object-cover">
+           class="w-40 sm:w-36 aspect-[2/3] rounded-xl shadow-2xl object-cover">
       {% else %}
       <div class="w-40 sm:w-36 h-56 sm:h-52 bg-gray-800 rounded-xl flex items-center justify-center text-4xl text-gray-600">+</div>
       {% endif %}
@@ -69,7 +69,7 @@
       {% endif %}
 
       {# ── Metadata ── #}
-      {% if s.genres_list or s.origin_country or s.cast_list or (s.media_type.value == 'tv' and s.episode_count) %}
+      {% if s.genres_list or s.origin_country or s.director or s.cast_list or (s.media_type.value == 'tv' and s.episode_count) %}
       <div class="grid grid-cols-2 gap-x-6 gap-y-3 pt-4 border-t border-gray-800 text-sm">
         {% if s.release_date %}
         <div>
@@ -87,6 +87,12 @@
         <div>
           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">País</p>
           <p class="text-gray-300">{{ s.origin_country }}</p>
+        </div>
+        {% endif %}
+        {% if s.director %}
+        <div>
+          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Director</p>
+          <p class="text-gray-300">{{ s.director }}</p>
         </div>
         {% endif %}
         {% if s.media_type.value == 'tv' and s.season_count %}

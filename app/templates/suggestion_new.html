@@ -228,6 +228,7 @@ const SUGGESTIONS = {
     overview: {{ (s.overview or '') | tojson }},
     genres: {{ s.genres_list | tojson }},
     country: {{ (s.origin_country or '') | tojson }},
+    director: {{ (s.director or '') | tojson }},
     cast: {{ s.cast_list | tojson }},
     providers: {{ s.providers_list | tojson }},
     episode_count: {{ s.episode_count if s.episode_count else 'null' }},
@@ -286,6 +287,7 @@ function openDetail(id) {
   if (s.year)          metaItems.push(['Año', s.year]);
   if (s.genres.length) metaItems.push(['Género', s.genres.join(', ')]);
   if (s.country)       metaItems.push(['País', s.country]);
+  if (s.director)      metaItems.push(['Director', s.director]);
   if (s.media_type === 'tv' && s.season_count)   metaItems.push(['Temporadas', s.season_count]);
   if (s.media_type === 'tv' && s.episode_count)  metaItems.push(['Episodios', s.episode_count]);
 
@@ -634,6 +636,7 @@ window.handleAddBackdrop = function (e) {
 
     const genres    = (detail && detail.genres)    ? detail.genres    : (item.genres || []);
     const country   = (detail && detail.origin_country) ? detail.origin_country : '';
+    const director  = (detail && detail.director)  ? detail.director  : '';
     const cast      = (detail && detail.cast)      ? detail.cast      : [];
     const providers = (detail && detail.providers) ? detail.providers : [];
     const overview  = (detail && detail.overview)  ? detail.overview  : (item.overview || '');
@@ -643,6 +646,7 @@ window.handleAddBackdrop = function (e) {
     if (year)          metaItems.push(['Año', year]);
     if (genres.length) metaItems.push(['Género', genres.join(', ')]);
     if (country)        metaItems.push(['País', country]);
+    if (director)       metaItems.push(['Director', director]);
 
     const metaHtml = metaItems.length
       ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
