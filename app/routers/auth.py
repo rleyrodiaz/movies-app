@@ -62,11 +62,23 @@ def logout():
 
 
 @router.get("/register/{token}", response_class=HTMLResponse)
-def register_page(token: str, request: Request, db: Session = Depends(get_db_dep)):
+def register_page(
+    token: str,
+    request: Request,
+    user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db_dep),
+):
     invitation = _get_valid_invitation(token, db)
     return templates.TemplateResponse(
-        "register.html",
-        {"request": request, "token": token, "invitation_invalid": invitation is None},
+        "landing.html",
+        {
+            "request": request,
+            "user": user,
+            "login_error": "",
+            "register_open": True,
+            "token": token,
+            "invitation_invalid": invitation is None,
+        },
     )
 
 
@@ -78,13 +90,21 @@ def register_submit(
     email: str = Form(...),
     password: str = Form(...),
     confirm_password: str = Form(...),
+    user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db_dep),
 ):
     invitation = _get_valid_invitation(token, db)
     if invitation is None:
         return templates.TemplateResponse(
-            "register.html",
-            {"request": request, "token": token, "invitation_invalid": True},
+            "landing.html",
+            {
+                "request": request,
+                "user": user,
+                "login_error": "",
+                "register_open": True,
+                "token": token,
+                "invitation_invalid": True,
+            },
         )
 
     errors: list[str] = []
@@ -104,9 +124,12 @@ def register_submit(
 
     if errors:
         return templates.TemplateResponse(
-            "register.html",
+            "landing.html",
             {
                 "request": request,
+                "user": user,
+                "login_error": "",
+                "register_open": True,
                 "token": token,
                 "invitation_invalid": False,
                 "errors": errors,
