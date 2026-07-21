@@ -15,7 +15,7 @@ from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
-from app.services.auth import get_current_user, require_user
+from app.services.auth import get_current_user, get_session_id, require_user
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -327,6 +327,7 @@ def suggestion_create(
         target_type="suggestion",
         target_id=suggestion.id,
         detail={"title": final_title, "media_type": media_type},
+        session_id=get_session_id(request),
     )
     return RedirectResponse("/suggestions/new", status_code=303)
 

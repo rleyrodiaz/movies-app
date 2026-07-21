@@ -12,6 +12,7 @@ def log_activity(
     target_type: str | None = None,
     target_id: int | None = None,
     detail: dict | str | None = None,
+    session_id: str | None = None,
 ) -> None:
     detail_str = json.dumps(detail, ensure_ascii=False) if isinstance(detail, dict) else detail
     db.add(ActivityLog(
@@ -20,4 +21,5 @@ def log_activity(
         target_type=target_type,
         target_id=target_id,
         detail=detail_str,
+        session_id=session_id,
     ))

@@ -1,8 +1,8 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote_plus
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import delete, func, select, text
@@ -16,7 +16,7 @@ from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
 from app.models.watchlist import WatchlistEntry
 from app.services.activity_log import log_activity
-from app.services.auth import clear_session, require_admin, require_superadmin
+from app.services.auth import clear_session, get_session_id, require_admin, require_superadmin
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="app/templates")
@@ -113,6 +113,7 @@ def create_invitation(
         user_id=current_user.id,
         target_type="invitation",
         target_id=invitation.id,
+        session_id=get_session_id(request),
     )
     return RedirectResponse("/admin/invitations", status_code=303)
 
@@ -131,25 +132,82 @@ ACTION_LABELS = {
 }
 
 
+ACTIVITY_LOG_PAGE_SIZE = 50
+
+
 @router.get("/activity-log", response_class=HTMLResponse)
 def activity_log_page(
     request: Request,
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db_dep),
+    action: str = Query(default=""),
+    target_type: str = Query(default=""),
+    session_id: str = Query(default=""),
+    date_from: str = Query(default=""),
+    date_to: str = Query(default=""),
+    page: int = Query(default=1),
 ):
-    entries = db.scalars(
+    all_entries = db.scalars(
         select(ActivityLog)
         .options(joinedload(ActivityLog.user))
         .order_by(ActivityLog.created_at.desc())
-        .limit(200)
     ).unique().all()
+
+    all_target_types = sorted({e.target_type for e in all_entries if e.target_type})
+
+    f_action = action.strip()
+    f_target_type = target_type.strip()
+    f_session_id = session_id.strip()
+    f_date_from = date_from.strip()
+    f_date_to = date_to.strip()
+
+    entries = list(all_entries)
+    if f_action:
+        entries = [e for e in entries if e.action.value == f_action]
+    if f_target_type:
+        entries = [e for e in entries if e.target_type == f_target_type]
+    if f_session_id:
+        entries = [e for e in entries if e.session_id == f_session_id]
+    if f_date_from:
+        try:
+            d_from = date.fromisoformat(f_date_from)
+            entries = [e for e in entries if e.created_at.date() >= d_from]
+        except ValueError:
+            f_date_from = ""
+    if f_date_to:
+        try:
+            d_to = date.fromisoformat(f_date_to)
+            entries = [e for e in entries if e.created_at.date() <= d_to]
+        except ValueError:
+            f_date_to = ""
+
+    total = len(entries)
+    total_pages = max((total + ACTIVITY_LOG_PAGE_SIZE - 1) // ACTIVITY_LOG_PAGE_SIZE, 1)
+    page = min(max(page, 1), total_pages)
+    page_entries = entries[(page - 1) * ACTIVITY_LOG_PAGE_SIZE: page * ACTIVITY_LOG_PAGE_SIZE]
+
+    active_filters = sum([
+        bool(f_action), bool(f_target_type), bool(f_session_id), bool(f_date_from), bool(f_date_to),
+    ])
+
     return templates.TemplateResponse(
         "admin_activity_log.html",
         {
             "request": request,
             "user": current_user,
-            "entries": entries,
+            "entries": page_entries,
             "action_labels": ACTION_LABELS,
+            "all_actions": list(ActivityAction),
+            "all_target_types": all_target_types,
+            "f_action": f_action,
+            "f_target_type": f_target_type,
+            "f_session_id": f_session_id,
+            "f_date_from": f_date_from,
+            "f_date_to": f_date_to,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "active_filters": active_filters,
         },
     )
 
@@ -177,16 +235,18 @@ def settings_page(
 
 @router.post("/settings/init")
 def settings_init(
+    request: Request,
     current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db_dep),
 ):
     Base.metadata.create_all(bind=engine)
-    log_activity(db, ActivityAction.db_initialized, user_id=current_user.id)
+    log_activity(db, ActivityAction.db_initialized, user_id=current_user.id, session_id=get_session_id(request))
     return RedirectResponse("/admin/settings?msg=init_ok", status_code=303)
 
 
 @router.post("/settings/reset-tables")
 def settings_reset_tables(
+    request: Request,
     current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db_dep),
     confirm: str = Form(""),
@@ -206,12 +266,14 @@ def settings_reset_tables(
         db, ActivityAction.db_reset,
         user_id=current_user.id,
         detail={"tables": selected},
+        session_id=get_session_id(request),
     )
     return RedirectResponse("/admin/settings?msg=reset_tables_ok", status_code=303)
 
 
 @router.post("/settings/reset")
 def settings_reset(
+    request: Request,
     current_user: User = Depends(require_superadmin),
     confirm: str = Form(""),
 ):
@@ -221,6 +283,7 @@ def settings_reset(
     saved_email = current_user.email
     saved_hash = current_user.password_hash
     saved_name = current_user.display_name
+    session_id = get_session_id(request)
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -236,10 +299,10 @@ def settings_reset(
         new_user_id = result.scalar()
         conn.execute(
             text(
-                "INSERT INTO activity_log (user_id, action, created_at) "
-                "VALUES (:uid, 'db_reset', NOW())"
+                "INSERT INTO activity_log (user_id, action, session_id, created_at) "
+                "VALUES (:uid, 'db_reset', :sid, NOW())"
             ),
-            {"uid": new_user_id},
+            {"uid": new_user_id, "sid": session_id},
         )
 
     response = RedirectResponse("/login", status_code=303)
