@@ -27,6 +27,7 @@ class Suggestion(Base):
     release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     genres: Mapped[str | None] = mapped_column(Text, nullable=True)
     origin_country: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    director: Mapped[str | None] = mapped_column(String(255), nullable=True)
     cast_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     providers: Mapped[str | None] = mapped_column(Text, nullable=True)
     episode_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

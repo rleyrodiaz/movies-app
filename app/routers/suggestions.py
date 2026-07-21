@@ -296,6 +296,7 @@ def suggestion_create(
         suggested_by=current_user.id,
         genres=_jsondump(detail.get("genres", [])),
         origin_country=detail.get("origin_country") or None,
+        director=detail.get("director") or None,
         cast_summary=_jsondump(detail.get("cast", [])),
         providers=_jsondump(detail.get("providers", [])),
         episode_count=detail.get("episode_count"),
