@@ -48,9 +48,9 @@ def login_submit(
             f"/?login_error={quote('Email o contraseña incorrectos.')}",
             status_code=303,
         )
-    log_activity(db, ActivityAction.user_login, user_id=user.id)
     response = RedirectResponse("/feed", status_code=303)
-    set_session(response, user.id)
+    session_id = set_session(response, user.id)
+    log_activity(db, ActivityAction.user_login, user_id=user.id, session_id=session_id)
     return response
 
 
@@ -149,11 +149,15 @@ def register_submit(
     invitation.used_by = user.id
     invitation.used_at = datetime.now(timezone.utc)
 
+    response = RedirectResponse("/", status_code=303)
+    session_id = set_session(response, user.id)
+
     log_activity(
         db, ActivityAction.user_registered,
         user_id=user.id,
         target_type="invitation",
         target_id=invitation.id,
+        session_id=session_id,
     )
     log_activity(
         db, ActivityAction.invitation_used,
@@ -161,10 +165,9 @@ def register_submit(
         target_type="invitation",
         target_id=invitation.id,
         detail={"used_by_email": user.email},
+        session_id=session_id,
     )
 
-    response = RedirectResponse("/", status_code=303)
-    set_session(response, user.id)
     return response
 
 

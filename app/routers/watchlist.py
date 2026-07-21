@@ -10,7 +10,7 @@ from app.models.suggestion import Suggestion
 from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services.activity_log import log_activity
-from app.services.auth import require_user
+from app.services.auth import get_session_id, require_user
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -107,6 +107,7 @@ def watchlist_page(
 
 @router.post("/watchlist/{suggestion_id}")
 def watchlist_update(
+    request: Request,
     suggestion_id: int,
     status: str = Form(...),
     current_user: User = Depends(require_user),
@@ -142,6 +143,7 @@ def watchlist_update(
         target_type="suggestion",
         target_id=suggestion_id,
         detail={"status": status},
+        session_id=get_session_id(request),
     )
     return RedirectResponse(f"/suggestions/{suggestion_id}", status_code=303)
 

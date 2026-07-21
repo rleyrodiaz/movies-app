@@ -2,18 +2,71 @@
 {% block title %}Activity log — Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
+<div class="max-w-6xl mx-auto">
 
-  <div class="flex items-center justify-between mb-6">
+  <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
     <div>
       <h1 class="text-2xl font-bold text-white">Activity log</h1>
-      <p class="text-gray-500 text-sm mt-0.5">Últimas {{ entries|length }} acciones del sistema.</p>
+      <p class="text-gray-500 text-sm mt-0.5">{{ total }} acción{{ 'es' if total != 1 else '' }} registrada{{ 's' if total != 1 else '' }}.</p>
     </div>
   </div>
 
+  {# ── Filtros ── #}
+  <form method="get" action="/admin/activity-log" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6 flex flex-wrap items-end gap-3">
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Desde</label>
+      <input type="date" name="date_from" value="{{ f_date_from }}"
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
+               focus:outline-none focus:border-violet-500 transition-colors">
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Hasta</label>
+      <input type="date" name="date_to" value="{{ f_date_to }}"
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
+               focus:outline-none focus:border-violet-500 transition-colors">
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Acción</label>
+      <select name="action"
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
+               focus:outline-none focus:border-violet-500 transition-colors">
+        <option value="">Todas</option>
+        {% for a in all_actions %}
+        <option value="{{ a.value }}" {% if f_action == a.value %}selected{% endif %}>
+          {{ action_labels.get(a.value, a.value) }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Entidad</label>
+      <select name="target_type"
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
+               focus:outline-none focus:border-violet-500 transition-colors">
+        <option value="">Todas</option>
+        {% for t in all_target_types %}
+        <option value="{{ t }}" {% if f_target_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="block text-xs text-gray-500 mb-1">Session ID</label>
+      <input type="text" name="session_id" value="{{ f_session_id }}" placeholder="hex..." autocomplete="off"
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white font-mono w-36
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors">
+    </div>
+    <button type="submit"
+      class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+      Filtrar
+    </button>
+    {% if active_filters %}
+    <a href="/admin/activity-log" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
+    {% endif %}
+  </form>
+
   {% if not entries %}
   <div class="text-center py-16 text-gray-600">
-    <p>Todavía no hay actividad registrada.</p>
+    <p>{{ 'No hay resultados para esos filtros.' if active_filters else 'Todavía no hay actividad registrada.' }}</p>
   </div>
 
   {% else %}
@@ -23,6 +76,7 @@
         <thead>
           <tr class="border-b border-gray-800 text-left text-xs text-gray-500 uppercase tracking-wide">
             <th class="px-4 py-3 font-medium">Fecha/Hora</th>
+            <th class="px-4 py-3 font-medium">Session ID</th>
             <th class="px-4 py-3 font-medium">Usuario</th>
             <th class="px-4 py-3 font-medium">Acción</th>
             <th class="px-4 py-3 font-medium">Target</th>
@@ -36,6 +90,17 @@
             <td class="px-4 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">
               {{ entry.created_at.strftime('%d/%m/%Y') }}<br>
               <span class="text-gray-700">{{ entry.created_at.strftime('%H:%M:%S') }}</span>
+            </td>
+
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% if entry.session_id %}
+              <a href="/admin/activity-log?session_id={{ entry.session_id }}" title="{{ entry.session_id }}"
+                 class="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                {{ entry.session_id[:8] }}…
+              </a>
+              {% else %}
+              <span class="text-gray-700">—</span>
+              {% endif %}
             </td>
 
             <td class="px-4 py-3 whitespace-nowrap">
@@ -85,6 +150,18 @@
       </table>
     </div>
   </div>
+
+  {% if total_pages > 1 %}
+  <div class="flex items-center gap-2 mt-4 flex-wrap">
+    {% for p in range(1, total_pages + 1) %}
+    <a href="?action={{ f_action }}&target_type={{ f_target_type }}&session_id={{ f_session_id }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&page={{ p }}"
+       class="text-xs px-3 py-1.5 rounded-lg transition-colors {% if p == page %}bg-violet-700 text-white{% else %}bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700{% endif %}">
+      {{ p }}
+    </a>
+    {% endfor %}
+    <span class="text-xs text-gray-600 ml-2">{{ total }} registros</span>
+  </div>
+  {% endif %}
   {% endif %}
 
 </div>
