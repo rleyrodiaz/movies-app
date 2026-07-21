@@ -549,6 +549,83 @@
   </div>
 </div>
 
+<!-- REGISTER MODAL -->
+<div id="register-modal" role="dialog" aria-modal="true" aria-labelledby="register-modal-title"
+     data-autoopen="{{ '1' if register_open else '0' }}"
+     style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:1.5rem">
+  <!-- Backdrop -->
+  <div onclick="closeRegisterModal()"
+       style="position:absolute;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)"></div>
+  <!-- Panel -->
+  <div style="position:relative;z-index:1;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;background:var(--surface);border:1px solid var(--border);padding:2.25rem 2rem">
+    <button onclick="closeRegisterModal()" aria-label="Cerrar"
+            style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem;line-height:1;transition:color 0.15s"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">&times;</button>
+
+    <p class="eyebrow" id="register-modal-title" style="margin-bottom:1.25rem">Invitación</p>
+    <h2 class="display" style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:1.75rem">Crear cuenta</h2>
+
+    {% if invitation_invalid %}
+    <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.85rem;padding:0.9rem 1rem;line-height:1.5">
+      <p style="font-weight:600;margin-bottom:0.35rem">Link inválido o expirado</p>
+      <p>Este link de invitación ya fue usado o venció. Pedí uno nuevo al administrador.</p>
+    </div>
+
+    {% else %}
+
+    {% if errors %}
+    <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem">
+      {% for e in errors %}
+      <p{% if not loop.first %} style="margin-top:0.3rem"{% endif %}>• {{ e }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/register/{{ token }}" style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">¿Cómo te llamamos?</label>
+        <input type="text" name="display_name" required autofocus value="{{ form.display_name if form else '' }}"
+               style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+               placeholder="Tu nombre"
+               onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Email</label>
+        <input type="email" name="email" required autocomplete="email" value="{{ form.email if form else '' }}"
+               style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+               placeholder="tu@email.com"
+               onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Contraseña</label>
+        <div style="position:relative">
+          <input type="password" name="password" id="reg-pw" required minlength="8" autocomplete="new-password"
+                 style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 2.5rem 0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+                 placeholder="Mínimo 8 caracteres"
+                 onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <button type="button" onclick="toggleRegPw('reg-pw','reg-pw-toggle')" tabindex="-1" id="reg-pw-toggle"
+                  style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.75rem;padding:0">Ver</button>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Repetir contraseña</label>
+        <div style="position:relative">
+          <input type="password" name="confirm_password" id="reg-pw2" required minlength="8" autocomplete="new-password"
+                 style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 2.5rem 0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+                 placeholder="••••••••"
+                 onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <button type="button" onclick="toggleRegPw('reg-pw2','reg-pw2-toggle')" tabindex="-1" id="reg-pw2-toggle"
+                  style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.75rem;padding:0">Ver</button>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:0.25rem;text-align:center;cursor:pointer;border:none;width:100%">
+        Crear cuenta
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
 <script>
 function openLoginModal() {
   const m = document.getElementById('login-modal');
@@ -566,11 +643,28 @@ function toggleModalPw() {
   if (pw.type === 'password') { pw.type = 'text'; btn.textContent = 'Ocultar'; }
   else { pw.type = 'password'; btn.textContent = 'Ver'; }
 }
+function openRegisterModal() {
+  const m = document.getElementById('register-modal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => { const el = m.querySelector('input[name=display_name]'); if(el) el.focus(); }, 50);
+}
+function closeRegisterModal() {
+  document.getElementById('register-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+function toggleRegPw(inputId, btnId) {
+  const pw = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  if (pw.type === 'password') { pw.type = 'text'; btn.textContent = 'Ocultar'; }
+  else { pw.type = 'password'; btn.textContent = 'Ver'; }
+}
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeLoginModal();
+  if (e.key === 'Escape') { closeLoginModal(); closeRegisterModal(); }
 });
 window.addEventListener('DOMContentLoaded', function() {
   if (document.getElementById('login-modal').dataset.autoopen === '1') openLoginModal();
+  if (document.getElementById('register-modal').dataset.autoopen === '1') openRegisterModal();
 });
 </script>
 

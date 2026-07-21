@@ -121,43 +121,47 @@
     </div>
 
     <div class="px-6 py-5 space-y-4">
-      <div class="relative">
-        <input id="search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..."
-          autocomplete="off"
-          class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
-        <div id="search-spinner" class="hidden absolute right-3 top-3.5">
-          <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+      <div id="search-section" class="space-y-4">
+        <div class="relative">
+          <input id="search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..."
+            autocomplete="off"
+            class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
+                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                   transition-colors">
+          <div id="search-spinner" class="hidden absolute right-3 top-3.5">
+            <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <select id="filter-genre"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
-          <option value="">Todos los géneros</option>
-          {% for g in genres %}
-          <option value="{{ g }}">{{ g }}</option>
-          {% endfor %}
-        </select>
-        <input id="filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
-        <input id="filter-director" type="text" placeholder="Director" autocomplete="off"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
-        <input id="filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
-      </div>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="filter-genre"
+            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                   focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+            <option value="">Todos los géneros</option>
+            {% for g in genres %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+          </select>
+          <input id="filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
+            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                   transition-colors">
+          <input id="filter-director" type="text" placeholder="Director" autocomplete="off"
+            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                   transition-colors">
+          <input id="filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
+            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                   transition-colors">
+        </div>
 
-      <div id="search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+        <div id="search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+      </div>
 
       <div id="confirm-section" class="hidden space-y-4">
+        <button type="button" onclick="backToSearch()"
+          class="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Buscar otra</button>
         <div id="preview"></div>
 
         <div>
@@ -520,6 +524,7 @@ window.handleAddBackdrop = function (e) {
 };
 
 (function () {
+  const searchSection  = document.getElementById('search-section');
   const searchInput    = document.getElementById('search-input');
   const resultsBox     = document.getElementById('search-results');
   const spinner        = document.getElementById('search-spinner');
@@ -619,9 +624,8 @@ window.handleAddBackdrop = function (e) {
     });
   }
 
-  function selectItem(item) {
+  async function selectItem(item) {
     hideResults();
-    searchInput.value = item.title;
     resetRating();
     document.getElementById('f_tmdb_id').value      = item.tmdb_id;
     document.getElementById('f_media_type').value   = item.media_type;
@@ -630,28 +634,91 @@ window.handleAddBackdrop = function (e) {
     document.getElementById('f_overview').value     = item.overview || '';
     document.getElementById('f_release_date').value = item.release_date || '';
 
+    searchSection.classList.add('hidden');
+    confirmSection.classList.remove('hidden');
+    preview.innerHTML = `<div class="text-center py-6 text-gray-500 text-sm">Cargando información…</div>`;
+
+    let detail = null;
+    try {
+      const resp = await fetch(`/suggestions/tmdb-detail?tmdb_id=${item.tmdb_id}&media_type=${item.media_type}`);
+      if (resp.ok) detail = await resp.json();
+    } catch (e) {}
+
+    renderPreview(item, detail);
+  }
+
+  function renderPreview(item, detail) {
+    const posterUrl = item.poster_url_sm
+      ? item.poster_url_sm.replace('/w92', '/w342')
+      : null;
     const year = item.release_date ? item.release_date.slice(0,4) : '';
     const typeBadge = item.media_type === 'movie'
       ? '<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>'
       : '<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>';
 
+    const genres    = (detail && detail.genres)    ? detail.genres    : (item.genres || []);
+    const country   = (detail && detail.origin_country) ? detail.origin_country : '';
+    const cast      = (detail && detail.cast)      ? detail.cast      : [];
+    const providers = (detail && detail.providers) ? detail.providers : [];
+    const overview  = (detail && detail.overview)  ? detail.overview  : (item.overview || '');
+    const tmdbRating = (detail && detail.tmdb_rating) ? detail.tmdb_rating : item.tmdb_rating;
+
+    const metaItems = [];
+    if (year)          metaItems.push(['Año', year]);
+    if (genres.length) metaItems.push(['Género', genres.join(', ')]);
+    if (country)        metaItems.push(['País', country]);
+
+    const metaHtml = metaItems.length
+      ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+           ${metaItems.map(([k,v]) => `
+             <div>
+               <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
+               <p class="text-gray-300">${esc(String(v))}</p>
+             </div>`).join('')}
+           ${cast.length ? `<div class="col-span-2">
+             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
+             <p class="text-gray-300">${esc(cast.join(' · '))}</p>
+           </div>` : ''}
+         </div>`
+      : '';
+
+    const providersHtml = `<div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+      <div class="flex flex-wrap gap-2">
+        ${providers.length
+          ? providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
+          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+        }
+      </div>
+    </div>`;
+
     preview.innerHTML = `
-      <div class="flex items-start gap-3 bg-gray-800 border border-violet-800 rounded-xl p-3">
-        ${item.poster_url_sm
-          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-14 rounded-lg shrink-0 object-cover" style="height:84px">`
-          : `<div class="w-14 shrink-0 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500" style="height:84px">🎬</div>`}
+      <div class="flex items-start gap-3">
+        ${posterUrl
+          ? `<img src="${esc(posterUrl)}" alt="" class="w-20 rounded-lg shrink-0 object-cover shadow-lg">`
+          : `<div class="w-20 shrink-0 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500" style="height:120px">🎬</div>`}
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             ${typeBadge}
-            ${year ? `<span class="text-xs text-gray-500">${esc(year)}</span>` : ''}
-            ${item.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${item.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
+            ${tmdbRating ? `<span class="text-xs text-gray-500">&#9733; ${tmdbRating} <span class="text-gray-700">TMDB</span></span>` : ''}
           </div>
-          <p class="text-white font-semibold text-sm mb-1">${esc(item.title)}</p>
-          ${item.overview ? `<p class="text-gray-400 text-xs leading-relaxed line-clamp-2">${esc(item.overview)}</p>` : ''}
+          <p class="text-white font-semibold text-base mb-1">${esc(item.title)}</p>
+          ${overview ? `<p class="text-gray-400 text-xs leading-relaxed">${esc(overview)}</p>` : ''}
         </div>
-      </div>`;
-    confirmSection.classList.remove('hidden');
+      </div>
+      ${metaHtml}
+      ${providersHtml}`;
   }
+
+  window.backToSearch = function () {
+    confirmSection.classList.add('hidden');
+    preview.innerHTML = '';
+    document.getElementById('f_tmdb_id').value = '';
+    resetRating();
+    searchSection.classList.remove('hidden');
+    searchInput.value = '';
+    searchInput.focus();
+  };
 
   window.setAddRating = function (n) {
     selectedRating = n;
@@ -686,6 +753,7 @@ window.handleAddBackdrop = function (e) {
     filterDirector.value = '';
     filterActor.value = '';
     hideResults();
+    searchSection.classList.remove('hidden');
     confirmSection.classList.add('hidden');
     preview.innerHTML = '';
     document.getElementById('comment-input').value = '';
@@ -698,15 +766,6 @@ window.handleAddBackdrop = function (e) {
     if (selectedRating < 1) {
       e.preventDefault();
       ratingWarning.classList.remove('hidden');
-    }
-  });
-
-  searchInput.addEventListener('keydown', () => {
-    if (!confirmSection.classList.contains('hidden')) {
-      confirmSection.classList.add('hidden');
-      preview.innerHTML = '';
-      document.getElementById('f_tmdb_id').value = '';
-      resetRating();
     }
   });
 

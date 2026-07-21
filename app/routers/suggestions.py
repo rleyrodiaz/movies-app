@@ -164,6 +164,22 @@ def tmdb_search(
     return JSONResponse(results)
 
 
+@router.get("/suggestions/tmdb-detail")
+def tmdb_detail(
+    tmdb_id: int,
+    media_type: str,
+    current_user: User | None = Depends(get_current_user),
+):
+    if current_user is None:
+        return JSONResponse({"error": "not_authenticated"}, status_code=401)
+    if media_type not in ("movie", "tv"):
+        return JSONResponse({"error": "invalid_media_type"}, status_code=400)
+    detail = tmdb.get_detail(tmdb_id, media_type)
+    if detail is None:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+    return JSONResponse(detail)
+
+
 @router.get("/suggestions/new", response_class=HTMLResponse)
 def my_suggestions(
     request: Request,
