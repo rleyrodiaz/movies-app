@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import get_settings
 from app.db import Base, engine, get_db_dep
 from app.models.activity_log import ActivityAction, ActivityLog
-from app.models.comment import Comment
 from app.models.invitation import Invitation
 from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
@@ -28,17 +27,12 @@ RESET_TABLES = {
     "suggestions": {
         "label": "Sugerencias",
         "model": Suggestion,
-        "desc": "Elimina todas las sugerencias. También borra sus comentarios y entradas de watchlist asociadas.",
-    },
-    "comments": {
-        "label": "Comentarios",
-        "model": Comment,
-        "desc": "Elimina todos los comentarios, sin tocar las sugerencias.",
+        "desc": "Elimina todas las sugerencias. También borra sus entradas de watchlist (calificaciones y comentarios) asociadas.",
     },
     "watchlist": {
         "label": "Watchlist",
         "model": WatchlistEntry,
-        "desc": "Elimina las entradas de watchlist y calificaciones de todos los usuarios.",
+        "desc": "Elimina las entradas de watchlist, calificaciones y comentarios de todos los usuarios.",
     },
     "invitations": {
         "label": "Invitaciones",
@@ -51,7 +45,7 @@ RESET_TABLES = {
         "desc": "Borra el historial completo de actividad.",
     },
 }
-RESET_DELETE_ORDER = ["watchlist", "comments", "suggestions", "invitations", "activity_log"]
+RESET_DELETE_ORDER = ["watchlist", "suggestions", "invitations", "activity_log"]
 
 
 @router.get("/invitations", response_class=HTMLResponse)

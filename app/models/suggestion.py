@@ -40,7 +40,6 @@ class Suggestion(Base):
     )
 
     suggester: Mapped["User"] = relationship("User", back_populates="suggestions", foreign_keys=[suggested_by])
-    comments: Mapped[list["Comment"]] = relationship("Comment", back_populates="suggestion", cascade="all, delete-orphan")
     watchlist_entries: Mapped[list["WatchlistEntry"]] = relationship("WatchlistEntry", back_populates="suggestion", cascade="all, delete-orphan")
 
     def _parse(self, field: str | None) -> list[str]:
