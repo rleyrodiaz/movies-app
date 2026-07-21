@@ -22,6 +22,7 @@ def watchlist_page(
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
     genre: str = Query(default=""),
+    platform: str = Query(default=""),
     media: str = Query(default=""),
     by: str = Query(default=""),
     sort: str = Query(default=""),
@@ -44,6 +45,7 @@ def watchlist_page(
 
     # Build filter option data from all entries
     all_genres: list[str] = sorted({g for e in all_entries for g in e.suggestion.genres_list})
+    all_platforms: list[str] = sorted({p for e in all_entries for p in e.suggestion.providers_list})
     suggesters: dict[int, User] = {}
     for e in all_entries:
         s = e.suggestion
@@ -53,6 +55,7 @@ def watchlist_page(
     # Normalize filters
     f_media = media if media in ("movie", "tv") else ""
     f_genre = genre.strip()
+    f_platform = platform.strip()
     f_sort = sort if sort in ("name", "rating") else ""
     f_status = status_filter if status_filter in ("pending", "watched") else ""
     try:
@@ -70,6 +73,8 @@ def watchlist_page(
         entries = [e for e in entries if e.suggestion.suggested_by == f_by]
     if f_genre:
         entries = [e for e in entries if f_genre in e.suggestion.genres_list]
+    if f_platform:
+        entries = [e for e in entries if f_platform in e.suggestion.providers_list]
 
     # Sort
     if f_sort == "name":
@@ -77,7 +82,7 @@ def watchlist_page(
     elif f_sort == "rating":
         entries = sorted(entries, key=lambda e: e.suggestion.tmdb_rating or 0, reverse=True)
 
-    active_filters = sum([bool(f_genre), bool(f_media), bool(f_by), bool(f_status)])
+    active_filters = sum([bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status)])
 
     return templates.TemplateResponse(
         "watchlist.html",
@@ -87,8 +92,10 @@ def watchlist_page(
             "entries": entries,
             "total": len(all_entries),
             "all_genres": all_genres,
+            "all_platforms": all_platforms,
             "suggesters": suggesters,
             "f_genre": f_genre,
+            "f_platform": f_platform,
             "f_media": f_media,
             "f_by": f_by,
             "f_sort": f_sort,
