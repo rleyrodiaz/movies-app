@@ -164,8 +164,6 @@ def watchlist_rate(
         if valid_rating is not None:
             entry.rating = valid_rating
             entry.status = WatchlistStatus.watched
-            # Ya calificada: sale de "Mi watchlist", como con las propias sugerencias.
-            entry.hidden_from_watchlist = True
     else:
         suggestion = db.get(Suggestion, suggestion_id)
         if suggestion and valid_rating is not None:
@@ -176,6 +174,5 @@ def watchlist_rate(
                 rating=valid_rating,
                 watched_on=clean_watched_on,
                 opinion=clean_opinion,
-                hidden_from_watchlist=True,
             ))
     return RedirectResponse("/watchlist", status_code=303)

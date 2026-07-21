@@ -21,6 +21,10 @@
 
   {% if user %}
   {% set path = request.url.path %}
+  {% set nav_active = nav_active|default('') %}
+  {% set is_feed_active = nav_active == 'feed' or (not nav_active and path == '/feed') %}
+  {% set is_watchlist_active = nav_active == 'watchlist' or (not nav_active and path == '/watchlist') %}
+  {% set is_sugerir_active = path == '/suggestions/new' %}
 
   <div class="sticky top-0 z-10">
     <nav class="bg-gray-900 border-b border-gray-800 px-4 md:px-6 py-3 flex items-center justify-between">
@@ -32,9 +36,9 @@
 
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-6 text-sm">
-        <a href="/feed" class="transition-colors {% if path == '/feed' %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
-        <a href="/watchlist" class="transition-colors {% if path == '/watchlist' %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Mi watchlist</a>
-        <a href="/suggestions/new" class="transition-colors {% if path.startswith('/suggestions') %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
+        <a href="/feed" class="transition-colors {% if is_feed_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
+        <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Mi watchlist</a>
+        <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
 
         {% if user.role in ['admin', 'superadmin'] %}
         <div class="group relative">
@@ -83,17 +87,17 @@
       <div class="px-4 py-2 space-y-0.5 text-sm">
         <a href="/feed" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if path == '/feed' %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_feed_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Feed
         </a>
         <a href="/watchlist" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if path == '/watchlist' %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_watchlist_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Mi watchlist
         </a>
         <a href="/suggestions/new" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if path.startswith('/suggestions') %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_sugerir_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           + Sugerir
         </a>
         {% if user.role in ['admin', 'superadmin'] %}

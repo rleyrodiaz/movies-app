@@ -370,6 +370,8 @@ def suggestion_detail(
         e.user_id != suggestion.suggested_by for e in suggestion.watchlist_entries
     )
 
+    nav_active = "watchlist" if request.query_params.get("back") == "watchlist" else "feed"
+
     return templates.TemplateResponse(
         "suggestion_detail.html",
         {
@@ -382,6 +384,7 @@ def suggestion_detail(
             "comments": comments,
             "is_owner": is_owner,
             "can_delete": can_delete,
+            "nav_active": nav_active,
         },
     )
 
