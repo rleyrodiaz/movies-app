@@ -1,0 +1,5 @@
+<svg width="340" height="70" viewBox="0 0 340 70" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="movieLeyro">
+  <circle cx="30" cy="35" r="30" fill="#E50914"/>
+  <path d="M23 23 L23 47 L44 35 Z" fill="#FFFFFF"/>
+  <text x="76" y="45" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="500" fill="#E50914">movie<tspan fill="#D1D5DB">Leyro</tspan></text>
+</svg>
