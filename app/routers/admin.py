@@ -18,9 +18,11 @@ from app.models.user import User, UserRole
 from app.models.watchlist import WatchlistEntry
 from app.services.activity_log import log_activity
 from app.services.auth import clear_session, get_session_id, require_admin, require_superadmin
+from app.services.tz import to_local
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["local_time"] = to_local
 
 # Tablas que se pueden regenerar selectivamente desde Settings.
 # El orden de borrado (hijos antes que padres) se define aparte en RESET_DELETE_ORDER.
@@ -75,16 +77,25 @@ def invitations_page(
         is_used = inv.used_by is not None
         is_expired = expires_at < now
         link = f"{base_url}/register/{inv.token}"
-        msg = f"Te invito a Movies & Series! Registrate acá: {link}"
+        msg = (
+            "Armé movieLeyro: una app privada, de grupo cerrado, para sugerirnos pelis y series "
+            "entre nosotros, sin el eterno \"¿qué vemos hoy?\". Cargás tus sugerencias eligiendo "
+            "de toda la base de TMDB con filtros (título, género, calificación, director, actor). "
+            "Después, con esos mismos filtros, vas pasando lo que te interesa a Mi Watchlist, y "
+            "cuando la ves, la calificás y dejás tu comentario — así el rating no es de un "
+            "desconocido de internet sino de gente en la que confiás. Te dejo tu acceso, es de un "
+            f"solo uso 👇\n{link}"
+        )
         invite_data.append({
             "inv": inv,
             "link": link,
+            "msg": msg,
             "is_used": is_used,
             "is_expired": is_expired,
             "is_active": not is_used and not is_expired,
             "wa_url": f"https://wa.me/?text={quote_plus(msg)}",
             "mailto_url": (
-                f"mailto:?subject={quote_plus('Invitación a Movies & Series')}"
+                f"mailto:?subject={quote_plus('Invitación a movieLeyro')}"
                 f"&body={quote_plus(msg)}"
             ),
         })
@@ -182,13 +193,13 @@ def activity_log_page(
     if f_date_from:
         try:
             d_from = date.fromisoformat(f_date_from)
-            entries = [e for e in entries if e.created_at.date() >= d_from]
+            entries = [e for e in entries if to_local(e.created_at).date() >= d_from]
         except ValueError:
             f_date_from = ""
     if f_date_to:
         try:
             d_to = date.fromisoformat(f_date_to)
-            entries = [e for e in entries if e.created_at.date() <= d_to]
+            entries = [e for e in entries if to_local(e.created_at).date() <= d_to]
         except ValueError:
             f_date_to = ""
 

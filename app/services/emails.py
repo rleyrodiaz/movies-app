@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import resend
 
 from app.config import get_settings
+from app.services.tz import to_local
 
 
 def _send(to: str, subject: str, html: str) -> bool:
@@ -34,7 +35,7 @@ def send_visit_notification(
     if not to:
         return False
 
-    hora = datetime.now().strftime("%d/%m/%Y %H:%M")
+    hora = to_local(datetime.now(timezone.utc)).strftime("%d/%m/%Y %H:%M")
     geo = ", ".join(filter(None, [city, country])) or "—"
     disp = " · ".join(filter(None, [device, browser, os])) or "—"
     ref = referrer or "directo"
