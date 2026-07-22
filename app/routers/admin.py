@@ -12,6 +12,7 @@ from app.config import get_settings
 from app.db import Base, engine, get_db_dep
 from app.models.activity_log import ActivityAction, ActivityLog
 from app.models.invitation import Invitation
+from app.models.reminder import PersonalReminder
 from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
 from app.models.watchlist import WatchlistEntry
@@ -34,6 +35,11 @@ RESET_TABLES = {
         "model": WatchlistEntry,
         "desc": "Elimina las entradas de watchlist, calificaciones y comentarios de todos los usuarios.",
     },
+    "reminders": {
+        "label": "Recordatorios",
+        "model": PersonalReminder,
+        "desc": "Elimina los recordatorios privados de todos los usuarios (los que todavía no se calificaron ni publicaron).",
+    },
     "invitations": {
         "label": "Invitaciones",
         "model": Invitation,
@@ -45,7 +51,7 @@ RESET_TABLES = {
         "desc": "Borra el historial completo de actividad.",
     },
 }
-RESET_DELETE_ORDER = ["watchlist", "suggestions", "invitations", "activity_log"]
+RESET_DELETE_ORDER = ["watchlist", "reminders", "suggestions", "invitations", "activity_log"]
 
 
 @router.get("/invitations", response_class=HTMLResponse)
@@ -121,9 +127,14 @@ def create_invitation(
 ACTION_LABELS = {
     "user_registered": "Nuevo usuario",
     "user_login": "Login",
-    "suggestion_created": "Sugerencia creada",
+    "suggestion_created": "Nueva Sugerencia",
+    "suggestion_deleted": "Borrar Sugerencia",
     "comment_created": "Comentario creado",
     "watchlist_updated": "Watchlist actualizada",
+    "watchlist_added": "Agregar Watchlist",
+    "watchlist_removed": "Quitar de Watchlist",
+    "watchlist_rated": "Vista + Calificar",
+    "reminder_created": "Agregar Recordatorio",
     "invitation_created": "Invitación creada",
     "invitation_used": "Invitación usada",
     "role_changed": "Rol cambiado",

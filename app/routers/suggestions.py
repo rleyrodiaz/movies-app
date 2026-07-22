@@ -1,6 +1,3 @@
-import json
-from datetime import date
-
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -16,6 +13,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_current_user, get_session_id, require_user
+from app.services.suggestion_creation import create_suggestion
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -270,63 +268,13 @@ def suggestion_create(
     if existing:
         return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
 
-    detail = tmdb.get_detail(tmdb_id, media_type) or {}
-    final_title = detail.get("title") or title
-    final_poster = detail.get("poster_path") or poster_path or None
-    final_overview = detail.get("overview") or overview or None
-    final_date_str = detail.get("release_date") or release_date or None
-
-    parsed_date: date | None = None
-    if final_date_str:
-        try:
-            parsed_date = date.fromisoformat(final_date_str[:10])
-        except ValueError:
-            pass
-
-    def _jsondump(v: list) -> str | None:
-        return json.dumps(v, ensure_ascii=False) if v else None
-
-    suggestion = Suggestion(
-        tmdb_id=tmdb_id,
-        media_type=MediaType(media_type),
-        title=final_title,
-        poster_path=final_poster,
-        overview=final_overview,
-        release_date=parsed_date,
-        suggested_by=current_user.id,
-        genres=_jsondump(detail.get("genres", [])),
-        origin_country=detail.get("origin_country") or None,
-        director=detail.get("director") or None,
-        cast_summary=_jsondump(detail.get("cast", [])),
-        providers=_jsondump(detail.get("providers", [])),
-        episode_count=detail.get("episode_count"),
-        season_count=detail.get("season_count"),
-        tmdb_rating=detail.get("tmdb_rating"),
-    )
-    db.add(suggestion)
-    db.flush()
-
-    # Auto-create watchlist entry (watched + rating + comentario opcional) para
-    # guardar la opinión del sugerente, pero oculta de "Mi watchlist" hasta que
-    # se agregue explícitamente desde el feed.
-    valid_rating = rating if 1 <= rating <= 10 else None
-    clean_comment = comment_body.strip() or None
-    entry = WatchlistEntry(
-        user_id=current_user.id,
-        suggestion_id=suggestion.id,
-        status=WatchlistStatus.watched,
-        rating=valid_rating,
-        comment=clean_comment,
-        hidden_from_watchlist=True,
-    )
-    db.add(entry)
-
-    log_activity(
-        db, ActivityAction.suggestion_created,
-        user_id=current_user.id,
-        target_type="suggestion",
-        target_id=suggestion.id,
-        detail={"title": final_title, "media_type": media_type},
+    create_suggestion(
+        db, current_user.id, tmdb_id, media_type, title,
+        poster_path=poster_path,
+        overview=overview,
+        release_date=release_date,
+        rating=rating,
+        comment=comment_body,
         session_id=get_session_id(request),
     )
     return RedirectResponse("/suggestions/new", status_code=303)
@@ -384,6 +332,7 @@ def suggestion_detail(
 
 @router.post("/suggestions/{suggestion_id}/delete")
 def suggestion_delete(
+    request: Request,
     suggestion_id: int,
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
@@ -402,5 +351,15 @@ def suggestion_delete(
     )
     if locked:
         return RedirectResponse(f"/suggestions/{suggestion_id}?locked=1", status_code=303)
+
+    title, media_type = suggestion.title, suggestion.media_type.value
     db.delete(suggestion)
+    log_activity(
+        db, ActivityAction.suggestion_deleted,
+        user_id=current_user.id,
+        target_type="suggestion",
+        target_id=suggestion_id,
+        detail={"title": title, "media_type": media_type},
+        session_id=get_session_id(request),
+    )
     return RedirectResponse("/suggestions/new", status_code=303)

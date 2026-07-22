@@ -17,6 +17,14 @@
     {% endif %}
   </button>
 
+  <button onclick="openReminderAddModal()"
+    class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+    </svg>
+    Agregar recordatorio
+  </button>
+
   {% if active_filters or f_sort %}
   <a href="/watchlist" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
   {% endif %}
@@ -27,19 +35,61 @@
   </span>
 </div>
 
+{# ── Recordatorios privados ── #}
+{% if reminders %}
+<div class="mb-8">
+  <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+    Recordatorios <span class="text-gray-600 font-normal normal-case">— privados, no aparecen en el feed hasta que los califiques</span>
+  </h2>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+    {% for r in reminders %}
+    <button type="button" onclick="openReminderDetail({{ r.id }})" class="group block text-left">
+      <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
+        {% if r.poster_path %}
+        <img src="https://image.tmdb.org/t/p/w342{{ r.poster_path }}" alt="{{ r.title }}"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
+        {% endif %}
+        <div class="absolute top-2 left-2">
+          {% if r.media_type.value == 'movie' %}
+          <span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>
+          {% else %}
+          <span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>
+          {% endif %}
+        </div>
+        <div class="absolute top-2 right-2 bg-amber-900/80 text-amber-300 text-xs font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm">
+          Privado
+        </div>
+      </div>
+      <div class="mt-2 px-0.5">
+        <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ r.title }}</p>
+        <p class="text-xs text-gray-500 mt-0.5">{% if r.release_date %}{{ r.release_date.year }}{% endif %}</p>
+      </div>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {# ── Mosaic ── #}
 {% if not entries %}
-<div class="text-center py-24 text-gray-600">
-  {% if active_filters %}
-  <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
-  <a href="/watchlist" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver todos →</a>
-  {% else %}
-  <p class="text-lg text-gray-500">Tu watchlist está vacía.</p>
-  <a href="/feed" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver sugerencias →</a>
+  {% if not reminders %}
+  <div class="text-center py-24 text-gray-600">
+    {% if active_filters %}
+    <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
+    <a href="/watchlist" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver todos →</a>
+    {% else %}
+    <p class="text-lg text-gray-500">Tu watchlist está vacía.</p>
+    <a href="/feed" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver sugerencias →</a>
+    {% endif %}
+  </div>
   {% endif %}
-</div>
 
 {% else %}
+{% if reminders %}
+<h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Watchlist</h2>
+{% endif %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for e in entries %}
   <button type="button" onclick="openWDetail({{ e.suggestion.id }})" class="group block text-left">
@@ -238,6 +288,57 @@
 </div>
 
 
+{# ── MODAL: NUEVO RECORDATORIO ── #}
+<div id="reminder-add-backdrop" onclick="handleReminderAddBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+
+  <div id="reminder-add-box"
+    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800">
+      <h2 class="text-lg font-bold text-white">Nuevo recordatorio</h2>
+      <button onclick="closeReminderAddModal()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    </div>
+
+    <div class="px-6 py-5 space-y-4">
+      <p class="text-xs text-gray-500">
+        Buscá algo que todavía no viste — queda como recordatorio privado en tu watchlist,
+        nadie más lo ve hasta que lo califiques.
+      </p>
+      <div class="relative">
+        <input id="reminder-search-input" type="text" placeholder="Buscá por título..." autocomplete="off"
+          class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <div id="reminder-search-spinner" class="hidden absolute right-3 top-3.5">
+          <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+        </div>
+      </div>
+      <div id="reminder-search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+    </div>
+  </div>
+</div>
+
+
+{# ── MODAL: DETALLE RECORDATORIO ── #}
+<div id="reminder-detail-backdrop" onclick="handleReminderDetailBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+
+  <div id="reminder-detail-box"
+    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+
+    <div class="flex items-center justify-between px-6 pt-5 pb-0">
+      <button onclick="closeReminderDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Mi watchlist</button>
+      <button onclick="closeReminderDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    </div>
+
+    <div id="reminder-detail-content" class="p-6"></div>
+  </div>
+</div>
+
+
 {# ── Datos embebidos ── #}
 <script>
 const WENTRIES = {
@@ -263,6 +364,19 @@ const WENTRIES = {
     comment: {{ (e.comment or '') | tojson }},
     watched_on: {{ (e.watched_on or '') | tojson }},
     suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
+  },
+  {% endfor %}
+};
+
+const REMINDERS = {
+  {% for r in reminders %}
+  {{ r.id }}: {
+    id: {{ r.id }},
+    title: {{ r.title | tojson }},
+    poster_path: {{ (r.poster_path or '') | tojson }},
+    media_type: {{ r.media_type.value | tojson }},
+    year: {{ r.release_date.year if r.release_date else 'null' }},
+    overview: {{ (r.overview or '') | tojson }},
   },
   {% endfor %}
 };
@@ -433,8 +547,217 @@ async function removeFromWatchlist(id, status) {
   location.reload();
 }
 
+/* ── Reminder add modal ── */
+window.openReminderAddModal = function () {
+  document.getElementById('reminder-add-backdrop').classList.remove('hidden');
+  document.getElementById('reminder-add-backdrop').classList.add('flex');
+  setTimeout(() => document.getElementById('reminder-search-input').focus(), 50);
+};
+
+window.closeReminderAddModal = function () {
+  document.getElementById('reminder-add-backdrop').classList.add('hidden');
+  document.getElementById('reminder-add-backdrop').classList.remove('flex');
+  const input = document.getElementById('reminder-search-input');
+  input.value = '';
+  const box = document.getElementById('reminder-search-results');
+  box.classList.add('hidden');
+  box.innerHTML = '';
+};
+
+window.handleReminderAddBackdrop = function (e) {
+  if (e.target === document.getElementById('reminder-add-backdrop')) closeReminderAddModal();
+};
+
+(function () {
+  const searchInput = document.getElementById('reminder-search-input');
+  const resultsBox  = document.getElementById('reminder-search-results');
+  const spinner     = document.getElementById('reminder-search-spinner');
+  let debounceTimer = null;
+  let cachedResults = [];
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q), 400);
+  });
+
+  async function doSearch(q) {
+    spinner.classList.remove('hidden');
+    try {
+      const resp = await fetch('/suggestions/search?q=' + encodeURIComponent(q));
+      if (resp.status === 401) { window.location = '/login'; return; }
+      cachedResults = await resp.json();
+      renderResults(cachedResults);
+    } catch { hideResults(); }
+    finally { spinner.classList.add('hidden'); }
+  }
+
+  function renderResults(items) {
+    if (!items.length) {
+      resultsBox.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Sin resultados.</p>';
+      resultsBox.classList.remove('hidden');
+      return;
+    }
+    resultsBox.innerHTML = items.map((item, i) => `
+      <button type="button" data-idx="${i}"
+        class="reminder-result-item flex items-center gap-3 w-full text-left px-4 py-3
+               hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0">
+        ${item.poster_url_sm
+          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 rounded object-cover" style="height:52px">`
+          : `<div class="w-9 shrink-0 flex items-center justify-center text-gray-600" style="height:52px">🎬</div>`}
+        <div class="flex-1 min-w-0">
+          <p class="text-white text-sm font-medium truncate">${esc(item.title)}</p>
+          <span class="text-gray-500 text-xs">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
+          ${item.already_suggested ? `<span class="text-xs text-yellow-500 font-medium ml-1">Ya sugerida — se agrega directo</span>` : ''}
+        </div>
+      </button>`).join('');
+    resultsBox.classList.remove('hidden');
+
+    resultsBox.querySelectorAll('.reminder-result-item').forEach(btn => {
+      btn.addEventListener('click', () => submitReminder(cachedResults[parseInt(btn.dataset.idx)]));
+    });
+  }
+
+  async function submitReminder(item) {
+    const fd = new FormData();
+    fd.append('tmdb_id', item.tmdb_id);
+    fd.append('media_type', item.media_type);
+    fd.append('title', item.title);
+    fd.append('poster_path', item.poster_path || '');
+    fd.append('overview', item.overview || '');
+    fd.append('release_date', item.release_date || '');
+    try {
+      await fetch('/watchlist/reminders', { method: 'POST', body: fd });
+    } catch(e) {}
+    location.reload();
+  }
+
+  function hideResults() {
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+  }
+})();
+
+/* ── Reminder detail modal ── */
+let _rSelectedRating = null;
+
+function openReminderDetail(id) {
+  const r = REMINDERS[id];
+  if (!r) return;
+  _rSelectedRating = null;
+
+  const posterUrl = r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null;
+  const typeBadge = r.media_type === 'movie'
+    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
+    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+
+  const ratingBtns = Array.from({length:10}, (_,i) => {
+    const n = i+1;
+    return `<button type="button" onclick="selectReminderRating(${id},${n})"
+      id="rrbtn-${id}-${n}"
+      class="w-8 h-8 text-xs font-semibold rounded-lg transition-colors bg-gray-800 hover:bg-gray-700 text-gray-400">${n}</button>`;
+  }).join('');
+
+  document.getElementById('reminder-detail-content').innerHTML = `
+    <div class="flex gap-5">
+      <div class="shrink-0">
+        ${posterUrl
+          ? `<img src="${posterUrl}" alt="${esc(r.title)}" class="w-28 rounded-xl shadow-2xl object-cover">`
+          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-2 flex-wrap">
+          ${typeBadge}
+          ${r.year ? `<span class="text-xs text-gray-500">${r.year}</span>` : ''}
+          <span class="text-xs bg-amber-900/40 text-amber-400 border border-amber-900/60 px-2 py-0.5 rounded-full">Privado</span>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(r.title)}</h2>
+        ${r.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(r.overview)}</p>` : ''}
+      </div>
+    </div>
+
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+        Calificar y publicar
+        <span id="rrating-label-${id}" class="text-yellow-400 font-semibold normal-case ml-1"></span>
+      </p>
+      <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
+      <textarea id="rcomment-${id}" rows="2" placeholder="Tu comentario (opcional)..."
+        class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3"></textarea>
+      <div class="flex items-center gap-3 flex-wrap">
+        <button id="rpromote-btn-${id}" onclick="promoteReminder(${id})" disabled
+          title="Elegí una calificación antes de publicar"
+          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg
+                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
+          Calificar y publicar
+        </button>
+        <button onclick="discardReminder(${id})" class="ml-auto text-xs text-red-700 hover:text-red-400 transition-colors">
+          Descartar
+        </button>
+      </div>
+    </div>`;
+
+  document.getElementById('reminder-detail-backdrop').classList.remove('hidden');
+  document.getElementById('reminder-detail-backdrop').classList.add('flex');
+}
+
+function closeReminderDetail() {
+  document.getElementById('reminder-detail-backdrop').classList.add('hidden');
+  document.getElementById('reminder-detail-backdrop').classList.remove('flex');
+}
+
+function handleReminderDetailBackdrop(ev) {
+  if (ev.target === document.getElementById('reminder-detail-backdrop')) closeReminderDetail();
+}
+
+function selectReminderRating(id, n) {
+  _rSelectedRating = n;
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`rrbtn-${id}-${i}`);
+    if (!btn) continue;
+    btn.classList.toggle('bg-yellow-500', i === n);
+    btn.classList.toggle('text-black',    i === n);
+    btn.classList.toggle('bg-gray-800',   i !== n);
+    btn.classList.toggle('text-gray-400', i !== n);
+  }
+  const label = document.getElementById(`rrating-label-${id}`);
+  if (label) label.textContent = n + '/10';
+  const btn = document.getElementById(`rpromote-btn-${id}`);
+  if (btn) { btn.disabled = false; btn.removeAttribute('title'); }
+}
+
+async function promoteReminder(id) {
+  const n = _rSelectedRating;
+  if (!n) return;
+  const comment = document.getElementById(`rcomment-${id}`)?.value || '';
+  const fd = new FormData();
+  fd.append('rating', n);
+  fd.append('comment', comment);
+  try {
+    await fetch(`/watchlist/reminders/${id}/rate`, { method: 'POST', body: fd });
+  } catch(e) {}
+  location.reload();
+}
+
+function discardReminder(id) {
+  if (!confirm('¿Descartar este recordatorio? No vas a poder recuperarlo.')) return;
+  (async () => {
+    try {
+      await fetch(`/watchlist/reminders/${id}/discard`, { method: 'POST', body: new FormData() });
+    } catch(e) {}
+    location.reload();
+  })();
+}
+
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeWDetail(); closeFilterModal(); }
+  if (e.key === 'Escape') {
+    closeWDetail();
+    closeFilterModal();
+    closeReminderAddModal();
+    closeReminderDetail();
+  }
 });
 </script>
 

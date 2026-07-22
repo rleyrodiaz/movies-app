@@ -33,5 +33,6 @@ class User(Base):
     inviter: Mapped["User | None"] = relationship("User", remote_side="User.id", foreign_keys=[invited_by])
     suggestions: Mapped[list["Suggestion"]] = relationship("Suggestion", back_populates="suggester", foreign_keys="Suggestion.suggested_by")
     watchlist_entries: Mapped[list["WatchlistEntry"]] = relationship("WatchlistEntry", back_populates="user")
+    reminders: Mapped[list["PersonalReminder"]] = relationship("PersonalReminder", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[list["ActivityLog"]] = relationship("ActivityLog", back_populates="user")
     created_invitations: Mapped[list["Invitation"]] = relationship("Invitation", back_populates="creator", foreign_keys="Invitation.created_by")

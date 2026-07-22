@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Movies & Series{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/movieleyro-favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -25,13 +26,19 @@
   {% set is_feed_active = nav_active == 'feed' or (not nav_active and path == '/feed') %}
   {% set is_watchlist_active = nav_active == 'watchlist' or (not nav_active and path == '/watchlist') %}
   {% set is_sugerir_active = path == '/suggestions/new' %}
+  {% set mobile_page_label =
+    'Feed' if is_feed_active else
+    'Mi watchlist' if is_watchlist_active else
+    'Invitaciones' if path == '/admin/invitations' else
+    'Activity log' if path == '/admin/activity-log' else
+    'Settings' if path == '/admin/settings' else
+    ''
+  %}
 
   <div class="sticky top-0 z-10">
     <nav class="bg-gray-900 border-b border-gray-800 px-4 md:px-6 py-3 flex items-center justify-between">
-      <a href="/feed" class="text-lg font-bold tracking-tight text-white flex items-center gap-2 shrink-0">
-        <span class="text-violet-400">&#9654;</span>
-        <span class="hidden xs:inline">Movies &amp; Series</span>
-        <span class="xs:hidden">M&amp;S</span>
+      <a href="/feed" class="shrink-0 inline-flex items-center leading-none">
+        <img src="/static/img/movieleyro-logo.svg" alt="movieLeyro" class="h-7 w-auto block">
       </a>
 
       <!-- Desktop links -->
@@ -81,6 +88,12 @@
         </svg>
       </button>
     </nav>
+
+    {% if mobile_page_label %}
+    <div class="md:hidden bg-gray-900/70 border-b border-gray-800 px-4 py-1.5">
+      <span class="text-xs font-medium text-violet-400 uppercase tracking-wide">{{ mobile_page_label }}</span>
+    </div>
+    {% endif %}
 
     <!-- Mobile dropdown -->
     <div id="mobile-nav" class="hidden md:hidden bg-gray-900 border-b border-gray-800">

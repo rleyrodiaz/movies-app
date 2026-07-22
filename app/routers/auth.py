@@ -24,6 +24,13 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _client_origin(request: Request) -> dict:
+    """De dónde vino el login: IP real (respetando proxy) + user agent."""
+    forwarded = request.headers.get("x-forwarded-for")
+    ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else None)
+    return {"ip": ip, "user_agent": request.headers.get("user-agent")}
+
+
 @router.get("/login", response_class=HTMLResponse)
 def login_page(
     request: Request,
@@ -50,7 +57,12 @@ def login_submit(
         )
     response = RedirectResponse("/feed", status_code=303)
     session_id = set_session(response, user.id)
-    log_activity(db, ActivityAction.user_login, user_id=user.id, session_id=session_id)
+    log_activity(
+        db, ActivityAction.user_login,
+        user_id=user.id,
+        detail=_client_origin(request),
+        session_id=session_id,
+    )
     return response
 
 
