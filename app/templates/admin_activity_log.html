@@ -88,8 +88,8 @@
           <tr class="hover:bg-gray-800/40 transition-colors">
 
             <td class="px-4 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">
-              {{ entry.created_at.strftime('%d/%m/%Y') }}<br>
-              <span class="text-gray-700">{{ entry.created_at.strftime('%H:%M:%S') }}</span>
+              {{ (entry.created_at|local_time).strftime('%d/%m/%Y') }}<br>
+              <span class="text-gray-700">{{ (entry.created_at|local_time).strftime('%H:%M:%S') }}</span>
             </td>
 
             <td class="px-4 py-3 whitespace-nowrap">
