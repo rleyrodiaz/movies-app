@@ -170,5 +170,24 @@
     </div>
   </footer>
 
+  <script>
+  (function () {
+    try {
+      if (sessionStorage.getItem('session_id')) return;
+      var sid = crypto.randomUUID();
+      sessionStorage.setItem('session_id', sid);
+      fetch('/api/session/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sid,
+          entry_page: window.location.pathname,
+          referrer: document.referrer || '',
+        }),
+      }).catch(function () {});
+    } catch (e) {}
+  })();
+  </script>
+
 </body>
 </html>

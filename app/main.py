@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.exceptions import AccessDenied, NeedsLogin
-from app.routers import admin, auth, suggestions, watchlist
+from app.routers import admin, auth, suggestions, tracking, watchlist
 
 app = FastAPI(title="Movies & Series")
 
@@ -15,6 +15,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(suggestions.router)
 app.include_router(watchlist.router)
+app.include_router(tracking.router)
 
 
 @app.exception_handler(NeedsLogin)
