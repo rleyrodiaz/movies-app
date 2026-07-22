@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     tmdb_api_key: str
     invitation_expiry_days: int = 7
     session_max_age_days: int = 30
+    resend_api_key: str = ""
+    email_from: str = "onboarding@resend.dev"
+    visit_notify_to: str = ""
+    visit_email_rate_limit: bool = True
 
     model_config = {"env_file": ".env"}
 
