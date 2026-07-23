@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Clubes — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Clubes</h1>
+      <p class="text-gray-500 text-sm mt-0.5">Cada club es un grupo privado aislado: sugerencias, watchlist e invitaciones separadas.</p>
+    </div>
+    <form method="post" action="/admin/clubs" class="flex items-center gap-2">
+      <input type="text" name="name" placeholder="Nombre del club" required
+        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
+               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+               transition-colors">
+      <button
+        type="submit"
+        class="bg-violet-600 hover:bg-violet-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+      >
+        + Nuevo club
+      </button>
+    </form>
+  </div>
+
+  {% if not clubs_data %}
+  <div class="text-center py-16 text-gray-600">
+    <p class="text-lg">Todavía no hay clubes.</p>
+  </div>
+
+  {% else %}
+  <div class="space-y-3">
+    {% for d in clubs_data %}
+    {% set is_active = active_club and d.club.id == active_club.id %}
+    <div class="bg-gray-900 border {% if is_active %}border-violet-700{% else %}border-gray-800{% endif %} rounded-xl p-4">
+
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-2">
+            {% if is_active %}
+            <span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-800 px-2 py-0.5 rounded-full">Activo</span>
+            {% endif %}
+            <span class="text-white font-medium">{{ d.club.name }}</span>
+            <span class="text-xs text-gray-600">{{ d.member_count }} miembro{{ 's' if d.member_count != 1 else '' }}</span>
+          </div>
+
+          <form method="post" action="/admin/clubs/{{ d.club.id }}/rename" class="flex items-center gap-2">
+            <input type="text" name="name" value="{{ d.club.name }}" required
+              class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
+                     focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+            <button type="submit"
+              class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap">
+              Renombrar
+            </button>
+          </form>
+        </div>
+
+        {% if not is_active %}
+        <form method="post" action="/admin/clubs/switch" class="shrink-0">
+          <input type="hidden" name="club_id" value="{{ d.club.id }}">
+          <button type="submit"
+            class="text-xs bg-violet-900/40 hover:bg-violet-900/60 text-violet-400 border border-violet-900 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap">
+            Cambiar acá
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

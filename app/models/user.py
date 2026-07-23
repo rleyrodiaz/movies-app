@@ -23,6 +23,9 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name="userrole"), nullable=False, default=UserRole.user
     )
+    club_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False
+    )
     invited_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

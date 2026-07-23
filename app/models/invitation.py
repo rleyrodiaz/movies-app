@@ -14,6 +14,9 @@ class Invitation(Base):
     created_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    club_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False
+    )
     used_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

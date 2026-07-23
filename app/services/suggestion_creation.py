@@ -17,6 +17,7 @@ def _jsondump(v: list) -> str | None:
 def create_suggestion(
     db: Session,
     user_id: int,
+    club_id: int,
     tmdb_id: int,
     media_type: str,
     title: str,
@@ -51,6 +52,7 @@ def create_suggestion(
         overview=final_overview,
         release_date=parsed_date,
         suggested_by=user_id,
+        club_id=club_id,
         genres=_jsondump(detail.get("genres", [])),
         origin_country=detail.get("origin_country") or None,
         director=detail.get("director") or None,
@@ -78,6 +80,7 @@ def create_suggestion(
     log_activity(
         db, ActivityAction.suggestion_created,
         user_id=user_id,
+        club_id=club_id,
         target_type="suggestion",
         target_id=suggestion.id,
         detail={"title": final_title, "media_type": media_type},

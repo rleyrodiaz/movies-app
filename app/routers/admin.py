@@ -11,13 +11,21 @@ from sqlalchemy.orm import Session, joinedload
 from app.config import get_settings
 from app.db import Base, engine, get_db_dep
 from app.models.activity_log import ActivityAction, ActivityLog
+from app.models.club import Club
 from app.models.invitation import Invitation
 from app.models.reminder import PersonalReminder
 from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
 from app.models.watchlist import WatchlistEntry
 from app.services.activity_log import log_activity
-from app.services.auth import clear_session, get_session_id, require_admin, require_superadmin
+from app.services.auth import (
+    clear_session,
+    create_session_cookie,
+    get_session_id,
+    require_admin,
+    require_superadmin,
+)
+from app.services.clubs import get_active_club, list_clubs_for_switcher
 from app.services.tz import to_local
 
 router = APIRouter(prefix="/admin")
@@ -62,8 +70,12 @@ def invitations_page(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db_dep),
 ):
+    active_club = get_active_club(request, current_user, db)
+
     invitations = db.scalars(
-        select(Invitation).order_by(Invitation.created_at.desc())
+        select(Invitation)
+        .where(Invitation.club_id == active_club.id)
+        .order_by(Invitation.created_at.desc())
     ).all()
 
     base_url = str(request.base_url).rstrip("/")
@@ -107,6 +119,8 @@ def invitations_page(
             "user": current_user,
             "invite_data": invite_data,
             "expiry_days": get_settings().invitation_expiry_days,
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -118,9 +132,11 @@ def create_invitation(
     db: Session = Depends(get_db_dep),
 ):
     settings = get_settings()
+    active_club = get_active_club(request, current_user, db)
     invitation = Invitation(
         token=secrets.token_urlsafe(32),
         created_by=current_user.id,
+        club_id=active_club.id,
         expires_at=datetime.now(timezone.utc) + timedelta(days=settings.invitation_expiry_days),
     )
     db.add(invitation)
@@ -128,6 +144,7 @@ def create_invitation(
     log_activity(
         db, ActivityAction.invitation_created,
         user_id=current_user.id,
+        club_id=active_club.id,
         target_type="invitation",
         target_id=invitation.id,
         session_id=get_session_id(request),
@@ -169,9 +186,12 @@ def activity_log_page(
     date_to: str = Query(default=""),
     page: int = Query(default=1),
 ):
+    active_club = get_active_club(request, current_user, db)
+
     all_entries = db.scalars(
         select(ActivityLog)
         .options(joinedload(ActivityLog.user))
+        .where(ActivityLog.club_id == active_club.id)
         .order_by(ActivityLog.created_at.desc())
     ).unique().all()
 
@@ -230,6 +250,8 @@ def activity_log_page(
             "total_pages": total_pages,
             "total": total,
             "active_filters": active_filters,
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -251,6 +273,8 @@ def settings_page(
             "msg": msg,
             "reset_tables": RESET_TABLES,
             "stats": stats,
+            "active_club": get_active_club(request, current_user, db),
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -297,6 +321,7 @@ def settings_reset_tables(
 def settings_reset(
     request: Request,
     current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
     confirm: str = Form(""),
 ):
     if confirm.strip() != "RESET":
@@ -305,18 +330,25 @@ def settings_reset(
     saved_email = current_user.email
     saved_hash = current_user.password_hash
     saved_name = current_user.display_name
+    saved_club = db.get(Club, current_user.club_id)
+    saved_club_name = saved_club.name if saved_club else "Club Original"
     session_id = get_session_id(request)
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     with engine.begin() as conn:
+        club_result = conn.execute(
+            text("INSERT INTO clubs (name, created_at) VALUES (:name, NOW()) RETURNING id"),
+            {"name": saved_club_name},
+        )
+        new_club_id = club_result.scalar()
         result = conn.execute(
             text(
-                "INSERT INTO users (email, password_hash, display_name, role, created_at) "
-                "VALUES (:email, :pw_hash, :name, 'superadmin', NOW()) RETURNING id"
+                "INSERT INTO users (email, password_hash, display_name, role, club_id, created_at) "
+                "VALUES (:email, :pw_hash, :name, 'superadmin', :club_id, NOW()) RETURNING id"
             ),
-            {"email": saved_email, "pw_hash": saved_hash, "name": saved_name},
+            {"email": saved_email, "pw_hash": saved_hash, "name": saved_name, "club_id": new_club_id},
         )
         new_user_id = result.scalar()
         conn.execute(
@@ -329,4 +361,125 @@ def settings_reset(
 
     response = RedirectResponse("/login", status_code=303)
     clear_session(response)
+    return response
+
+
+def _issue_active_club_cookie(response, request: Request, current_user: User, club: Club) -> None:
+    """Reemite la cookie de sesión con un nuevo club activo, preservando uid/sid."""
+    response.set_cookie(
+        "session",
+        create_session_cookie(current_user.id, get_session_id(request), club.id),
+        max_age=get_settings().session_max_age_days * 86400,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+@router.get("/clubs", response_class=HTMLResponse)
+def clubs_page(
+    request: Request,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+):
+    active_club = get_active_club(request, current_user, db)
+    rows = db.execute(
+        select(Club, func.count(User.id))
+        .outerjoin(User, User.club_id == Club.id)
+        .group_by(Club.id)
+        .order_by(Club.name)
+    ).all()
+    clubs_data = [{"club": club, "member_count": count} for club, count in rows]
+
+    return templates.TemplateResponse(
+        "admin_clubs.html",
+        {
+            "request": request,
+            "user": current_user,
+            "clubs_data": clubs_data,
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
+        },
+    )
+
+
+@router.post("/clubs")
+def create_club(
+    request: Request,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    name: str = Form(...),
+):
+    clean_name = name.strip()
+    if not clean_name:
+        return RedirectResponse("/admin/clubs", status_code=303)
+
+    club = Club(name=clean_name)
+    db.add(club)
+    db.flush()
+    log_activity(
+        db, ActivityAction.club_created,
+        user_id=current_user.id,
+        club_id=club.id,
+        target_type="club",
+        target_id=club.id,
+        detail={"name": club.name},
+        session_id=get_session_id(request),
+    )
+
+    response = RedirectResponse("/admin/clubs", status_code=303)
+    _issue_active_club_cookie(response, request, current_user, club)
+    return response
+
+
+@router.post("/clubs/{club_id}/rename")
+def rename_club(
+    request: Request,
+    club_id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    name: str = Form(...),
+):
+    club = db.get(Club, club_id)
+    clean_name = name.strip()
+    if club is None or not clean_name:
+        return RedirectResponse("/admin/clubs", status_code=303)
+
+    old_name = club.name
+    club.name = clean_name
+    log_activity(
+        db, ActivityAction.club_renamed,
+        user_id=current_user.id,
+        club_id=club.id,
+        target_type="club",
+        target_id=club.id,
+        detail={"old_name": old_name, "new_name": club.name},
+        session_id=get_session_id(request),
+    )
+    return RedirectResponse("/admin/clubs", status_code=303)
+
+
+@router.post("/clubs/switch")
+def switch_club(
+    request: Request,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    club_id: int = Form(...),
+):
+    club = db.get(Club, club_id)
+    if club is None:
+        return RedirectResponse("/feed", status_code=303)
+
+    log_activity(
+        db, ActivityAction.club_switched,
+        user_id=current_user.id,
+        club_id=club.id,
+        target_type="club",
+        target_id=club.id,
+        detail={"name": club.name},
+        session_id=get_session_id(request),
+    )
+
+    redirect_to = request.headers.get("referer") or "/feed"
+    response = RedirectResponse(redirect_to, status_code=303)
+    _issue_active_club_cookie(response, request, current_user, club)
     return response
