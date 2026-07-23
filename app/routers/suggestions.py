@@ -13,6 +13,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_current_user, get_session_id, require_user
+from app.services.clubs import get_active_club, list_clubs_for_switcher
 from app.services.suggestion_creation import create_suggestion
 
 router = APIRouter()
@@ -43,9 +44,12 @@ def feed(
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
 ):
+    active_club = get_active_club(request, current_user, db)
+
     all_suggestions = db.scalars(
         select(Suggestion)
         .options(joinedload(Suggestion.suggester), selectinload(Suggestion.watchlist_entries))
+        .where(Suggestion.club_id == active_club.id)
         .order_by(Suggestion.created_at.desc())
     ).unique().all()
 
@@ -118,12 +122,15 @@ def feed(
             "f_sort": f_sort,
             "f_status": f_status,
             "active_filters": active_filters,
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
 
 @router.get("/suggestions/search")
 def tmdb_search(
+    request: Request,
     q: str = "",
     genre: str = "",
     min_rating: float = Query(default=0.0),
@@ -134,6 +141,7 @@ def tmdb_search(
 ):
     if current_user is None:
         return JSONResponse({"error": "not_authenticated"}, status_code=401)
+    active_club = get_active_club(request, current_user, db)
 
     q = q.strip()
     genre = genre.strip()
@@ -153,7 +161,7 @@ def tmdb_search(
         existing = db.scalars(
             select(Suggestion)
             .options(joinedload(Suggestion.suggester))
-            .where(Suggestion.tmdb_id.in_(tmdb_ids))
+            .where(Suggestion.tmdb_id.in_(tmdb_ids), Suggestion.club_id == active_club.id)
         ).unique().all()
         existing_map = {(s.tmdb_id, s.media_type.value): s for s in existing}
         for r in results:
@@ -190,9 +198,11 @@ def my_suggestions(
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
 ):
+    active_club = get_active_club(request, current_user, db)
+
     suggestions = db.scalars(
         select(Suggestion)
-        .where(Suggestion.suggested_by == current_user.id)
+        .where(Suggestion.suggested_by == current_user.id, Suggestion.club_id == active_club.id)
         .options(
             selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
         )
@@ -229,6 +239,8 @@ def my_suggestions(
             "rating_map": rating_map,
             "can_delete_map": can_delete_map,
             "genres": tmdb.get_all_genre_names(),
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -258,18 +270,21 @@ def suggestion_create(
     if media_type not in ("movie", "tv"):
         return RedirectResponse("/suggestions/add", status_code=303)
 
-    # Check if already suggested by anyone
+    active_club = get_active_club(request, current_user, db)
+
+    # Check if already suggested by anyone in this club
     existing = db.scalar(
         select(Suggestion).where(
             Suggestion.tmdb_id == tmdb_id,
             Suggestion.media_type == MediaType(media_type),
+            Suggestion.club_id == active_club.id,
         )
     )
     if existing:
         return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
 
     create_suggestion(
-        db, current_user.id, tmdb_id, media_type, title,
+        db, current_user.id, active_club.id, tmdb_id, media_type, title,
         poster_path=poster_path,
         overview=overview,
         release_date=release_date,
@@ -296,6 +311,10 @@ def suggestion_detail(
         .where(Suggestion.id == suggestion_id)
     )
     if suggestion is None:
+        return RedirectResponse("/feed", status_code=303)
+
+    active_club = get_active_club(request, current_user, db)
+    if suggestion.club_id != active_club.id:
         return RedirectResponse("/feed", status_code=303)
 
     watchlist_entry = next(
@@ -326,6 +345,8 @@ def suggestion_detail(
             "is_owner": is_owner,
             "can_delete": can_delete,
             "nav_active": nav_active,
+            "active_club": active_club,
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -353,10 +374,12 @@ def suggestion_delete(
         return RedirectResponse(f"/suggestions/{suggestion_id}?locked=1", status_code=303)
 
     title, media_type = suggestion.title, suggestion.media_type.value
+    club_id = suggestion.club_id
     db.delete(suggestion)
     log_activity(
         db, ActivityAction.suggestion_deleted,
         user_id=current_user.id,
+        club_id=club_id,
         target_type="suggestion",
         target_id=suggestion_id,
         detail={"title": title, "media_type": media_type},

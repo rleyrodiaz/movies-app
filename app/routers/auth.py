@@ -56,10 +56,11 @@ def login_submit(
             status_code=303,
         )
     response = RedirectResponse("/feed", status_code=303)
-    session_id = set_session(response, user.id)
+    session_id = set_session(response, user.id, user.club_id)
     log_activity(
         db, ActivityAction.user_login,
         user_id=user.id,
+        club_id=user.club_id,
         detail=_client_origin(request),
         session_id=session_id,
     )
@@ -154,6 +155,7 @@ def register_submit(
         password_hash=hash_password(password),
         display_name=display_name.strip(),
         invited_by=invitation.created_by,
+        club_id=invitation.club_id,
     )
     db.add(user)
     db.flush()
@@ -162,11 +164,12 @@ def register_submit(
     invitation.used_at = datetime.now(timezone.utc)
 
     response = RedirectResponse("/", status_code=303)
-    session_id = set_session(response, user.id)
+    session_id = set_session(response, user.id, user.club_id)
 
     log_activity(
         db, ActivityAction.user_registered,
         user_id=user.id,
+        club_id=invitation.club_id,
         target_type="invitation",
         target_id=invitation.id,
         session_id=session_id,
@@ -174,6 +177,7 @@ def register_submit(
     log_activity(
         db, ActivityAction.invitation_used,
         user_id=invitation.created_by,
+        club_id=invitation.club_id,
         target_type="invitation",
         target_id=invitation.id,
         detail={"used_by_email": user.email},

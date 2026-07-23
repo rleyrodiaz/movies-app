@@ -23,6 +23,9 @@ class ActivityAction(str, enum.Enum):
     role_changed = "role_changed"
     db_initialized = "db_initialized"
     db_reset = "db_reset"
+    club_created = "club_created"
+    club_renamed = "club_renamed"
+    club_switched = "club_switched"
 
 
 class ActivityLog(Base):
@@ -31,6 +34,9 @@ class ActivityLog(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    club_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True
     )
     action: Mapped[ActivityAction] = mapped_column(
         Enum(ActivityAction, name="activityaction"), nullable=False

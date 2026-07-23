@@ -31,6 +31,7 @@
     'Mi watchlist' if is_watchlist_active else
     'Invitaciones' if path == '/admin/invitations' else
     'Activity log' if path == '/admin/activity-log' else
+    'Clubes' if path == '/admin/clubs' else
     'Settings' if path == '/admin/settings' else
     ''
   %}
@@ -61,9 +62,39 @@
               <a href="/admin/activity-log" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Activity log</a>
               {% if user.role == 'superadmin' %}
               <div class="border-t border-gray-700 mt-1 pt-1">
+                <a href="/admin/clubs" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Clubes</a>
                 <a href="/admin/settings" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Settings</a>
               </div>
               {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if user.role == 'superadmin' and active_club %}
+        <div class="group relative">
+          <button class="flex items-center gap-1.5 text-xs border border-gray-700 rounded-full px-3 py-1 text-gray-300 hover:text-white hover:border-gray-600 transition-colors">
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+            {{ active_club.name }}
+            <svg class="w-3 h-3 mt-px" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+          <div class="absolute right-0 top-full pt-1 hidden group-hover:block z-20">
+            <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-52 py-1 overflow-hidden">
+              {% for c in all_clubs %}
+              <form method="post" action="/admin/clubs/switch">
+                <input type="hidden" name="club_id" value="{{ c.id }}">
+                <button type="submit"
+                  class="w-full text-left px-4 py-2.5 text-sm transition-colors
+                         {% if c.id == active_club.id %}text-violet-400 font-medium{% else %}text-gray-300 hover:text-white hover:bg-gray-700{% endif %}">
+                  {{ c.name }}
+                </button>
+              </form>
+              {% endfor %}
+              <div class="border-t border-gray-700 mt-1 pt-1">
+                <a href="/admin/clubs" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Gestionar clubes</a>
+              </div>
             </div>
           </div>
         </div>
@@ -124,11 +155,32 @@
             Activity log
           </a>
           {% if user.role == 'superadmin' %}
+          <a href="/admin/clubs" onclick="closeMobileNav()"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            Clubes
+          </a>
           <a href="/admin/settings" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Settings
           </a>
           {% endif %}
+        </div>
+        {% endif %}
+        {% if user.role == 'superadmin' and active_club %}
+        <div class="border-t border-gray-800 pt-2 mt-1 px-3">
+          <p class="text-xs text-gray-600 uppercase tracking-wide mb-1.5">Club activo: {{ active_club.name }}</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for c in all_clubs %}
+            <form method="post" action="/admin/clubs/switch">
+              <input type="hidden" name="club_id" value="{{ c.id }}">
+              <button type="submit"
+                class="text-xs px-2.5 py-1 rounded-full border transition-colors
+                       {% if c.id == active_club.id %}border-violet-700 text-violet-400{% else %}border-gray-700 text-gray-400 hover:text-white hover:border-gray-600{% endif %}">
+                {{ c.name }}
+              </button>
+            </form>
+            {% endfor %}
+          </div>
         </div>
         {% endif %}
         <div class="border-t border-gray-800 pt-2 mt-1 pb-1 flex items-center justify-between px-3">

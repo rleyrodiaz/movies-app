@@ -46,8 +46,11 @@
   {# Reset selectivo por tabla #}
   <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
     <h2 class="text-base font-semibold text-red-400 mb-1">Regenerar tablas específicas</h2>
-    <p class="text-sm text-gray-500 mb-4">
+    <p class="text-sm text-gray-500 mb-1">
       Elegí qué datos borrar. Usuarios y el resto de las tablas no seleccionadas quedan intactos.
+    </p>
+    <p class="text-xs text-amber-500/80 mb-4">
+      ⚠ Afecta a <strong>todos los clubes</strong> por igual, no solo al club activo ({{ active_club.name if active_club else '—' }}).
     </p>
 
     <form method="post" action="/admin/settings/reset-tables" id="reset-tables-form">
@@ -97,9 +100,12 @@
       Elimina <strong class="text-gray-300">todos los datos</strong> (sugerencias, comentarios, usuarios ({{ stats.get('users', 0) }}), invitaciones, watchlists)
       y recrea las tablas desde cero.
     </p>
-    <p class="text-sm text-gray-500 mb-4">
+    <p class="text-sm text-gray-500 mb-1">
       Tu cuenta de superadmin se vuelve a crear automáticamente con las mismas credenciales.
       Todos los demás usuarios perderán el acceso.
+    </p>
+    <p class="text-xs text-amber-500/80 mb-4">
+      ⚠ Borra <strong>todos los clubes</strong>, no solo el activo — solo queda tu club ({{ active_club.name if active_club else '—' }}) recreado vacío.
     </p>
 
     <form method="post" action="/admin/settings/reset" id="reset-form">

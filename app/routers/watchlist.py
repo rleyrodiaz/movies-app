@@ -16,6 +16,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_session_id, require_user
+from app.services.clubs import get_active_club, list_clubs_for_switcher
 from app.services.suggestion_creation import create_suggestion
 
 router = APIRouter()
@@ -115,6 +116,8 @@ def watchlist_page(
             "f_sort": f_sort,
             "f_status": f_status,
             "active_filters": active_filters,
+            "active_club": get_active_club(request, current_user, db),
+            "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
 
@@ -134,12 +137,15 @@ def reminder_create(
     if media_type not in ("movie", "tv"):
         return RedirectResponse("/watchlist", status_code=303)
 
-    # Si ya es una sugerencia pública, se agrega normalmente como pendiente
-    # en vez de crear un recordatorio privado duplicado.
+    active_club = get_active_club(request, current_user, db)
+
+    # Si ya es una sugerencia pública en este club, se agrega normalmente como
+    # pendiente en vez de crear un recordatorio privado duplicado.
     existing = db.scalar(
         select(Suggestion).where(
             Suggestion.tmdb_id == tmdb_id,
             Suggestion.media_type == MediaType(media_type),
+            Suggestion.club_id == active_club.id,
         )
     )
     if existing:
@@ -160,6 +166,7 @@ def reminder_create(
         log_activity(
             db, ActivityAction.watchlist_added,
             user_id=current_user.id,
+            club_id=active_club.id,
             target_type="suggestion",
             target_id=existing.id,
             detail={"title": existing.title, "media_type": existing.media_type.value},
@@ -195,6 +202,7 @@ def reminder_create(
         log_activity(
             db, ActivityAction.reminder_created,
             user_id=current_user.id,
+            club_id=active_club.id,
             target_type="reminder",
             target_id=reminder.id,
             detail={"title": title, "media_type": media_type},
@@ -216,6 +224,10 @@ def watchlist_update(
 
     suggestion = db.get(Suggestion, suggestion_id)
     if suggestion is None:
+        return RedirectResponse("/watchlist", status_code=303)
+
+    active_club = get_active_club(request, current_user, db)
+    if suggestion.club_id != active_club.id:
         return RedirectResponse("/watchlist", status_code=303)
 
     entry = db.scalar(
@@ -243,6 +255,7 @@ def watchlist_update(
     log_activity(
         db, action,
         user_id=current_user.id,
+        club_id=active_club.id,
         target_type="suggestion",
         target_id=suggestion_id,
         detail={"title": suggestion.title, "media_type": suggestion.media_type.value},
@@ -272,6 +285,10 @@ def watchlist_rate(
     valid_rating = rating if 1 <= rating <= 10 else None
     suggestion = entry.suggestion if entry else db.get(Suggestion, suggestion_id)
 
+    active_club = get_active_club(request, current_user, db)
+    if suggestion and suggestion.club_id != active_club.id:
+        return RedirectResponse("/watchlist", status_code=303)
+
     if entry:
         entry.watched_on = clean_watched_on
         entry.comment = clean_comment
@@ -293,6 +310,7 @@ def watchlist_rate(
         log_activity(
             db, ActivityAction.watchlist_rated,
             user_id=current_user.id,
+            club_id=suggestion.club_id,
             target_type="suggestion",
             target_id=suggestion_id,
             detail={"title": suggestion.title, "media_type": suggestion.media_type.value},
@@ -318,12 +336,15 @@ def reminder_promote(
     if not (1 <= rating <= 10):
         return RedirectResponse("/watchlist", status_code=303)
 
+    active_club = get_active_club(request, current_user, db)
+
     # Puede haberse sugerido públicamente mientras estaba en tus recordatorios.
     # En ese caso no se pierde tu calificación: se aplica sobre la sugerencia existente.
     existing = db.scalar(
         select(Suggestion).where(
             Suggestion.tmdb_id == reminder.tmdb_id,
             Suggestion.media_type == reminder.media_type,
+            Suggestion.club_id == active_club.id,
         )
     )
     if existing:
@@ -350,6 +371,7 @@ def reminder_promote(
         log_activity(
             db, ActivityAction.watchlist_rated,
             user_id=current_user.id,
+            club_id=active_club.id,
             target_type="suggestion",
             target_id=existing.id,
             detail={"title": existing.title, "media_type": existing.media_type.value},
@@ -359,7 +381,7 @@ def reminder_promote(
         return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
 
     create_suggestion(
-        db, current_user.id, reminder.tmdb_id, reminder.media_type.value, reminder.title,
+        db, current_user.id, active_club.id, reminder.tmdb_id, reminder.media_type.value, reminder.title,
         poster_path=reminder.poster_path or "",
         overview=reminder.overview or "",
         release_date=reminder.release_date.isoformat() if reminder.release_date else "",
