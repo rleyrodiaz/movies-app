@@ -57,7 +57,8 @@
         {% if d.is_active %}
         <div class="flex flex-col gap-1.5 shrink-0">
           <button
-            onclick="navigator.clipboard.writeText({{ d.msg|tojson }}); this.textContent='Copiado!'; setTimeout(()=>this.textContent='Copiar',2000)"
+            data-msg="{{ d.msg }}"
+            onclick="navigator.clipboard.writeText(this.dataset.msg); this.textContent='Copiado!'; setTimeout(()=>this.textContent='Copiar',2000)"
             class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap"
           >
             Copiar
