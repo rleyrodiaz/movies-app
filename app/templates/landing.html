@@ -433,9 +433,6 @@
     <div class="cta-row">
       {% if not user %}
       <button onclick="openLoginModal()" class="btn-primary">Iniciar sesión →</button>
-      <span class="cta-secondary">
-        ¿Tenés invitación? <a href="#" onclick="openLoginModal();return false;">Registrate</a>
-      </span>
       {% else %}
       <a href="/feed" class="btn-primary">Ir al feed →</a>
       <a href="/feed" class="btn-ghost">Ver sugerencias →</a>

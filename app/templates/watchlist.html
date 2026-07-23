@@ -307,7 +307,7 @@
         nadie más lo ve hasta que lo califiques.
       </p>
       <div class="relative">
-        <input id="reminder-search-input" type="text" placeholder="Buscá por título..." autocomplete="off"
+        <input id="reminder-search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..." autocomplete="off"
           class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
                  placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
                  transition-colors">
@@ -315,11 +315,55 @@
           <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
         </div>
       </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <select id="reminder-filter-genre"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+          <option value="">Todos los géneros</option>
+          {% for g in tmdb_genres %}
+          <option value="{{ g }}">{{ g }}</option>
+          {% endfor %}
+        </select>
+        <input id="reminder-filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <input id="reminder-filter-director" type="text" placeholder="Director" autocomplete="off"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+        <input id="reminder-filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
+          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
+                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
+                 transition-colors">
+      </div>
+
       <div id="reminder-search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
     </div>
   </div>
 </div>
 
+
+{# ── MODAL: CONFIRMAR DESCARTE DE RECORDATORIO ── #}
+<div id="confirm-discard-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+    <h3 class="text-white font-semibold text-base mb-2">¿Descartar recordatorio?</h3>
+    <p class="text-gray-400 text-sm mb-6">No vas a poder recuperarlo.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="closeConfirmDiscard()"
+        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+        Cancelar
+      </button>
+      <button id="confirm-discard-btn"
+        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
+        Descartar
+      </button>
+    </div>
+  </div>
+</div>
 
 {# ── MODAL: DETALLE RECORDATORIO ── #}
 <div id="reminder-detail-backdrop" onclick="handleReminderDetailBackdrop(event)"
@@ -559,6 +603,10 @@ window.closeReminderAddModal = function () {
   document.getElementById('reminder-add-backdrop').classList.remove('flex');
   const input = document.getElementById('reminder-search-input');
   input.value = '';
+  document.getElementById('reminder-filter-genre').value = '';
+  document.getElementById('reminder-filter-min-rating').value = '';
+  document.getElementById('reminder-filter-director').value = '';
+  document.getElementById('reminder-filter-actor').value = '';
   const box = document.getElementById('reminder-search-results');
   box.classList.add('hidden');
   box.innerHTML = '';
@@ -569,23 +617,52 @@ window.handleReminderAddBackdrop = function (e) {
 };
 
 (function () {
-  const searchInput = document.getElementById('reminder-search-input');
-  const resultsBox  = document.getElementById('reminder-search-results');
-  const spinner     = document.getElementById('reminder-search-spinner');
+  const searchInput    = document.getElementById('reminder-search-input');
+  const resultsBox     = document.getElementById('reminder-search-results');
+  const spinner        = document.getElementById('reminder-search-spinner');
+  const filterGenre     = document.getElementById('reminder-filter-genre');
+  const filterMinRating = document.getElementById('reminder-filter-min-rating');
+  const filterDirector  = document.getElementById('reminder-filter-director');
+  const filterActor     = document.getElementById('reminder-filter-actor');
   let debounceTimer = null;
   let cachedResults = [];
 
-  searchInput.addEventListener('input', () => {
+  function getFilters() {
+    return {
+      genre: filterGenre.value.trim(),
+      min_rating: filterMinRating.value.trim(),
+      director: filterDirector.value.trim(),
+      actor: filterActor.value.trim(),
+    };
+  }
+
+  function hasActiveFilters(f) {
+    return !!(f.genre || f.min_rating || f.director || f.actor);
+  }
+
+  function triggerSearch() {
     clearTimeout(debounceTimer);
     const q = searchInput.value.trim();
-    if (q.length < 2) { hideResults(); return; }
-    debounceTimer = setTimeout(() => doSearch(q), 400);
-  });
+    const filters = getFilters();
+    if (q.length < 2 && !hasActiveFilters(filters)) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q, filters), 400);
+  }
 
-  async function doSearch(q) {
+  searchInput.addEventListener('input', triggerSearch);
+  filterGenre.addEventListener('change', triggerSearch);
+  filterMinRating.addEventListener('input', triggerSearch);
+  filterDirector.addEventListener('input', triggerSearch);
+  filterActor.addEventListener('input', triggerSearch);
+
+  async function doSearch(q, filters) {
     spinner.classList.remove('hidden');
     try {
-      const resp = await fetch('/suggestions/search?q=' + encodeURIComponent(q));
+      const params = new URLSearchParams({ q });
+      if (filters.genre)      params.set('genre', filters.genre);
+      if (filters.min_rating) params.set('min_rating', filters.min_rating);
+      if (filters.director)   params.set('director', filters.director);
+      if (filters.actor)      params.set('actor', filters.actor);
+      const resp = await fetch('/suggestions/search?' + params.toString());
       if (resp.status === 401) { window.location = '/login'; return; }
       cachedResults = await resp.json();
       renderResults(cachedResults);
@@ -742,13 +819,23 @@ async function promoteReminder(id) {
 }
 
 function discardReminder(id) {
-  if (!confirm('¿Descartar este recordatorio? No vas a poder recuperarlo.')) return;
-  (async () => {
+  const backdrop = document.getElementById('confirm-discard-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+
+  const btn = document.getElementById('confirm-discard-btn');
+  btn.onclick = async () => {
     try {
       await fetch(`/watchlist/reminders/${id}/discard`, { method: 'POST', body: new FormData() });
     } catch(e) {}
     location.reload();
-  })();
+  };
+}
+
+function closeConfirmDiscard() {
+  const backdrop = document.getElementById('confirm-discard-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
 }
 
 document.addEventListener('keydown', function(e) {
@@ -757,6 +844,7 @@ document.addEventListener('keydown', function(e) {
     closeFilterModal();
     closeReminderAddModal();
     closeReminderDetail();
+    closeConfirmDiscard();
   }
 });
 </script>

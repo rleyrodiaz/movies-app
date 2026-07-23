@@ -13,6 +13,7 @@ from app.models.reminder import PersonalReminder
 from app.models.suggestion import MediaType, Suggestion
 from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
+from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_session_id, require_user
 from app.services.suggestion_creation import create_suggestion
@@ -105,6 +106,7 @@ def watchlist_page(
             "reminders": reminders,
             "all_genres": all_genres,
             "all_platforms": all_platforms,
+            "tmdb_genres": tmdb.get_all_genre_names(),
             "suggesters": suggesters,
             "f_genre": f_genre,
             "f_platform": f_platform,
@@ -317,6 +319,7 @@ def reminder_promote(
         return RedirectResponse("/watchlist", status_code=303)
 
     # Puede haberse sugerido públicamente mientras estaba en tus recordatorios.
+    # En ese caso no se pierde tu calificación: se aplica sobre la sugerencia existente.
     existing = db.scalar(
         select(Suggestion).where(
             Suggestion.tmdb_id == reminder.tmdb_id,
@@ -324,6 +327,34 @@ def reminder_promote(
         )
     )
     if existing:
+        clean_comment = comment.strip() or None
+        entry = db.scalar(
+            select(WatchlistEntry).where(
+                WatchlistEntry.user_id == current_user.id,
+                WatchlistEntry.suggestion_id == existing.id,
+            )
+        )
+        if entry:
+            entry.rating = rating
+            entry.comment = clean_comment
+            entry.status = WatchlistStatus.watched
+            entry.hidden_from_watchlist = False
+        else:
+            db.add(WatchlistEntry(
+                user_id=current_user.id,
+                suggestion_id=existing.id,
+                status=WatchlistStatus.watched,
+                rating=rating,
+                comment=clean_comment,
+            ))
+        log_activity(
+            db, ActivityAction.watchlist_rated,
+            user_id=current_user.id,
+            target_type="suggestion",
+            target_id=existing.id,
+            detail={"title": existing.title, "media_type": existing.media_type.value},
+            session_id=get_session_id(request),
+        )
         db.delete(reminder)
         return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
 
