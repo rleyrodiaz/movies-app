@@ -49,8 +49,8 @@
     <p class="text-sm text-gray-500 mb-1">
       Elegí qué datos borrar. Usuarios y el resto de las tablas no seleccionadas quedan intactos.
     </p>
-    <p class="text-xs text-amber-500/80 mb-4">
-      ⚠ Afecta a <strong>todos los clubes</strong> por igual, no solo al club activo ({{ active_club.name if active_club else '—' }}).
+    <p class="text-xs text-gray-500 mb-4">
+      Solo afecta al club activo: <strong class="text-gray-300">{{ active_club.name if active_club else '—' }}</strong>. Los demás clubes no se tocan.
     </p>
 
     <form method="post" action="/admin/settings/reset-tables" id="reset-tables-form">
@@ -70,15 +70,17 @@
         {% endfor %}
       </div>
 
+      {% set confirm_word = active_club.name.upper() if active_club else '' %}
       <label class="block text-sm text-gray-400 mb-1.5" for="confirm-tables-input">
-        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">RESET</code> para confirmar
+        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">{{ confirm_word }}</code> (nombre del club) para confirmar
       </label>
       <div class="flex gap-2">
         <input
           type="text" id="confirm-tables-input" name="confirm"
-          autocomplete="off" placeholder="RESET"
+          autocomplete="off" placeholder="{{ confirm_word }}"
+          data-expected="{{ confirm_word }}"
           class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm
-                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-40"
+                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-56"
         >
         <button
           id="reset-tables-btn"
@@ -141,7 +143,8 @@ document.getElementById('confirm-input').addEventListener('input', function () {
 
 function updateResetTablesBtn() {
   const anyChecked = [...document.querySelectorAll('.reset-table-chk')].some(c => c.checked);
-  const confirmOk = document.getElementById('confirm-tables-input').value === 'RESET';
+  const input = document.getElementById('confirm-tables-input');
+  const confirmOk = input.value.trim() === input.dataset.expected;
   document.getElementById('reset-tables-btn').disabled = !(anyChecked && confirmOk);
 }
 document.getElementById('confirm-tables-input').addEventListener('input', updateResetTablesBtn);

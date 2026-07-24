@@ -32,36 +32,53 @@ router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["local_time"] = to_local
 
-# Tablas que se pueden regenerar selectivamente desde Settings.
-# El orden de borrado (hijos antes que padres) se define aparte en RESET_DELETE_ORDER.
+# Tablas que se pueden regenerar selectivamente desde Settings — siempre acotado
+# al club activo (ver _club_scope_filter). El orden de borrado (hijos antes que
+# padres) se define aparte en RESET_DELETE_ORDER.
 RESET_TABLES = {
     "suggestions": {
         "label": "Sugerencias",
         "model": Suggestion,
-        "desc": "Elimina todas las sugerencias. También borra sus entradas de watchlist (calificaciones y comentarios) asociadas.",
+        "desc": "Elimina las sugerencias del club activo. También borra sus entradas de watchlist (calificaciones y comentarios) asociadas.",
     },
     "watchlist": {
         "label": "Watchlist",
         "model": WatchlistEntry,
-        "desc": "Elimina las entradas de watchlist, calificaciones y comentarios de todos los usuarios.",
+        "desc": "Elimina las entradas de watchlist, calificaciones y comentarios de los usuarios del club activo.",
     },
     "reminders": {
         "label": "Recordatorios",
         "model": PersonalReminder,
-        "desc": "Elimina los recordatorios privados de todos los usuarios (los que todavía no se calificaron ni publicaron).",
+        "desc": "Elimina los recordatorios privados de los usuarios del club activo (los que todavía no se calificaron ni publicaron).",
     },
     "invitations": {
         "label": "Invitaciones",
         "model": Invitation,
-        "desc": "Elimina todas las invitaciones, usadas y pendientes.",
+        "desc": "Elimina las invitaciones del club activo, usadas y pendientes.",
     },
     "activity_log": {
         "label": "Activity log",
         "model": ActivityLog,
-        "desc": "Borra el historial completo de actividad.",
+        "desc": "Borra el historial de actividad del club activo.",
     },
 }
 RESET_DELETE_ORDER = ["watchlist", "reminders", "suggestions", "invitations", "activity_log"]
+
+
+def _club_scope_filter(key: str, club_id: int):
+    """Condición WHERE para acotar la tabla `key` al club dado — reusada tanto
+    para las stats de Settings como para el borrado selectivo."""
+    if key == "suggestions":
+        return Suggestion.club_id == club_id
+    if key == "invitations":
+        return Invitation.club_id == club_id
+    if key == "activity_log":
+        return ActivityLog.club_id == club_id
+    if key == "watchlist":
+        return WatchlistEntry.suggestion_id.in_(select(Suggestion.id).where(Suggestion.club_id == club_id))
+    if key == "reminders":
+        return PersonalReminder.user_id.in_(select(User.id).where(User.club_id == club_id))
+    raise ValueError(f"unknown reset table key: {key}")
 
 
 @router.get("/invitations", response_class=HTMLResponse)
@@ -263,7 +280,11 @@ def settings_page(
     db: Session = Depends(get_db_dep),
     msg: str = "",
 ):
-    stats = {key: db.scalar(select(func.count()).select_from(cfg["model"])) for key, cfg in RESET_TABLES.items()}
+    active_club = get_active_club(request, current_user, db)
+    stats = {
+        key: db.scalar(select(func.count()).select_from(cfg["model"]).where(_club_scope_filter(key, active_club.id)))
+        for key, cfg in RESET_TABLES.items()
+    }
     stats["users"] = db.scalar(select(func.count()).select_from(User))
     return templates.TemplateResponse(
         "admin_settings.html",
@@ -273,7 +294,7 @@ def settings_page(
             "msg": msg,
             "reset_tables": RESET_TABLES,
             "stats": stats,
-            "active_club": get_active_club(request, current_user, db),
+            "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
@@ -298,7 +319,8 @@ def settings_reset_tables(
     confirm: str = Form(""),
     tables: list[str] = Form(default=[]),
 ):
-    if confirm.strip() != "RESET":
+    active_club = get_active_club(request, current_user, db)
+    if confirm.strip() != active_club.name.upper():
         return RedirectResponse("/admin/settings?msg=confirm_error", status_code=303)
 
     selected = [key for key in RESET_DELETE_ORDER if key in tables and key in RESET_TABLES]
@@ -306,12 +328,13 @@ def settings_reset_tables(
         return RedirectResponse("/admin/settings?msg=no_selection", status_code=303)
 
     for key in selected:
-        db.execute(delete(RESET_TABLES[key]["model"]))
+        db.execute(delete(RESET_TABLES[key]["model"]).where(_club_scope_filter(key, active_club.id)))
 
     log_activity(
         db, ActivityAction.db_reset,
         user_id=current_user.id,
-        detail={"tables": selected},
+        club_id=active_club.id,
+        detail={"tables": selected, "club": active_club.name},
         session_id=get_session_id(request),
     )
     return RedirectResponse("/admin/settings?msg=reset_tables_ok", status_code=303)

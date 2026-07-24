@@ -22,7 +22,11 @@
   {% endif %}
 
   <span class="text-sm text-gray-600 ml-auto">
-    {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}
+    {% if f_status == 'pending' and suggestions|length < total_count %}
+      {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }} no visto{{ 's' if suggestions|length != 1 else '' }} de {{ total_count }}
+    {% else %}
+      {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}
+    {% endif %}
   </span>
 </div>
 
@@ -32,6 +36,9 @@
   {% if active_filters %}
   <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
   <a href="/feed" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver todas →</a>
+  {% elif has_any_suggestions %}
+  <p class="text-lg text-gray-500">Ya viste todo lo que hay en el Feed.</p>
+  <a href="/feed?status_filter=" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Ver también las que ya viste →</a>
   {% else %}
   <p class="text-lg text-gray-500">Todavía no hay sugerencias.</p>
   <a href="/suggestions/new" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">Hacer una sugerencia →</a>

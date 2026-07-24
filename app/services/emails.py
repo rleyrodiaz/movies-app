@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from html import escape
 
 import resend
 
@@ -56,3 +57,67 @@ def send_visit_notification(
       </div>
     """
     return _send(to, f"movieLeyro — Nueva visita desde {geo}", html)
+
+
+def send_registration_notification(
+    display_name: str,
+    email: str,
+    invited_by_name: str = "",
+    club_name: str = "",
+) -> bool:
+    settings = get_settings()
+    to = settings.visit_notify_to
+    if not to:
+        return False
+
+    hora = to_local(datetime.now(timezone.utc)).strftime("%d/%m/%Y %H:%M")
+    name = escape(display_name)
+
+    html = f"""
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">movieLeyro</p>
+        <h2 style="margin:0 0 16px;font-size:1.2rem">Nuevo usuario registrado</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Nombre</td><td style="padding:4px 0">{name}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Email</td><td style="padding:4px 0">{escape(email)}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Club</td><td style="padding:4px 0">{escape(club_name) or '—'}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Invitado por</td><td style="padding:4px 0">{escape(invited_by_name) or '—'}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Hora</td><td style="padding:4px 0">{hora}</td></tr>
+        </table>
+      </div>
+    """
+    return _send(to, f"movieLeyro — Nuevo usuario: {display_name}", html)
+
+
+def send_login_notification(
+    display_name: str,
+    email: str,
+    ip: str | None = None,
+    device: str = "",
+    browser: str = "",
+    os: str = "",
+    club_name: str = "",
+) -> bool:
+    settings = get_settings()
+    to = settings.visit_notify_to
+    if not to:
+        return False
+
+    hora = to_local(datetime.now(timezone.utc)).strftime("%d/%m/%Y %H:%M")
+    disp = " · ".join(filter(None, [device, browser, os])) or "—"
+
+    html = f"""
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">movieLeyro</p>
+        <h2 style="margin:0 0 16px;font-size:1.2rem">Nuevo login</h2>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Usuario</td><td style="padding:4px 0">{escape(display_name)}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Email</td><td style="padding:4px 0">{escape(email)}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Club</td><td style="padding:4px 0">{escape(club_name) or '—'}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Hora</td><td style="padding:4px 0">{hora}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">IP</td><td style="padding:4px 0">{ip or '—'}</td></tr>
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Dispositivo</td><td style="padding:4px 0">{disp}</td></tr>
+        </table>
+      </div>
+    """
+    return _send(to, f"movieLeyro — Login de {display_name}", html)

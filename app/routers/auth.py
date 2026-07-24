@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db_dep
 from app.models.activity_log import ActivityAction
+from app.models.club import Club
 from app.models.invitation import Invitation
 from app.models.user import User
 from app.services.activity_log import log_activity
@@ -19,6 +20,8 @@ from app.services.auth import (
     set_session,
     verify_password,
 )
+from app.services.emails import send_login_notification, send_registration_notification
+from app.services.visit import get_client_ip, parse_device
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -45,6 +48,7 @@ def login_page(
 @router.post("/login")
 def login_submit(
     request: Request,
+    background_tasks: BackgroundTasks,
     email: str = Form(...),
     password: str = Form(...),
     db: Session = Depends(get_db_dep),
@@ -63,6 +67,19 @@ def login_submit(
         club_id=user.club_id,
         detail=_client_origin(request),
         session_id=session_id,
+    )
+
+    club = db.get(Club, user.club_id)
+    device = parse_device(request.headers.get("user-agent", ""))
+    background_tasks.add_task(
+        send_login_notification,
+        user.display_name,
+        user.email,
+        get_client_ip(request),
+        device.get("device_type", ""),
+        device.get("browser", ""),
+        device.get("os", ""),
+        club.name if club else "",
     )
     return response
 
@@ -99,6 +116,7 @@ def register_page(
 def register_submit(
     token: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     display_name: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
@@ -182,6 +200,16 @@ def register_submit(
         target_id=invitation.id,
         detail={"used_by_email": user.email},
         session_id=session_id,
+    )
+
+    club = db.get(Club, invitation.club_id)
+    inviter_name = invitation.creator.display_name if invitation.creator else ""
+    background_tasks.add_task(
+        send_registration_notification,
+        user.display_name,
+        user.email,
+        inviter_name,
+        club.name if club else "",
     )
 
     return response

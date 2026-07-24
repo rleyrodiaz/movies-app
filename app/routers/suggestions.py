@@ -42,7 +42,7 @@ def feed(
     media: str = Query(default=""),
     by: str = Query(default=""),
     sort: str = Query(default=""),
-    status_filter: str = Query(default=""),
+    status_filter: str | None = Query(default=None),
 ):
     active_club = get_active_club(request, current_user, db)
 
@@ -71,7 +71,12 @@ def feed(
     f_genre = genre.strip()
     f_platform = platform.strip()
     f_sort = sort if sort in ("name", "rating") else ""
-    f_status = status_filter if status_filter in ("pending", "watched") else ""
+    # Sin filtro explícito (visita "limpia" al Feed): ocultar por default lo ya visto.
+    f_status_explicit = status_filter is not None
+    if not f_status_explicit:
+        f_status = "pending"
+    else:
+        f_status = status_filter if status_filter in ("pending", "watched") else ""
     try:
         f_by = int(by)
     except (ValueError, TypeError):
@@ -104,7 +109,10 @@ def feed(
     elif f_sort == "rating":
         suggestions = sorted(suggestions, key=lambda s: s.tmdb_rating or 0, reverse=True)
 
-    active_filters = sum([bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status)])
+    active_filters = sum([
+        bool(f_genre), bool(f_platform), bool(f_media), bool(f_by),
+        bool(f_status) and f_status_explicit,
+    ])
 
     return templates.TemplateResponse(
         "feed.html",
@@ -122,6 +130,9 @@ def feed(
             "f_sort": f_sort,
             "f_status": f_status,
             "active_filters": active_filters,
+            "has_any_suggestions": bool(all_suggestions),
+            "f_status_explicit": f_status_explicit,
+            "total_count": len(all_suggestions),
             "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
