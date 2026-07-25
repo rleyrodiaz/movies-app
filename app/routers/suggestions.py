@@ -42,7 +42,8 @@ def feed(
     media: str = Query(default=""),
     by: str = Query(default=""),
     sort: str = Query(default=""),
-    status_filter: str | None = Query(default=None),
+    status_filter: str = Query(default=""),
+    min_rating: str = Query(default="0"),
 ):
     active_club = get_active_club(request, current_user, db)
 
@@ -71,16 +72,15 @@ def feed(
     f_genre = genre.strip()
     f_platform = platform.strip()
     f_sort = sort if sort in ("name", "rating") else ""
-    # Sin filtro explícito (visita "limpia" al Feed): ocultar por default lo ya visto.
-    f_status_explicit = status_filter is not None
-    if not f_status_explicit:
-        f_status = "pending"
-    else:
-        f_status = status_filter if status_filter in ("pending", "watched") else ""
+    f_status = status_filter if status_filter in ("pending", "watched") else ""
     try:
         f_by = int(by)
     except (ValueError, TypeError):
         f_by = 0
+    try:
+        f_min_rating = max(0, min(10, int(min_rating)))
+    except (ValueError, TypeError):
+        f_min_rating = 0
 
     # Apply filters
     suggestions = list(all_suggestions)
@@ -92,6 +92,8 @@ def feed(
         suggestions = [s for s in suggestions if f_genre in s.genres_list]
     if f_platform:
         suggestions = [s for s in suggestions if f_platform in s.providers_list]
+    if f_min_rating:
+        suggestions = [s for s in suggestions if s.avg_rating and s.avg_rating >= f_min_rating]
     if f_status == "watched":
         suggestions = [
             s for s in suggestions
@@ -110,8 +112,7 @@ def feed(
         suggestions = sorted(suggestions, key=lambda s: s.tmdb_rating or 0, reverse=True)
 
     active_filters = sum([
-        bool(f_genre), bool(f_platform), bool(f_media), bool(f_by),
-        bool(f_status) and f_status_explicit,
+        bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status), bool(f_min_rating),
     ])
 
     return templates.TemplateResponse(
@@ -129,9 +130,9 @@ def feed(
             "f_by": f_by,
             "f_sort": f_sort,
             "f_status": f_status,
+            "f_min_rating": f_min_rating,
             "active_filters": active_filters,
             "has_any_suggestions": bool(all_suggestions),
-            "f_status_explicit": f_status_explicit,
             "total_count": len(all_suggestions),
             "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),
