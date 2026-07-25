@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
-
+ 
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction
