@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -16,6 +16,21 @@ app.include_router(admin.router)
 app.include_router(suggestions.router)
 app.include_router(watchlist.router)
 app.include_router(tracking.router)
+
+
+@app.get("/sw.js")
+def service_worker():
+    # Servido en la raíz (no en /static) para que su scope cubra toda la app.
+    return FileResponse(
+        "app/static/sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"},
+    )
+
+
+@app.get("/manifest.json")
+def manifest():
+    return FileResponse("app/static/manifest.json", media_type="application/manifest+json")
 
 
 @app.exception_handler(NeedsLogin)
