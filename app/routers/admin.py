@@ -113,7 +113,7 @@ def invitations_page(
             "Después, con esos mismos filtros, vas pasando lo que te interesa a Mi Watchlist, y "
             "cuando la ves, la calificás y dejás tu comentario — así el rating no es de un "
             "desconocido de internet sino de gente en la que confiás. Te dejo tu acceso, es de un "
-            f"solo uso 👇\n{link}"
+            f"solo uso, entrá acá:\n{link}"
         )
         invite_data.append({
             "inv": inv,
