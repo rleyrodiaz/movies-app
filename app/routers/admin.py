@@ -1,6 +1,6 @@
 import secrets
 from datetime import date, datetime, timedelta, timezone
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -124,8 +124,8 @@ def invitations_page(
             "is_active": not is_used and not is_expired,
             "wa_url": f"https://wa.me/?text={quote_plus(msg)}",
             "mailto_url": (
-                f"mailto:?subject={quote_plus('Invitación a movieLeyro')}"
-                f"&body={quote_plus(msg)}"
+                f"mailto:?subject={quote('Invitación a movieLeyro')}"
+                f"&body={quote(msg)}"
             ),
         })
 
