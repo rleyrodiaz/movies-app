@@ -35,7 +35,7 @@ def manifest():
 
 @app.exception_handler(NeedsLogin)
 async def needs_login_handler(request: Request, exc: NeedsLogin):
-    return RedirectResponse("/login", status_code=303)
+    return RedirectResponse("/", status_code=303)
 
 
 @app.exception_handler(AccessDenied)

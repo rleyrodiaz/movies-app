@@ -559,7 +559,7 @@ window.handleAddBackdrop = function (e) {
       if (filters.director)   params.set('director', filters.director);
       if (filters.actor)      params.set('actor', filters.actor);
       const resp = await fetch('/suggestions/search?' + params.toString());
-      if (resp.status === 401) { window.location = '/login'; return; }
+      if (resp.status === 401) { window.location = '/'; return; }
       cachedResults = await resp.json();
       renderResults(cachedResults);
     } catch { hideResults(); }

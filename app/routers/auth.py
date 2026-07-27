@@ -34,15 +34,11 @@ def _client_origin(request: Request) -> dict:
     return {"ip": ip, "user_agent": request.headers.get("user-agent")}
 
 
-@router.get("/login", response_class=HTMLResponse)
-def login_page(
-    request: Request,
-    user: User | None = Depends(get_current_user),
-    error: str = "",
-):
-    if user:
-        return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request, "error": error})
+@router.get("/login")
+def login_page(error: str = ""):
+    # La página de login vieja quedó reemplazada por el modal de login en "/".
+    query = f"?login_error={quote(error)}" if error else ""
+    return RedirectResponse(f"/{query}", status_code=303)
 
 
 @router.post("/login")
