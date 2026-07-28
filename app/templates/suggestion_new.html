@@ -240,7 +240,7 @@ const SUGGESTIONS = {
     avg_rating: {{ s.avg_rating if s.avg_rating else 'null' }},
     rating_count: {{ s.rating_count }},
     rating: {{ entry.rating if entry and entry.rating else 'null' }},
-    comment: {{ (entry.comment or '') | tojson if entry else '""' }},
+    comment: {{ ((entry.comment if entry else '') or '') | tojson }},
     can_delete: {{ 'true' if can_delete_map.get(s.id) else 'false' }},
     entries: [{% for e in s.watchlist_entries | sort(attribute='updated_at', reverse=True) %}{% if e.rating %}{ user:{{ e.user.display_name | tojson }}, rating:{{ e.rating }}, comment:{{ (e.comment or '') | tojson }} },{% endif %}{% endfor %}],
   },

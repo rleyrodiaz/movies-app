@@ -237,12 +237,12 @@
       cursor: pointer; transition: opacity 0.15s;
     }
     .pm-btn-primary:hover { opacity: 0.86; }
-    @media (max-width: 520px) {
-      .pm-body { flex-direction: column !important; }
-      .pm-nav { width: 100% !important; border-right: none !important; border-bottom: 1px solid #2A2A35; flex-direction: row !important; padding: 0.5rem !important; overflow-x: auto; }
-      .pm-nav-title { display: none !important; }
-      .pm-nav-item { border-left: none !important; border-bottom: 2px solid transparent; white-space: nowrap; padding: 0.6rem 0.9rem !important; }
-      .pm-nav-item.pm-active { border-bottom-color: #C8A96E; }
+    .pm-platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.75rem; }
+    @media (max-width: 480px) {
+      .pm-nav { width: 108px !important; padding: 1.25rem 0 0.75rem !important; }
+      .pm-nav-title { font-size: 0.85rem !important; padding: 0 0.75rem 0.75rem !important; }
+      .pm-nav-item { padding: 0.65rem 0.75rem !important; font-size: 0.78rem !important; }
+      .pm-platform-grid { grid-template-columns: 1fr; }
     }
   </style>
   <div id="profile-backdrop" onclick="handleProfileBackdrop(event)"
@@ -273,7 +273,7 @@
           {# Mis plataformas #}
           <div id="profile-tab-platforms">
             <p style="font-size:0.68rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#C8A96E;margin-bottom:1rem">Mis plataformas</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem 0.75rem">
+            <div class="pm-platform-grid">
               {% for value, label in platform_choices %}
               <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
                 <input type="checkbox" name="profile_platforms" value="{{ value }}"
