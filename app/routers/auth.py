@@ -1,8 +1,9 @@
+import json
 from datetime import datetime, timezone
 from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,11 +13,13 @@ from app.models.activity_log import ActivityAction
 from app.models.club import Club
 from app.models.invitation import Invitation
 from app.models.user import User
+from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import (
     clear_session,
     get_current_user,
     hash_password,
+    require_user,
     set_session,
     verify_password,
 )
@@ -25,6 +28,7 @@ from app.services.visit import get_client_ip, parse_device
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 
 
 def _client_origin(request: Request) -> dict:
@@ -218,3 +222,35 @@ def _get_valid_invitation(token: str, db: Session) -> Invitation | None:
     if invitation.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         return None
     return invitation
+
+
+@router.post("/profile/platforms")
+async def update_platforms(
+    request: Request,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    form = await request.form()
+    valid_values = {value for value, _ in tmdb.PLATFORM_CHOICES}
+    selected = [v for v in form.getlist("platforms") if v in valid_values]
+    current_user.platforms = json.dumps(selected, ensure_ascii=False) if selected else None
+    return JSONResponse({"ok": True, "platforms": selected})
+
+
+@router.post("/profile/password")
+def update_password(
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    if not verify_password(current_password, current_user.password_hash):
+        return JSONResponse({"ok": False, "error": "La contraseña actual es incorrecta."}, status_code=400)
+    if len(new_password) < 8:
+        return JSONResponse({"ok": False, "error": "La nueva contraseña debe tener al menos 8 caracteres."}, status_code=400)
+    if new_password != confirm_password:
+        return JSONResponse({"ok": False, "error": "Las contraseñas no coinciden."}, status_code=400)
+
+    current_user.password_hash = hash_password(new_password)
+    return JSONResponse({"ok": True})

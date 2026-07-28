@@ -21,6 +21,7 @@ from app.services.suggestion_creation import create_suggestion
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 
 
 @router.get("/watchlist", response_class=HTMLResponse)
@@ -40,7 +41,7 @@ def watchlist_page(
         .options(
             joinedload(WatchlistEntry.suggestion).options(
                 joinedload(Suggestion.suggester),
-                selectinload(Suggestion.watchlist_entries),
+                selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
             )
         )
         .where(

@@ -345,6 +345,26 @@
 </div>
 
 
+{# ── MODAL: CONFIRMAR QUITAR DE WATCHLIST ── #}
+<div id="confirm-remove-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+    <h3 class="text-white font-semibold text-base mb-2">¿Quitar de watchlist?</h3>
+    <p class="text-gray-400 text-sm mb-6">Vas a perder tu calificación y comentario si ya la habías visto.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="closeConfirmRemove()"
+        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
+        Cancelar
+      </button>
+      <button id="confirm-remove-btn"
+        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
+        Quitar
+      </button>
+    </div>
+  </div>
+</div>
+
 {# ── MODAL: CONFIRMAR DESCARTE DE RECORDATORIO ── #}
 <div id="confirm-discard-backdrop"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
@@ -397,6 +417,7 @@ const WENTRIES = {
     overview: {{ (e.suggestion.overview or '') | tojson }},
     genres: {{ e.suggestion.genres_list | tojson }},
     country: {{ (e.suggestion.origin_country or '') | tojson }},
+    director: {{ (e.suggestion.director or '') | tojson }},
     cast: {{ e.suggestion.cast_list | tojson }},
     providers: {{ e.suggestion.providers_list | tojson }},
     season_count: {{ e.suggestion.season_count if e.suggestion.season_count else 'null' }},
@@ -408,6 +429,7 @@ const WENTRIES = {
     comment: {{ (e.comment or '') | tojson }},
     watched_on: {{ (e.watched_on or '') | tojson }},
     suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
+    entries: [{% for oe in e.suggestion.watchlist_entries | sort(attribute='updated_at', reverse=True) %}{% if oe.rating %}{ user:{{ oe.user.display_name | tojson }}, rating:{{ oe.rating }}, comment:{{ (oe.comment or '') | tojson }} },{% endif %}{% endfor %}],
   },
   {% endfor %}
 };
@@ -416,6 +438,7 @@ const REMINDERS = {
   {% for r in reminders %}
   {{ r.id }}: {
     id: {{ r.id }},
+    tmdb_id: {{ r.tmdb_id }},
     title: {{ r.title | tojson }},
     poster_path: {{ (r.poster_path or '') | tojson }},
     media_type: {{ r.media_type.value | tojson }},
@@ -481,6 +504,48 @@ function buildWDetailHTML(e) {
              ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
   }).join('');
 
+  const metaItems = [];
+  if (e.year)          metaItems.push(['Año', e.year]);
+  if (e.genres.length) metaItems.push(['Género', e.genres.join(', ')]);
+  if (e.country)       metaItems.push(['País', e.country]);
+  if (e.director)      metaItems.push(['Director', e.director]);
+  if (e.media_type === 'tv' && e.season_count)  metaItems.push(['Temporadas', e.season_count]);
+  if (e.media_type === 'tv' && e.episode_count) metaItems.push(['Episodios', e.episode_count]);
+
+  const metaHtml = metaItems.length
+    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+         ${metaItems.map(([k,v]) => `
+           <div>
+             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
+             <p class="text-gray-300">${esc(String(v))}</p>
+           </div>`).join('')}
+         ${e.cast.length ? `<div class="col-span-2">
+           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
+           <p class="text-gray-300">${esc(e.cast.join(' · '))}</p>
+         </div>` : ''}
+       </div>`
+    : '';
+
+  const opinionsHtml = `
+    <div class="border-t border-gray-800 pt-4 mt-4">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Opiniones</p>
+      <div class="space-y-3">
+        ${e.entries.length
+          ? e.entries.map(oe => `
+            <div class="bg-gray-800/60 rounded-xl px-4 py-3">
+              <div class="flex justify-between items-baseline gap-2 mb-1">
+                <span class="text-sm font-medium text-gray-300">${esc(oe.user)}</span>
+                <span class="text-xs text-yellow-400 font-semibold">&#9733; ${oe.rating}/10</span>
+              </div>
+              ${oe.comment
+                ? `<p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(oe.comment)}</p>`
+                : `<p class="text-xs text-gray-600 italic">Sin comentario.</p>`}
+            </div>`).join('')
+          : `<p class="text-sm text-gray-600">Todavía nadie opinó.</p>`
+        }
+      </div>
+    </div>`;
+
   const ratingSection = `
     <div class="border-t border-gray-800 pt-4 mt-4">
       <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
@@ -533,6 +598,8 @@ function buildWDetailHTML(e) {
       </div>
     </div>
 
+    ${metaHtml}
+
     <div class="border-t border-gray-800 pt-4 mt-4">
       <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
       <div class="flex flex-wrap gap-2">
@@ -543,10 +610,12 @@ function buildWDetailHTML(e) {
       </div>
     </div>
 
+    ${opinionsHtml}
+
     ${ratingSection}
 
     <div class="mt-4 pt-3 border-t border-gray-800 flex justify-end items-center">
-      <button onclick="removeFromWatchlist(${e.id}, '${e.status}')"
+      <button onclick="confirmRemoveFromWatchlist(${e.id}, '${e.status}')"
         class="text-xs text-red-700 hover:text-red-400 transition-colors">
         Quitar de watchlist
       </button>
@@ -582,13 +651,26 @@ async function saveWRating(id) {
   location.reload();
 }
 
-async function removeFromWatchlist(id, status) {
-  const fd = new FormData();
-  fd.append('status', status);
-  try {
-    await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
-  } catch(e) {}
-  location.reload();
+function confirmRemoveFromWatchlist(id, status) {
+  const backdrop = document.getElementById('confirm-remove-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+
+  const btn = document.getElementById('confirm-remove-btn');
+  btn.onclick = async () => {
+    const fd = new FormData();
+    fd.append('status', status);
+    try {
+      await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
+    } catch(e) {}
+    location.reload();
+  };
+}
+
+function closeConfirmRemove() {
+  const backdrop = document.getElementById('confirm-remove-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
 }
 
 /* ── Reminder add modal ── */
@@ -754,6 +836,8 @@ function openReminderDetail(id) {
       </div>
     </div>
 
+    <div id="rmeta-${id}" class="text-sm text-gray-600 border-t border-gray-800 pt-4 mt-4">Cargando información…</div>
+
     <div class="border-t border-gray-800 pt-4 mt-4">
       <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
         Calificar y publicar
@@ -778,6 +862,60 @@ function openReminderDetail(id) {
 
   document.getElementById('reminder-detail-backdrop').classList.remove('hidden');
   document.getElementById('reminder-detail-backdrop').classList.add('flex');
+
+  loadReminderMeta(id, r);
+}
+
+async function loadReminderMeta(id, r) {
+  const target = document.getElementById(`rmeta-${id}`);
+  let detail = null;
+  try {
+    const resp = await fetch(`/suggestions/tmdb-detail?tmdb_id=${r.tmdb_id}&media_type=${r.media_type}`);
+    if (resp.ok) detail = await resp.json();
+  } catch (e) {}
+  if (!target) return; // el usuario ya cerró el modal
+
+  const genres    = (detail && detail.genres)    ? detail.genres    : [];
+  const country   = (detail && detail.origin_country) ? detail.origin_country : '';
+  const director  = (detail && detail.director)  ? detail.director  : '';
+  const cast      = (detail && detail.cast)      ? detail.cast      : [];
+  const providers = (detail && detail.providers) ? detail.providers : [];
+  const seasonCount  = (detail && detail.season_count)  ? detail.season_count  : null;
+  const episodeCount = (detail && detail.episode_count) ? detail.episode_count : null;
+
+  const metaItems = [];
+  if (r.year)          metaItems.push(['Año', r.year]);
+  if (genres.length)   metaItems.push(['Género', genres.join(', ')]);
+  if (country)         metaItems.push(['País', country]);
+  if (director)         metaItems.push(['Director', director]);
+  if (r.media_type === 'tv' && seasonCount)  metaItems.push(['Temporadas', seasonCount]);
+  if (r.media_type === 'tv' && episodeCount) metaItems.push(['Episodios', episodeCount]);
+
+  const metaHtml = metaItems.length
+    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+         ${metaItems.map(([k,v]) => `
+           <div>
+             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
+             <p class="text-gray-300">${esc(String(v))}</p>
+           </div>`).join('')}
+         ${cast.length ? `<div class="col-span-2">
+           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
+           <p class="text-gray-300">${esc(cast.join(' · '))}</p>
+         </div>` : ''}
+       </div>`
+    : '';
+
+  target.innerHTML = `
+    ${metaHtml}
+    <div class="${metaHtml ? 'border-t border-gray-800 pt-4 mt-4' : ''}">
+      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+      <div class="flex flex-wrap gap-2">
+        ${providers.length
+          ? providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
+          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+        }
+      </div>
+    </div>`;
 }
 
 function closeReminderDetail() {
@@ -845,6 +983,7 @@ document.addEventListener('keydown', function(e) {
     closeReminderAddModal();
     closeReminderDetail();
     closeConfirmDiscard();
+    closeConfirmRemove();
   }
 });
 </script>

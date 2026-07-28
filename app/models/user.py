@@ -1,7 +1,8 @@
 import enum
+import json
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -29,6 +30,7 @@ class User(Base):
     invited_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    platforms: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -39,3 +41,12 @@ class User(Base):
     reminders: Mapped[list["PersonalReminder"]] = relationship("PersonalReminder", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[list["ActivityLog"]] = relationship("ActivityLog", back_populates="user")
     created_invitations: Mapped[list["Invitation"]] = relationship("Invitation", back_populates="creator", foreign_keys="Invitation.created_by")
+
+    @property
+    def platforms_list(self) -> list[str]:
+        if not self.platforms:
+            return []
+        try:
+            return json.loads(self.platforms)
+        except (json.JSONDecodeError, TypeError):
+            return []

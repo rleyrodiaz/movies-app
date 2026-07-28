@@ -7,6 +7,25 @@ POSTER_BASE = "https://image.tmdb.org/t/p"
 
 _genre_cache: dict[str, dict[int, str]] = {}
 
+# Catálogo fijo de plataformas de streaming más comunes en Argentina.
+# El valor (value) coincide con el provider_name que devuelve TMDB para la
+# región AR, así "disponible en mis plataformas" puede cruzar contra
+# Suggestion.providers_list sin transformaciones.
+PLATFORM_CHOICES: list[tuple[str, str]] = [
+    ("Netflix", "Netflix"),
+    ("Amazon Prime Video", "Prime Video"),
+    ("Disney Plus", "Disney+"),
+    ("HBO Max", "HBO Max"),
+    ("Paramount Plus", "Paramount+"),
+    ("Apple TV", "Apple TV"),
+    ("Claro video", "Claro video"),
+    ("MovistarTV", "Movistar TV"),
+    ("DIRECTV GO", "DIRECTV GO"),
+    ("Mercado Play", "Mercado Play"),
+    ("Crunchyroll", "Crunchyroll"),
+    ("Pluto TV", "Pluto TV"),
+]
+
 
 def poster_url(path: str | None, size: str = "w500") -> str | None:
     if not path:

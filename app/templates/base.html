@@ -11,6 +11,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="movieLeyro">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -107,7 +109,12 @@
         {% endif %}
 
         <div class="flex items-center gap-3 border-l border-gray-700 pl-6">
-          <span class="text-yellow-400 font-medium">{{ user.display_name }}</span>
+          <button id="profile-icon-desktop" onclick="openProfileModal()" title="{{ user.display_name }}"
+            class="profile-icon-btn p-1.5 text-yellow-400 transition-colors rounded-full hover:bg-gray-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+          </button>
           <form method="post" action="/logout">
             <button type="submit" class="text-xs text-gray-500 hover:text-red-400 transition-colors">Salir</button>
           </form>
@@ -190,7 +197,13 @@
         </div>
         {% endif %}
         <div class="border-t border-gray-800 pt-2 mt-1 pb-1 flex items-center justify-between px-3">
-          <span class="text-yellow-400 font-medium">{{ user.display_name }}</span>
+          <button onclick="closeMobileNav(); openProfileModal();"
+            class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors">
+            <svg id="profile-icon-mobile" class="profile-icon-btn w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            {{ user.display_name }}
+          </button>
           <form method="post" action="/logout">
             <button type="submit" class="text-xs text-gray-500 hover:text-red-400 transition-colors">Salir</button>
           </form>
@@ -198,6 +211,175 @@
       </div>
     </div>
   </div>
+
+  {# ── Profile modal (contraseña + plataformas) — estilo del modal de login de la landing ── #}
+  <style>
+    .pm-panel { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .pm-display { font-family: 'Playfair Display', Georgia, serif; }
+    .pm-nav-item {
+      display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 0.85rem; font-weight: 500; letter-spacing: 0.02em;
+      color: #7A7680; padding: 0.75rem 1.25rem; border-left: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .pm-nav-item:hover { color: #F0EDE8; background: rgba(200,169,110,0.06); }
+    .pm-nav-item.pm-active { color: #C8A96E; border-left-color: #C8A96E; background: rgba(200,169,110,0.08); }
+    .pm-nav-item.pm-danger:hover { color: #f87171; }
+    .pm-input {
+      width: 100%; background: #0D0D0F; border: 1px solid #2A2A35; color: #F0EDE8;
+      font-size: 0.9rem; padding: 0.7rem 0.85rem; outline: none; transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .pm-input:focus { border-color: #C8A96E; }
+    .pm-btn-primary {
+      display: block; width: 100%; background: #C8A96E; color: #0D0D0F; font-weight: 600;
+      font-size: 0.85rem; letter-spacing: 0.02em; padding: 0.75rem 1.5rem; border: none;
+      cursor: pointer; transition: opacity 0.15s;
+    }
+    .pm-btn-primary:hover { opacity: 0.86; }
+    @media (max-width: 520px) {
+      .pm-body { flex-direction: column !important; }
+      .pm-nav { width: 100% !important; border-right: none !important; border-bottom: 1px solid #2A2A35; flex-direction: row !important; padding: 0.5rem !important; overflow-x: auto; }
+      .pm-nav-title { display: none !important; }
+      .pm-nav-item { border-left: none !important; border-bottom: 2px solid transparent; white-space: nowrap; padding: 0.6rem 0.9rem !important; }
+      .pm-nav-item.pm-active { border-bottom-color: #C8A96E; }
+    }
+  </style>
+  <div id="profile-backdrop" onclick="handleProfileBackdrop(event)"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+    style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
+
+    <div class="pm-panel" style="position:relative;width:100%;max-width:480px;max-height:90vh;background:#15151A;border:1px solid #2A2A35;display:flex;flex-direction:column;overflow:hidden">
+
+      <button onclick="closeProfileModal()" aria-label="Cerrar"
+        style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.2rem;line-height:1;z-index:2;transition:color 0.15s"
+        onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+
+      <div class="pm-body" style="display:flex;flex:1;min-height:0">
+
+        {# Sidebar #}
+        <div class="pm-nav" style="width:160px;flex-shrink:0;border-right:1px solid #2A2A35;padding:1.75rem 0 1rem;display:flex;flex-direction:column">
+          <p class="pm-nav-title pm-display" style="font-size:1rem;font-weight:700;color:#F0EDE8;padding:0 1.25rem 1rem;margin-bottom:0.5rem;border-bottom:1px solid #2A2A35;line-height:1.3">{{ user.display_name }}</p>
+          <button id="profile-tab-btn-platforms" class="pm-nav-item" onclick="switchProfileTab('platforms')">Plataformas</button>
+          <button id="profile-tab-btn-password" class="pm-nav-item" onclick="switchProfileTab('password')">Cambio de contraseña</button>
+          <form method="post" action="/logout" style="margin:0">
+            <button type="submit" class="pm-nav-item pm-danger">Cerrar sesión</button>
+          </form>
+        </div>
+
+        {# Content #}
+        <div style="flex:1;min-width:0;padding:1.75rem;overflow-y:auto">
+
+          {# Mis plataformas #}
+          <div id="profile-tab-platforms">
+            <p style="font-size:0.68rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#C8A96E;margin-bottom:1rem">Mis plataformas</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem 0.75rem">
+              {% for value, label in platform_choices %}
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" name="profile_platforms" value="{{ value }}"
+                       {% if value in user.platforms_list %}checked{% endif %}
+                       style="accent-color:#C8A96E;width:1rem;height:1rem">
+                <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <button onclick="savePlatforms()" class="pm-btn-primary" style="margin-top:1.5rem">Guardar plataformas</button>
+            <p id="platforms-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
+          </div>
+
+          {# Cambiar contraseña #}
+          <div id="profile-tab-password" class="hidden">
+            <p style="font-size:0.68rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#C8A96E;margin-bottom:1rem">Cambio de contraseña</p>
+            <div style="display:flex;flex-direction:column;gap:0.85rem">
+              <input id="pw-current" type="password" placeholder="Contraseña actual" autocomplete="current-password" class="pm-input">
+              <input id="pw-new" type="password" placeholder="Nueva contraseña" autocomplete="new-password" class="pm-input">
+              <input id="pw-confirm" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password" class="pm-input">
+            </div>
+            <button onclick="changePassword()" class="pm-btn-primary" style="margin-top:1.25rem">Actualizar contraseña</button>
+            <p id="password-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  function switchProfileTab(tab) {
+    const tabs = ['platforms', 'password'];
+    tabs.forEach(function (t) {
+      document.getElementById('profile-tab-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('profile-tab-btn-' + t).classList.toggle('pm-active', t === tab);
+    });
+  }
+  function openProfileModal() {
+    const el = document.getElementById('profile-backdrop');
+    el.classList.remove('hidden');
+    el.classList.add('flex');
+    switchProfileTab('platforms');
+    document.querySelectorAll('.profile-icon-btn').forEach(function (icon) {
+      icon.classList.remove('text-yellow-400', 'text-yellow-300');
+      icon.classList.add('text-orange-400');
+    });
+  }
+  function closeProfileModal() {
+    const el = document.getElementById('profile-backdrop');
+    el.classList.add('hidden');
+    el.classList.remove('flex');
+    document.querySelectorAll('.profile-icon-btn').forEach(function (icon) {
+      icon.classList.remove('text-orange-400');
+      icon.classList.add('text-yellow-400');
+    });
+  }
+  function handleProfileBackdrop(e) {
+    if (e.target === document.getElementById('profile-backdrop')) closeProfileModal();
+  }
+
+  function _showMsg(id, text, ok) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.classList.remove('hidden', 'text-red-400', 'text-green-400');
+    el.classList.add(ok ? 'text-green-400' : 'text-red-400');
+  }
+
+  async function savePlatforms() {
+    const fd = new FormData();
+    document.querySelectorAll('input[name="profile_platforms"]:checked').forEach(cb => fd.append('platforms', cb.value));
+    try {
+      const resp = await fetch('/profile/platforms', { method: 'POST', body: fd });
+      const data = await resp.json();
+      _showMsg('platforms-msg', data.ok ? 'Guardado.' : 'No se pudo guardar.', data.ok);
+    } catch (e) {
+      _showMsg('platforms-msg', 'No se pudo guardar.', false);
+    }
+  }
+
+  async function changePassword() {
+    const current = document.getElementById('pw-current').value;
+    const next = document.getElementById('pw-new').value;
+    const confirm = document.getElementById('pw-confirm').value;
+    const fd = new FormData();
+    fd.append('current_password', current);
+    fd.append('new_password', next);
+    fd.append('confirm_password', confirm);
+    try {
+      const resp = await fetch('/profile/password', { method: 'POST', body: fd });
+      const data = await resp.json();
+      _showMsg('password-msg', data.ok ? 'Contraseña actualizada.' : (data.error || 'No se pudo actualizar.'), data.ok);
+      if (data.ok) {
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value = '';
+        document.getElementById('pw-confirm').value = '';
+      }
+    } catch (e) {
+      _showMsg('password-msg', 'No se pudo actualizar.', false);
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeProfileModal();
+  });
+  </script>
 
   <script>
   function toggleMobileNav() {
