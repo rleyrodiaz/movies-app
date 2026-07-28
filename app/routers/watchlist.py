@@ -1,3 +1,4 @@
+import json
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -81,7 +82,11 @@ def watchlist_page(
         entries = [e for e in entries if e.suggestion.suggested_by == f_by]
     if f_genre:
         entries = [e for e in entries if f_genre in e.suggestion.genres_list]
-    if f_platform:
+    f_my_platforms = f_platform == "__mine__" and bool(current_user.platforms_list)
+    if f_my_platforms:
+        my_platform_set = set(current_user.platforms_list)
+        entries = [e for e in entries if my_platform_set & set(e.suggestion.providers_list)]
+    elif f_platform:
         entries = [e for e in entries if f_platform in e.suggestion.providers_list]
 
     # Sort
@@ -97,6 +102,11 @@ def watchlist_page(
         .where(PersonalReminder.user_id == current_user.id)
         .order_by(PersonalReminder.created_at.desc())
     ).all()
+    if f_my_platforms:
+        my_platform_set = set(current_user.platforms_list)
+        reminders = [r for r in reminders if my_platform_set & set(r.providers_list)]
+    elif f_platform:
+        reminders = [r for r in reminders if f_platform in r.providers_list]
 
     return templates.TemplateResponse(
         "watchlist.html",
@@ -189,6 +199,7 @@ def reminder_create(
                 parsed_date = date.fromisoformat(release_date[:10])
             except ValueError:
                 pass
+        detail = tmdb.get_detail(tmdb_id, media_type) or {}
         reminder = PersonalReminder(
             user_id=current_user.id,
             tmdb_id=tmdb_id,
@@ -197,6 +208,8 @@ def reminder_create(
             poster_path=poster_path or None,
             overview=overview or None,
             release_date=parsed_date,
+            tmdb_rating=detail.get("tmdb_rating"),
+            providers=json.dumps(detail.get("providers", []), ensure_ascii=False) if detail.get("providers") else None,
         )
         db.add(reminder)
         db.flush()

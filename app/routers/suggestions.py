@@ -45,7 +45,6 @@ def feed(
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
     min_rating: str = Query(default="0"),
-    my_platforms: str = Query(default=""),
 ):
     active_club = get_active_club(request, current_user, db)
 
@@ -75,7 +74,7 @@ def feed(
     f_platform = platform.strip()
     f_sort = sort if sort in ("name", "rating") else ""
     f_status = status_filter if status_filter in ("pending", "watched") else ""
-    f_my_platforms = bool(my_platforms) and bool(current_user.platforms_list)
+    f_my_platforms = f_platform == "__mine__" and bool(current_user.platforms_list)
     try:
         f_by = int(by)
     except (ValueError, TypeError):
@@ -93,11 +92,11 @@ def feed(
         suggestions = [s for s in suggestions if s.suggested_by == f_by]
     if f_genre:
         suggestions = [s for s in suggestions if f_genre in s.genres_list]
-    if f_platform:
-        suggestions = [s for s in suggestions if f_platform in s.providers_list]
     if f_my_platforms:
         my_platform_set = set(current_user.platforms_list)
         suggestions = [s for s in suggestions if my_platform_set & set(s.providers_list)]
+    elif f_platform:
+        suggestions = [s for s in suggestions if f_platform in s.providers_list]
     if f_min_rating:
         suggestions = [s for s in suggestions if s.avg_rating and s.avg_rating >= f_min_rating]
     if f_status == "watched":
@@ -119,7 +118,6 @@ def feed(
 
     active_filters = sum([
         bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status), bool(f_min_rating),
-        f_my_platforms,
     ])
 
     return templates.TemplateResponse(
@@ -138,7 +136,6 @@ def feed(
             "f_sort": f_sort,
             "f_status": f_status,
             "f_min_rating": f_min_rating,
-            "f_my_platforms": f_my_platforms,
             "active_filters": active_filters,
             "has_any_suggestions": bool(all_suggestions),
             "total_count": len(all_suggestions),

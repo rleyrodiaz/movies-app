@@ -2,31 +2,32 @@
 {% block title %}{{ s.title }}{% endblock %}
 
 {% block content %}
+<div class="pm-panel" style="max-width:48rem;margin:0 auto">
 
 <div class="mb-4 flex items-center gap-4">
   {% if request.query_params.get('back') == 'watchlist' %}
-<a href="/watchlist" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver a mi watchlist</a>
+<a href="/watchlist" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a mi watchlist</a>
 {% else %}
-<a href="/feed" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver al feed</a>
+<a href="/feed" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
 {% endif %}
 </div>
 
 {% if request.query_params.get("duplicate") %}
-<div class="mb-4 bg-yellow-900/30 border border-yellow-800 text-yellow-300 text-sm px-4 py-3 rounded-xl">
+<div style="margin-bottom:1rem;background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);color:#C8A96E;font-size:0.85rem;padding:0.75rem 1rem">
   Esta película o serie ya había sido sugerida. Estás viendo la sugerencia existente.
 </div>
 {% endif %}
 
-<div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+<div style="background:#15151A;border:1px solid #2A2A35;overflow:hidden">
 
   {# ── Header: poster + info ── #}
-  <div class="flex flex-col sm:flex-row gap-5 p-5 sm:p-6">
+  <div class="flex flex-col sm:flex-row gap-5" style="padding:1.5rem">
     <div class="shrink-0 self-start flex justify-center sm:justify-start">
       {% if s.poster_path %}
       <img src="{{ poster_url(s.poster_path, 'w342') }}" alt="{{ s.title }}"
-           class="w-40 sm:w-36 aspect-[2/3] rounded-xl shadow-2xl object-cover">
+           class="w-40 sm:w-36 aspect-[2/3] object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">
       {% else %}
-      <div class="w-40 sm:w-36 h-56 sm:h-52 bg-gray-800 rounded-xl flex items-center justify-center text-4xl text-gray-600">+</div>
+      <div class="w-40 sm:w-36 h-56 sm:h-52 flex items-center justify-center text-4xl" style="background:#0D0D0F;color:#5A5762">+</div>
       {% endif %}
     </div>
 
@@ -36,81 +37,81 @@
       <div class="flex items-start justify-between gap-3 mb-2">
         <div class="flex items-center gap-2 flex-wrap">
           {% if s.media_type.value == 'movie' %}
-          <span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>
+          <span class="pm-badge" style="color:#93c5fd;border-color:#1e3a8a">Película</span>
           {% else %}
-          <span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>
+          <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">Serie</span>
           {% endif %}
-          {% if s.release_date %}<span class="text-xs text-gray-500">{{ s.release_date.year }}</span>{% endif %}
+          {% if s.release_date %}<span class="text-xs" style="color:#7A7680">{{ s.release_date.year }}</span>{% endif %}
           {% if s.tmdb_rating %}
-          <span class="text-xs text-gray-500" title="Calificación de TMDB">&#9733; {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
+          <span class="text-xs" style="color:#7A7680" title="Calificación de TMDB">&#9733; {{ "%.1f"|format(s.tmdb_rating) }} <span style="color:#5A5762">TMDB</span></span>
           {% endif %}
           {% if s.avg_rating %}
-          <span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full"
+          <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f"
                 title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
             &#9733; {{ s.avg_rating }}/10
           </span>
           {% endif %}
         </div>
         <div class="text-right shrink-0">
-          <p class="text-sm font-semibold text-white flex items-center justify-end gap-1.5" title="Recomendado por">
-            <svg class="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">
+            <svg class="w-3.5 h-3.5 shrink-0" style="color:#C8A96E" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
             </svg>
             {{ s.suggester.display_name }}
           </p>
-          <p class="text-xs text-gray-600 mt-0.5">{{ s.created_at.strftime('%d/%m/%Y') }}</p>
+          <p class="text-xs mt-0.5" style="color:#5A5762">{{ s.created_at.strftime('%d/%m/%Y') }}</p>
         </div>
       </div>
 
-      <h1 class="text-2xl font-bold text-white mb-3 leading-tight">{{ s.title }}</h1>
+      <h1 class="pm-title text-2xl mb-3 leading-tight">{{ s.title }}</h1>
 
       {% if s.overview %}
-      <p class="text-gray-400 text-sm leading-relaxed mb-4">{{ s.overview }}</p>
+      <p class="text-sm leading-relaxed mb-4" style="color:#7A7680">{{ s.overview }}</p>
       {% endif %}
 
       {# ── Metadata ── #}
       {% if s.genres_list or s.origin_country or s.director or s.cast_list or (s.media_type.value == 'tv' and s.episode_count) %}
-      <div class="grid grid-cols-2 gap-x-6 gap-y-3 pt-4 border-t border-gray-800 text-sm">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm" style="padding-top:1rem;border-top:1px solid #2A2A35">
         {% if s.release_date %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Año</p>
-          <p class="text-gray-300">{{ s.release_date.year }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Año</p>
+          <p style="color:#B8B4BE">{{ s.release_date.year }}</p>
         </div>
         {% endif %}
         {% if s.genres_list %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Género</p>
-          <p class="text-gray-300">{{ s.genres_list | join(', ') }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Género</p>
+          <p style="color:#B8B4BE">{{ s.genres_list | join(', ') }}</p>
         </div>
         {% endif %}
         {% if s.origin_country %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">País</p>
-          <p class="text-gray-300">{{ s.origin_country }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">País</p>
+          <p style="color:#B8B4BE">{{ s.origin_country }}</p>
         </div>
         {% endif %}
         {% if s.director %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Director</p>
-          <p class="text-gray-300">{{ s.director }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Director</p>
+          <p style="color:#B8B4BE">{{ s.director }}</p>
         </div>
         {% endif %}
         {% if s.media_type.value == 'tv' and s.season_count %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Temporadas</p>
-          <p class="text-gray-300">{{ s.season_count }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Temporadas</p>
+          <p style="color:#B8B4BE">{{ s.season_count }}</p>
         </div>
         {% endif %}
         {% if s.media_type.value == 'tv' and s.episode_count %}
         <div>
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Episodios</p>
-          <p class="text-gray-300">{{ s.episode_count }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Episodios</p>
+          <p style="color:#B8B4BE">{{ s.episode_count }}</p>
         </div>
         {% endif %}
         {% if s.cast_list %}
         <div class="col-span-2">
-          <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
-          <p class="text-gray-300">{{ s.cast_list | join(' · ') }}</p>
+          <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
+          <p style="color:#B8B4BE">{{ s.cast_list | join(' · ') }}</p>
         </div>
         {% endif %}
       </div>
@@ -119,35 +120,33 @@
   </div>
 
   {# ── Plataformas de streaming ── #}
-  <div class="border-t border-gray-800 px-6 py-4">
-    <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+  <div style="border-top:1px solid #2A2A35;padding:1rem 1.5rem">
+    <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
     <div class="flex flex-wrap gap-2">
       {% if s.providers_list %}
         {% for p in s.providers_list %}
-        <span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">{{ p }}</span>
+        <span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">{{ p }}</span>
         {% endfor %}
       {% else %}
-        <span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>
+        <span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>
       {% endif %}
     </div>
   </div>
 
   {# ── Watchlist ── #}
-  <div class="border-t border-gray-800 px-6 py-4">
+  <div style="border-top:1px solid #2A2A35;padding:1rem 1.5rem">
     <div class="flex items-center gap-2 flex-wrap">
       <form method="post" action="/watchlist/{{ s.id }}">
         <input type="hidden" name="status" value="pending">
         {% if watchlist_entry and watchlist_entry.status.value == 'pending' %}
-        <button type="submit"
-          class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-violet-700 hover:bg-violet-800 text-white">
+        <button type="submit" class="pm-btn-primary" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1.1rem;font-size:0.85rem">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M5 3a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2H5z"/>
           </svg>
           Watchlist
         </button>
         {% else %}
-        <button type="submit"
-          class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">
+        <button type="submit" class="pm-btn-secondary" style="display:flex;align-items:center;gap:0.5rem">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z"/>
           </svg>
@@ -157,8 +156,7 @@
       </form>
 
       {% if watched_entries %}
-      <button type="button" onclick="toggleOpinions()"
-        class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white">
+      <button type="button" onclick="toggleOpinions()" class="pm-btn-secondary" style="display:flex;align-items:center;gap:0.5rem">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
         </svg>
@@ -168,15 +166,15 @@
 
       {% if is_owner and can_delete %}
       <form id="delete-suggestion-form" method="post" action="/suggestions/{{ s.id }}/delete" class="ml-auto">
-        <button type="button" onclick="confirmDeleteSuggestion()" class="text-xs text-red-700 hover:text-red-400 transition-colors">Borrar sugerencia</button>
+        <button type="button" onclick="confirmDeleteSuggestion()" class="text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">Borrar sugerencia</button>
       </form>
       {% elif is_owner %}
-      <span class="text-xs text-gray-700 ml-auto cursor-not-allowed select-none"
+      <span class="text-xs ml-auto select-none" style="color:#5A5762;cursor:not-allowed"
             title="Alguien la tiene en su watchlist">
         Borrar sugerencia
       </span>
       {% else %}
-      <span class="text-xs text-gray-700 ml-auto cursor-not-allowed select-none"
+      <span class="text-xs ml-auto select-none" style="color:#5A5762;cursor:not-allowed"
             title="Solo quien la sugirió puede borrarla">
         Borrar sugerencia
       </span>
@@ -186,25 +184,25 @@
 
   {# ── Opiniones de quienes la vieron ── #}
   {% if watched_entries %}
-  <div id="opinions-section" class="hidden border-t border-gray-800 px-6 py-4">
-    <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">
+  <div id="opinions-section" class="hidden" style="border-top:1px solid #2A2A35;padding:1rem 1.5rem">
+    <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">
       Opiniones de quienes la vieron
-      {% if s.avg_rating %}<span class="text-yellow-400 normal-case ml-1">· Promedio {{ s.avg_rating }}/10</span>{% endif %}
+      {% if s.avg_rating %}<span class="normal-case ml-1" style="color:#C8A96E">· Promedio {{ s.avg_rating }}/10</span>{% endif %}
     </p>
     <div class="space-y-3">
       {% for e in watched_entries %}
-      <div class="bg-gray-800/60 rounded-xl px-4 py-3">
+      <div style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.75rem 1rem">
         <div class="flex justify-between items-baseline gap-2 mb-1">
-          <span class="text-sm font-medium text-gray-300">{{ e.user.display_name }}</span>
-          <span class="text-xs text-yellow-400 font-semibold">&#9733; {{ e.rating }}/10</span>
+          <span class="text-sm font-medium" style="color:#B8B4BE">{{ e.user.display_name }}</span>
+          <span class="text-xs font-semibold" style="color:#C8A96E">&#9733; {{ e.rating }}/10</span>
         </div>
         {% if e.comment %}
-        <p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">{{ e.comment }}</p>
+        <p class="text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">{{ e.comment }}</p>
         {% else %}
-        <p class="text-xs text-gray-600 italic">Sin comentario.</p>
+        <p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>
         {% endif %}
         {% if e.watched_on %}
-        <p class="text-xs text-gray-600 mt-1">Vista en {{ e.watched_on }}</p>
+        <p class="text-xs mt-1" style="color:#5A5762">Vista en {{ e.watched_on }}</p>
         {% endif %}
       </div>
       {% endfor %}
@@ -213,23 +211,18 @@
   {% endif %}
 
 </div>
+</div>
 
 {# ── MODAL: CONFIRMAR BORRADO ── #}
 <div id="confirm-delete-backdrop"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
      style="background:rgba(0,0,0,0.6)">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-    <h3 class="text-white font-semibold text-base mb-2">¿Borrar sugerencia?</h3>
-    <p class="text-gray-400 text-sm mb-6">Esta acción no se puede deshacer.</p>
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDeleteSuggestion()"
-        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
-        Cancelar
-      </button>
-      <button onclick="document.getElementById('delete-suggestion-form').submit()"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
-        Borrar
-      </button>
+      <button onclick="closeConfirmDeleteSuggestion()" class="pm-btn-secondary">Cancelar</button>
+      <button onclick="document.getElementById('delete-suggestion-form').submit()" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
     </div>
   </div>
 </div>

@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
@@ -29,8 +30,19 @@ class PersonalReminder(Base):
     poster_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     overview: Mapped[str | None] = mapped_column(Text, nullable=True)
     release_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    tmdb_rating: Mapped[float | None] = mapped_column(nullable=True)
+    providers: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
     user: Mapped["User"] = relationship("User", back_populates="reminders")
+
+    @property
+    def providers_list(self) -> list[str]:
+        if not self.providers:
+            return []
+        try:
+            return json.loads(self.providers)
+        except (json.JSONDecodeError, TypeError):
+            return []

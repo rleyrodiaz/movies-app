@@ -64,7 +64,11 @@
       </div>
       <div class="mt-2 px-0.5">
         <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ r.title }}</p>
-        <p class="text-xs text-gray-500 mt-0.5">{% if r.release_date %}{{ r.release_date.year }}{% endif %}</p>
+        <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+          {% if r.release_date %}<span class="text-gray-500">{{ r.release_date.year }}</span>{% endif %}
+          {% if r.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(r.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
+          {% if r.providers_list %}<span class="text-gray-500">· {{ r.providers_list[0] }}{% if r.providers_list|length > 1 %} +{{ r.providers_list|length - 1 }}{% endif %}</span>{% endif %}
+        </p>
       </div>
     </button>
     {% endfor %}
@@ -133,11 +137,8 @@
       <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ e.suggestion.title }}</p>
       <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
         {% if e.suggestion.release_date %}<span class="text-gray-500">{{ e.suggestion.release_date.year }}</span>{% endif %}
-        {% if e.suggestion.avg_rating %}
-        <span class="text-yellow-400" title="Promedio de {{ e.suggestion.rating_count }} calificaci{{ 'ón' if e.suggestion.rating_count == 1 else 'ones' }}">· ★ {{ "%.1f"|format(e.suggestion.avg_rating) }}</span>
-        {% elif e.suggestion.tmdb_rating %}
-        <span class="text-amber-500">· ★ {{ "%.1f"|format(e.suggestion.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
-        {% endif %}
+        {% if e.suggestion.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(e.suggestion.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
+        {% if e.suggestion.providers_list %}<span class="text-gray-500">· {{ e.suggestion.providers_list[0] }}{% if e.suggestion.providers_list|length > 1 %} +{{ e.suggestion.providers_list|length - 1 }}{% endif %}</span>{% endif %}
       </p>
       <p class="text-xs text-gray-600 mt-0.5 truncate">{{ e.suggestion.suggester.display_name }}</p>
     </div>
@@ -153,27 +154,27 @@
   class="fixed inset-0 z-50 hidden items-center justify-center p-4"
   style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
 
-  <div id="filter-box"
-    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm shadow-2xl
-           max-h-[90vh] flex flex-col overflow-hidden">
+  <div id="filter-box" class="pm-panel"
+    style="width:100%;max-width:24rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;display:flex;flex-direction:column;overflow:hidden">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800 shrink-0">
-      <h2 class="text-base font-bold text-white">Filtros y orden</h2>
-      <button onclick="closeFilterModal()" class="text-gray-500 hover:text-white transition-colors text-2xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35;flex-shrink:0">
+      <h2 class="pm-title" style="font-size:1.05rem">Filtros y orden</h2>
+      <button onclick="closeFilterModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.4rem;line-height:1"
+        onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <form method="get" action="/watchlist" class="overflow-y-auto px-6 py-5 space-y-6">
+    <form method="get" action="/watchlist" style="overflow-y:auto;padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1.5rem">
 
       {# Estado #}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Estado</p>
-        <div class="flex gap-4 flex-wrap">
+        <p class="pm-label" style="margin-bottom:0.75rem">Estado</p>
+        <div style="display:flex;gap:1.25rem;flex-wrap:wrap">
           {% for val, label in [('', 'Todos'), ('pending', 'Por ver'), ('watched', 'Ya vi')] %}
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="status_filter" value="{{ val }}"
                    {% if f_status == val %}checked{% endif %}
-                   class="accent-violet-500 w-4 h-4">
-            <span class="text-sm text-gray-300">{{ label }}</span>
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
         </div>
@@ -181,14 +182,14 @@
 
       {# Tipo #}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Tipo</p>
-        <div class="flex gap-4 flex-wrap">
+        <p class="pm-label" style="margin-bottom:0.75rem">Tipo</p>
+        <div style="display:flex;gap:1.25rem;flex-wrap:wrap">
           {% for val, label in [('', 'Todos'), ('movie', 'Películas'), ('tv', 'Series')] %}
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="media" value="{{ val }}"
                    {% if f_media == val %}checked{% endif %}
-                   class="accent-violet-500 w-4 h-4">
-            <span class="text-sm text-gray-300">{{ label }}</span>
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
         </div>
@@ -197,10 +198,8 @@
       {# Género #}
       {% if all_genres %}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Género</p>
-        <select name="genre"
-          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
-                 focus:outline-none focus:border-violet-500 transition-colors">
+        <p class="pm-label" style="margin-bottom:0.75rem">Género</p>
+        <select name="genre" class="pm-input">
           <option value="">Todos los géneros</option>
           {% for g in all_genres %}
           <option value="{{ g }}" {% if f_genre == g %}selected{% endif %}>{{ g }}</option>
@@ -212,11 +211,12 @@
       {# Plataforma #}
       {% if all_platforms %}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Plataforma</p>
-        <select name="platform"
-          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
-                 focus:outline-none focus:border-violet-500 transition-colors">
+        <p class="pm-label" style="margin-bottom:0.75rem">Plataforma</p>
+        <select name="platform" class="pm-input">
           <option value="">Todas las plataformas</option>
+          {% if user.platforms_list %}
+          <option value="__mine__" {% if f_platform == '__mine__' %}selected{% endif %}>Las que tengo</option>
+          {% endif %}
           {% for p in all_platforms %}
           <option value="{{ p }}" {% if f_platform == p %}selected{% endif %}>{{ p }}</option>
           {% endfor %}
@@ -227,10 +227,8 @@
       {# Recomendado por #}
       {% if suggesters|length > 1 %}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Recomendado por</p>
-        <select name="by"
-          class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white
-                 focus:outline-none focus:border-violet-500 transition-colors">
+        <p class="pm-label" style="margin-bottom:0.75rem">Recomendado por</p>
+        <select name="by" class="pm-input">
           <option value="" {% if not f_by %}selected{% endif %}>Todos</option>
           {% for uid, u in suggesters.items() %}
           <option value="{{ uid }}" {% if f_by == uid %}selected{% endif %}>{{ u.display_name }}</option>
@@ -241,29 +239,22 @@
 
       {# Ordenar #}
       <div>
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Ordenar por</p>
-        <div class="space-y-2.5">
+        <p class="pm-label" style="margin-bottom:0.75rem">Ordenar por</p>
+        <div style="display:flex;flex-direction:column;gap:0.65rem">
           {% for val, label in [('', 'Más recientes'), ('name', 'Nombre A–Z'), ('rating', 'Calificación TMDB')] %}
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="sort" value="{{ val }}"
                    {% if f_sort == val %}checked{% endif %}
-                   class="accent-violet-500 w-4 h-4">
-            <span class="text-sm text-gray-300">{{ label }}</span>
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
         </div>
       </div>
 
-      <div class="flex gap-3 pt-1">
-        <button type="submit"
-          class="flex-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium py-2.5 rounded-lg transition-colors">
-          Aplicar
-        </button>
-        <a href="/watchlist"
-          class="px-5 py-2.5 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700
-                 rounded-lg transition-colors flex items-center">
-          Limpiar
-        </a>
+      <div style="display:flex;gap:0.75rem;padding-top:0.25rem">
+        <button type="submit" class="pm-btn-primary" style="flex:1">Aplicar</button>
+        <a href="/watchlist" class="pm-btn-secondary" style="display:flex;align-items:center;text-decoration:none">Limpiar</a>
       </div>
     </form>
   </div>
@@ -275,15 +266,15 @@
   class="fixed inset-0 z-50 hidden items-center justify-center p-4"
   style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
 
-  <div id="wdetail-box"
-    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div id="wdetail-box" class="pm-panel"
+    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-0">
-      <button onclick="closeWDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Mi watchlist</button>
-      <button onclick="closeWDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
+      <button onclick="closeWDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
+      <button onclick="closeWDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <div id="wdetail-content" class="p-6"></div>
+    <div id="wdetail-content" style="padding:1.5rem"></div>
   </div>
 </div>
 
@@ -293,53 +284,43 @@
   class="fixed inset-0 z-50 hidden items-center justify-center p-4"
   style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
 
-  <div id="reminder-add-box"
-    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div id="reminder-add-box" class="pm-panel"
+    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800">
-      <h2 class="text-lg font-bold text-white">Nuevo recordatorio</h2>
-      <button onclick="closeReminderAddModal()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35">
+      <h2 class="pm-title" style="font-size:1.05rem">Nuevo recordatorio</h2>
+      <button onclick="closeReminderAddModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <div class="px-6 py-5 space-y-4">
-      <p class="text-xs text-gray-500">
+    <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
+      <p class="text-xs" style="color:#7A7680">
         Buscá algo que todavía no viste — queda como recordatorio privado en tu watchlist,
         nadie más lo ve hasta que lo califiques.
       </p>
       <div class="relative">
         <input id="reminder-search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..." autocomplete="off"
-          class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
+          class="pm-input">
         <div id="reminder-search-spinner" class="hidden absolute right-3 top-3.5">
-          <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+          <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid #2A2A35;border-top-color:#C8A96E"></div>
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2">
-        <select id="reminder-filter-genre"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+        <select id="reminder-filter-genre" class="pm-input" style="padding:0.55rem 0.7rem">
           <option value="">Todos los géneros</option>
           {% for g in tmdb_genres %}
           <option value="{{ g }}">{{ g }}</option>
           {% endfor %}
         </select>
         <input id="reminder-filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
+          class="pm-input" style="padding:0.55rem 0.7rem">
         <input id="reminder-filter-director" type="text" placeholder="Director" autocomplete="off"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
+          class="pm-input" style="padding:0.55rem 0.7rem">
         <input id="reminder-filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
-          class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                 placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                 transition-colors">
+          class="pm-input" style="padding:0.55rem 0.7rem">
       </div>
 
-      <div id="reminder-search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+      <div id="reminder-search-results" style="background:#0D0D0F;border:1px solid #2A2A35;overflow:hidden" class="hidden"></div>
     </div>
   </div>
 </div>
@@ -349,18 +330,12 @@
 <div id="confirm-remove-backdrop"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
      style="background:rgba(0,0,0,0.6)">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-    <h3 class="text-white font-semibold text-base mb-2">¿Quitar de watchlist?</h3>
-    <p class="text-gray-400 text-sm mb-6">Vas a perder tu calificación y comentario si ya la habías visto.</p>
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Quitar de watchlist?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Vas a perder tu calificación y comentario si ya la habías visto.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmRemove()"
-        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
-        Cancelar
-      </button>
-      <button id="confirm-remove-btn"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
-        Quitar
-      </button>
+      <button onclick="closeConfirmRemove()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-remove-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Quitar</button>
     </div>
   </div>
 </div>
@@ -369,18 +344,12 @@
 <div id="confirm-discard-backdrop"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
      style="background:rgba(0,0,0,0.6)">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-    <h3 class="text-white font-semibold text-base mb-2">¿Descartar recordatorio?</h3>
-    <p class="text-gray-400 text-sm mb-6">No vas a poder recuperarlo.</p>
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Descartar recordatorio?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">No vas a poder recuperarlo.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDiscard()"
-        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
-        Cancelar
-      </button>
-      <button id="confirm-discard-btn"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
-        Descartar
-      </button>
+      <button onclick="closeConfirmDiscard()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-discard-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Descartar</button>
     </div>
   </div>
 </div>
@@ -390,15 +359,15 @@
   class="fixed inset-0 z-50 hidden items-center justify-center p-4"
   style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
 
-  <div id="reminder-detail-box"
-    class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div id="reminder-detail-box" class="pm-panel"
+    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-0">
-      <button onclick="closeReminderDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Mi watchlist</button>
-      <button onclick="closeReminderDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
+      <button onclick="closeReminderDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
+      <button onclick="closeReminderDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <div id="reminder-detail-content" class="p-6"></div>
+    <div id="reminder-detail-content" style="padding:1.5rem"></div>
   </div>
 </div>
 
@@ -492,16 +461,16 @@ function buildWDetailHTML(e) {
   const posterUrl = e.poster_path ? `https://image.tmdb.org/t/p/w342${e.poster_path}` : null;
 
   const typeBadge = e.media_type === 'movie'
-    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
-    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
+    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
 
   const ratingBtns = Array.from({length:10}, (_,i) => {
     const n = i+1;
     const active = e.rating === n;
     return `<button type="button" onclick="selectWRating(${e.id},${n})"
       id="wrbtn-${e.id}-${n}"
-      class="w-8 h-8 text-xs font-semibold rounded-lg transition-colors
-             ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
+      class="w-8 h-8 text-xs font-semibold transition-colors"
+      style="${active ? 'background:#C8A96E;color:#0D0D0F' : 'background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35'}">${n}</button>`;
   }).join('');
 
   const metaItems = [];
@@ -513,56 +482,54 @@ function buildWDetailHTML(e) {
   if (e.media_type === 'tv' && e.episode_count) metaItems.push(['Episodios', e.episode_count]);
 
   const metaHtml = metaItems.length
-    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm" style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:0.75rem">
          ${metaItems.map(([k,v]) => `
            <div>
-             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
-             <p class="text-gray-300">${esc(String(v))}</p>
+             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
+             <p style="color:#B8B4BE">${esc(String(v))}</p>
            </div>`).join('')}
          ${e.cast.length ? `<div class="col-span-2">
-           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
-           <p class="text-gray-300">${esc(e.cast.join(' · '))}</p>
+           <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
+           <p style="color:#B8B4BE">${esc(e.cast.join(' · '))}</p>
          </div>` : ''}
        </div>`
     : '';
 
   const opinionsHtml = `
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Opiniones</p>
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">Opiniones</p>
       <div class="space-y-3">
         ${e.entries.length
           ? e.entries.map(oe => `
-            <div class="bg-gray-800/60 rounded-xl px-4 py-3">
+            <div style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.75rem 1rem">
               <div class="flex justify-between items-baseline gap-2 mb-1">
-                <span class="text-sm font-medium text-gray-300">${esc(oe.user)}</span>
-                <span class="text-xs text-yellow-400 font-semibold">&#9733; ${oe.rating}/10</span>
+                <span class="text-sm font-medium" style="color:#B8B4BE">${esc(oe.user)}</span>
+                <span class="text-xs font-semibold" style="color:#C8A96E">&#9733; ${oe.rating}/10</span>
               </div>
               ${oe.comment
-                ? `<p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(oe.comment)}</p>`
-                : `<p class="text-xs text-gray-600 italic">Sin comentario.</p>`}
+                ? `<p class="text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">${esc(oe.comment)}</p>`
+                : `<p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>`}
             </div>`).join('')
-          : `<p class="text-sm text-gray-600">Todavía nadie opinó.</p>`
+          : `<p class="text-sm" style="color:#7A7680">Todavía nadie opinó.</p>`
         }
       </div>
     </div>`;
 
   const ratingSection = `
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">
         Marcar como vista
-        <span id="wrating-label-${e.id}" class="text-yellow-400 font-semibold normal-case ml-1">
+        <span id="wrating-label-${e.id}" class="font-semibold normal-case ml-1" style="color:#C8A96E">
           ${e.rating ? e.rating + '/10' : ''}
         </span>
       </p>
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
       <textarea id="wcomment-${e.id}" rows="2" placeholder="Tu comentario (opcional)..."
-        class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3">${esc(e.comment)}</textarea>
+        class="pm-input" style="font-size:0.78rem;resize:none;margin-bottom:0.75rem">${esc(e.comment)}</textarea>
       <div class="flex items-center gap-3">
         <button id="wsave-btn-${e.id}" onclick="saveWRating(${e.id})" ${e.rating ? '' : 'disabled'}
           title="${e.rating ? '' : 'Elegí una calificación antes de guardar'}"
-          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg
-                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
+          class="pm-btn-primary" style="padding:0.55rem 1.1rem;font-size:0.82rem">
           Guardar y marcar vista
         </button>
       </div>
@@ -572,40 +539,40 @@ function buildWDetailHTML(e) {
     <div class="flex gap-5">
       <div class="shrink-0">
         ${posterUrl
-          ? `<img src="${posterUrl}" alt="${esc(e.title)}" class="w-28 rounded-xl shadow-2xl object-cover">`
-          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+          ? `<img src="${posterUrl}" alt="${esc(e.title)}" class="w-28 object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
+          : `<div class="w-28 h-40 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-3 mb-2">
           <div class="flex items-center gap-2 flex-wrap">
             ${typeBadge}
-            ${e.status === 'watched' ? `<span class="text-xs bg-green-900/50 text-green-400 border border-green-900 px-2 py-0.5 rounded-full">Vista</span>` : ''}
-            ${e.year ? `<span class="text-xs text-gray-500">${e.year}</span>` : ''}
-            ${e.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${e.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
-            ${e.avg_rating ? `<span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating}/10</span>` : ''}
+            ${e.status === 'watched' ? `<span class="text-xs" style="color:#86efac;border:1px solid #166534;padding:0.15rem 0.55rem">Vista</span>` : ''}
+            ${e.year ? `<span class="text-xs" style="color:#7A7680">${e.year}</span>` : ''}
+            ${e.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${e.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
+            ${e.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating}/10</span>` : ''}
           </div>
           <div class="text-right shrink-0">
-            <p class="text-sm font-semibold text-white flex items-center justify-end gap-1.5" title="Recomendado por">
-              <svg class="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">
+              <svg class="w-3.5 h-3.5 shrink-0" style="color:#C8A96E" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
               </svg>
               ${esc(e.suggester_name)}
             </p>
           </div>
         </div>
-        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(e.title)}</h2>
-        ${e.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(e.overview)}</p>` : ''}
+        <h2 class="pm-title text-xl mb-2 leading-tight">${esc(e.title)}</h2>
+        ${e.overview ? `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(e.overview)}</p>` : ''}
       </div>
     </div>
 
     ${metaHtml}
 
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
       <div class="flex flex-wrap gap-2">
         ${e.providers && e.providers.length
-          ? e.providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
-          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+          ? e.providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
+          : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
         }
       </div>
     </div>
@@ -614,9 +581,9 @@ function buildWDetailHTML(e) {
 
     ${ratingSection}
 
-    <div class="mt-4 pt-3 border-t border-gray-800 flex justify-end items-center">
+    <div class="flex justify-end items-center" style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid #2A2A35">
       <button onclick="confirmRemoveFromWatchlist(${e.id}, '${e.status}')"
-        class="text-xs text-red-700 hover:text-red-400 transition-colors">
+        class="text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">
         Quitar de watchlist
       </button>
     </div>`;
@@ -627,10 +594,9 @@ function selectWRating(id, n) {
   for (let i = 1; i <= 10; i++) {
     const btn = document.getElementById(`wrbtn-${id}-${i}`);
     if (!btn) continue;
-    btn.classList.toggle('bg-yellow-500', i === n);
-    btn.classList.toggle('text-black',    i === n);
-    btn.classList.toggle('bg-gray-800',   i !== n);
-    btn.classList.toggle('text-gray-400', i !== n);
+    btn.style.background = i === n ? '#C8A96E' : '#0D0D0F';
+    btn.style.color = i === n ? '#0D0D0F' : '#7A7680';
+    btn.style.border = i === n ? 'none' : '1px solid #2A2A35';
   }
   const label = document.getElementById(`wrating-label-${id}`);
   if (label) label.textContent = n + '/10';
@@ -754,21 +720,21 @@ window.handleReminderAddBackdrop = function (e) {
 
   function renderResults(items) {
     if (!items.length) {
-      resultsBox.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Sin resultados.</p>';
+      resultsBox.innerHTML = '<p class="text-sm text-center py-4" style="color:#7A7680">Sin resultados.</p>';
       resultsBox.classList.remove('hidden');
       return;
     }
     resultsBox.innerHTML = items.map((item, i) => `
       <button type="button" data-idx="${i}"
-        class="reminder-result-item flex items-center gap-3 w-full text-left px-4 py-3
-               hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0">
+        class="reminder-result-item flex items-center gap-3 w-full text-left px-4 py-3 transition-colors"
+        style="border-bottom:1px solid #2A2A35" onmouseover="this.style.background='#15151A'" onmouseout="this.style.background='none'">
         ${item.poster_url_sm
-          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 rounded object-cover" style="height:52px">`
-          : `<div class="w-9 shrink-0 flex items-center justify-center text-gray-600" style="height:52px">🎬</div>`}
+          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 object-cover" style="height:52px">`
+          : `<div class="w-9 shrink-0 flex items-center justify-center" style="height:52px;color:#5A5762">🎬</div>`}
         <div class="flex-1 min-w-0">
-          <p class="text-white text-sm font-medium truncate">${esc(item.title)}</p>
-          <span class="text-gray-500 text-xs">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
-          ${item.already_suggested ? `<span class="text-xs text-yellow-500 font-medium ml-1">Ya sugerida — se agrega directo</span>` : ''}
+          <p class="text-sm font-medium truncate" style="color:#F0EDE8">${esc(item.title)}</p>
+          <span class="text-xs" style="color:#7A7680">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
+          ${item.already_suggested ? `<span class="text-xs font-medium ml-1" style="color:#C8A96E">Ya sugerida — se agrega directo</span>` : ''}
         </div>
       </button>`).join('');
     resultsBox.classList.remove('hidden');
@@ -808,53 +774,52 @@ function openReminderDetail(id) {
 
   const posterUrl = r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null;
   const typeBadge = r.media_type === 'movie'
-    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
-    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
+    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
 
   const ratingBtns = Array.from({length:10}, (_,i) => {
     const n = i+1;
     return `<button type="button" onclick="selectReminderRating(${id},${n})"
       id="rrbtn-${id}-${n}"
-      class="w-8 h-8 text-xs font-semibold rounded-lg transition-colors bg-gray-800 hover:bg-gray-700 text-gray-400">${n}</button>`;
+      class="w-8 h-8 text-xs font-semibold transition-colors"
+      style="background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35">${n}</button>`;
   }).join('');
 
   document.getElementById('reminder-detail-content').innerHTML = `
     <div class="flex gap-5">
       <div class="shrink-0">
         ${posterUrl
-          ? `<img src="${posterUrl}" alt="${esc(r.title)}" class="w-28 rounded-xl shadow-2xl object-cover">`
-          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+          ? `<img src="${posterUrl}" alt="${esc(r.title)}" class="w-28 object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
+          : `<div class="w-28 h-40 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 mb-2 flex-wrap">
           ${typeBadge}
-          ${r.year ? `<span class="text-xs text-gray-500">${r.year}</span>` : ''}
-          <span class="text-xs bg-amber-900/40 text-amber-400 border border-amber-900/60 px-2 py-0.5 rounded-full">Privado</span>
+          ${r.year ? `<span class="text-xs" style="color:#7A7680">${r.year}</span>` : ''}
+          <span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Privado</span>
         </div>
-        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(r.title)}</h2>
-        ${r.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(r.overview)}</p>` : ''}
+        <h2 class="pm-title text-xl mb-2 leading-tight">${esc(r.title)}</h2>
+        ${r.overview ? `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(r.overview)}</p>` : ''}
       </div>
     </div>
 
-    <div id="rmeta-${id}" class="text-sm text-gray-600 border-t border-gray-800 pt-4 mt-4">Cargando información…</div>
+    <div id="rmeta-${id}" class="text-sm" style="color:#7A7680;border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">Cargando información…</div>
 
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">
         Calificar y publicar
-        <span id="rrating-label-${id}" class="text-yellow-400 font-semibold normal-case ml-1"></span>
+        <span id="rrating-label-${id}" class="font-semibold normal-case ml-1" style="color:#C8A96E"></span>
       </p>
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
       <textarea id="rcomment-${id}" rows="2" placeholder="Tu comentario (opcional)..."
-        class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors resize-none mb-3"></textarea>
+        class="pm-input" style="font-size:0.82rem;resize:none;margin-bottom:0.75rem"></textarea>
       <div class="flex items-center gap-3 flex-wrap">
         <button id="rpromote-btn-${id}" onclick="promoteReminder(${id})" disabled
           title="Elegí una calificación antes de publicar"
-          class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg
-                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-violet-600">
+          class="pm-btn-primary" style="padding:0.55rem 1.1rem;font-size:0.82rem">
           Calificar y publicar
         </button>
-        <button onclick="discardReminder(${id})" class="ml-auto text-xs text-red-700 hover:text-red-400 transition-colors">
+        <button onclick="discardReminder(${id})" class="ml-auto text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">
           Descartar
         </button>
       </div>
@@ -895,24 +860,24 @@ async function loadReminderMeta(id, r) {
     ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
          ${metaItems.map(([k,v]) => `
            <div>
-             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
-             <p class="text-gray-300">${esc(String(v))}</p>
+             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
+             <p style="color:#B8B4BE">${esc(String(v))}</p>
            </div>`).join('')}
          ${cast.length ? `<div class="col-span-2">
-           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
-           <p class="text-gray-300">${esc(cast.join(' · '))}</p>
+           <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
+           <p style="color:#B8B4BE">${esc(cast.join(' · '))}</p>
          </div>` : ''}
        </div>`
     : '';
 
   target.innerHTML = `
     ${metaHtml}
-    <div class="${metaHtml ? 'border-t border-gray-800 pt-4 mt-4' : ''}">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+    <div style="${metaHtml ? 'border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem' : ''}">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
       <div class="flex flex-wrap gap-2">
         ${providers.length
-          ? providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
-          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+          ? providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
+          : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
         }
       </div>
     </div>`;
@@ -932,10 +897,9 @@ function selectReminderRating(id, n) {
   for (let i = 1; i <= 10; i++) {
     const btn = document.getElementById(`rrbtn-${id}-${i}`);
     if (!btn) continue;
-    btn.classList.toggle('bg-yellow-500', i === n);
-    btn.classList.toggle('text-black',    i === n);
-    btn.classList.toggle('bg-gray-800',   i !== n);
-    btn.classList.toggle('text-gray-400', i !== n);
+    btn.style.background = i === n ? '#C8A96E' : '#0D0D0F';
+    btn.style.color = i === n ? '#0D0D0F' : '#7A7680';
+    btn.style.border = i === n ? 'none' : '1px solid #2A2A35';
   }
   const label = document.getElementById(`rrating-label-${id}`);
   if (label) label.textContent = n + '/10';

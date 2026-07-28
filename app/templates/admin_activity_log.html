@@ -2,34 +2,28 @@
 {% block title %}Activity log — Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
+<div class="pm-panel" style="max-width:76rem;margin:0 auto">
 
-  <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.75rem">
     <div>
-      <h1 class="text-2xl font-bold text-white">Activity log</h1>
-      <p class="text-gray-500 text-sm mt-0.5">{{ total }} acción{{ 'es' if total != 1 else '' }} registrada{{ 's' if total != 1 else '' }}.</p>
+      <h1 class="pm-title" style="font-size:1.5rem">Activity log</h1>
+      <p style="font-size:0.85rem;color:#7A7680;margin-top:0.25rem">{{ total }} acción{{ 'es' if total != 1 else '' }} registrada{{ 's' if total != 1 else '' }}.</p>
     </div>
   </div>
 
   {# ── Filtros ── #}
-  <form method="get" action="/admin/activity-log" class="bg-gray-900 border border-gray-800 rounded-xl p-4 mb-6 flex flex-wrap items-end gap-3">
+  <form method="get" action="/admin/activity-log" class="pm-card" style="margin-bottom:1.75rem;display:flex;flex-wrap:wrap;align-items:end;gap:1rem">
     <div>
-      <label class="block text-xs text-gray-500 mb-1">Desde</label>
-      <input type="date" name="date_from" value="{{ f_date_from }}"
-        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
-               focus:outline-none focus:border-violet-500 transition-colors">
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Desde</label>
+      <input type="date" name="date_from" value="{{ f_date_from }}" class="pm-input" style="padding:0.5rem 0.7rem">
     </div>
     <div>
-      <label class="block text-xs text-gray-500 mb-1">Hasta</label>
-      <input type="date" name="date_to" value="{{ f_date_to }}"
-        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
-               focus:outline-none focus:border-violet-500 transition-colors">
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Hasta</label>
+      <input type="date" name="date_to" value="{{ f_date_to }}" class="pm-input" style="padding:0.5rem 0.7rem">
     </div>
     <div>
-      <label class="block text-xs text-gray-500 mb-1">Acción</label>
-      <select name="action"
-        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
-               focus:outline-none focus:border-violet-500 transition-colors">
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Acción</label>
+      <select name="action" class="pm-input" style="padding:0.5rem 0.7rem">
         <option value="">Todas</option>
         {% for a in all_actions %}
         <option value="{{ a.value }}" {% if f_action == a.value %}selected{% endif %}>
@@ -39,10 +33,8 @@
       </select>
     </div>
     <div>
-      <label class="block text-xs text-gray-500 mb-1">Entidad</label>
-      <select name="target_type"
-        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white
-               focus:outline-none focus:border-violet-500 transition-colors">
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Entidad</label>
+      <select name="target_type" class="pm-input" style="padding:0.5rem 0.7rem">
         <option value="">Todas</option>
         {% for t in all_target_types %}
         <option value="{{ t }}" {% if f_target_type == t %}selected{% endif %}>{{ t }}</option>
@@ -50,88 +42,78 @@
       </select>
     </div>
     <div>
-      <label class="block text-xs text-gray-500 mb-1">Session ID</label>
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Session ID</label>
       <input type="text" name="session_id" value="{{ f_session_id }}" placeholder="hex..." autocomplete="off"
-        class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white font-mono w-36
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 transition-colors">
+        class="pm-input" style="padding:0.5rem 0.7rem;font-family:monospace;width:9rem">
     </div>
-    <button type="submit"
-      class="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
-      Filtrar
-    </button>
+    <button type="submit" class="pm-btn-primary" style="padding:0.6rem 1.3rem">Filtrar</button>
     {% if active_filters %}
-    <a href="/admin/activity-log" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
+    <a href="/admin/activity-log" style="font-size:0.78rem;color:#7A7680;text-decoration:none">Limpiar</a>
     {% endif %}
   </form>
 
   {% if not entries %}
-  <div class="text-center py-16 text-gray-600">
+  <div style="text-align:center;padding:4rem 0;color:#7A7680">
     <p>{{ 'No hay resultados para esos filtros.' if active_filters else 'Todavía no hay actividad registrada.' }}</p>
   </div>
 
   {% else %}
-  <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+  <div style="background:#15151A;border:1px solid #2A2A35;overflow:hidden">
+    <div style="overflow-x:auto">
+      <table style="width:100%;font-size:0.85rem;border-collapse:collapse">
         <thead>
-          <tr class="border-b border-gray-800 text-left text-xs text-gray-500 uppercase tracking-wide">
-            <th class="px-4 py-3 font-medium">Fecha/Hora</th>
-            <th class="px-4 py-3 font-medium">Session ID</th>
-            <th class="px-4 py-3 font-medium">Usuario</th>
-            <th class="px-4 py-3 font-medium">Acción</th>
-            <th class="px-4 py-3 font-medium">Target</th>
-            <th class="px-4 py-3 font-medium">Detalle</th>
+          <tr style="border-bottom:1px solid #2A2A35;text-align:left">
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Fecha/Hora</th>
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Session ID</th>
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Usuario</th>
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Acción</th>
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Target</th>
+            <th style="padding:0.85rem 1rem;font-weight:500;font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:#7A7680">Detalle</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-800/60">
+        <tbody>
           {% for entry in entries %}
-          <tr class="hover:bg-gray-800/40 transition-colors">
+          <tr style="border-bottom:1px solid rgba(42,42,53,0.6)">
 
-            <td class="px-4 py-3 text-gray-500 whitespace-nowrap font-mono text-xs">
+            <td style="padding:0.85rem 1rem;color:#7A7680;white-space:nowrap;font-family:monospace;font-size:0.78rem">
               {{ (entry.created_at|local_time).strftime('%d/%m/%Y') }}<br>
-              <span class="text-gray-700">{{ (entry.created_at|local_time).strftime('%H:%M:%S') }}</span>
+              <span style="color:#5A5762">{{ (entry.created_at|local_time).strftime('%H:%M:%S') }}</span>
             </td>
 
-            <td class="px-4 py-3 whitespace-nowrap">
+            <td style="padding:0.85rem 1rem;white-space:nowrap">
               {% if entry.session_id %}
               <a href="/admin/activity-log?session_id={{ entry.session_id }}" title="{{ entry.session_id }}"
-                 class="font-mono text-xs text-violet-400 hover:text-violet-300 transition-colors">
+                 style="font-family:monospace;font-size:0.78rem;color:#C8A96E;text-decoration:none">
                 {{ entry.session_id[:8] }}…
               </a>
               {% else %}
-              <span class="text-gray-700">—</span>
+              <span style="color:#5A5762">—</span>
               {% endif %}
             </td>
 
-            <td class="px-4 py-3 whitespace-nowrap">
+            <td style="padding:0.85rem 1rem;white-space:nowrap">
               {% if entry.user %}
-              <span class="text-gray-300">{{ entry.user.display_name }}</span>
-              <span class="block text-xs text-gray-600">{{ entry.user.role.value }}</span>
+              <span style="color:#B8B4BE">{{ entry.user.display_name }}</span>
+              <span style="display:block;font-size:0.72rem;color:#7A7680">{{ entry.user.role.value }}</span>
               {% else %}
-              <span class="text-gray-600 italic">Sistema</span>
+              <span style="color:#7A7680;font-style:italic">Sistema</span>
               {% endif %}
             </td>
 
-            <td class="px-4 py-3 whitespace-nowrap">
+            <td style="padding:0.85rem 1rem;white-space:nowrap">
               {% set label = action_labels.get(entry.action.value, entry.action.value) %}
               {% if entry.action.value in ['db_reset'] %}
-              <span class="text-xs bg-red-900/50 text-red-400 border border-red-900 px-2 py-0.5 rounded-full">
-                {{ label }}
-              </span>
+              <span class="pm-badge" style="color:#f87171;border-color:#7f1d1d">{{ label }}</span>
               {% elif entry.action.value in ['db_initialized'] %}
-              <span class="text-xs bg-yellow-900/50 text-yellow-400 border border-yellow-900 px-2 py-0.5 rounded-full">
-                {{ label }}
-              </span>
+              <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">{{ label }}</span>
               {% elif entry.action.value in ['user_registered', 'invitation_used'] %}
-              <span class="text-xs bg-green-900/50 text-green-400 border border-green-900 px-2 py-0.5 rounded-full">
-                {{ label }}
-              </span>
+              <span class="pm-badge" style="color:#86efac;border-color:#166534">{{ label }}</span>
               {% else %}
-              <span class="text-gray-400 text-xs">{{ label }}</span>
+              <span style="color:#B8B4BE;font-size:0.78rem">{{ label }}</span>
               {% endif %}
             </td>
 
-            <td class="px-4 py-3 text-gray-600 text-xs whitespace-nowrap">
+            <td style="padding:0.85rem 1rem;color:#7A7680;font-size:0.78rem;white-space:nowrap">
               {% if entry.target_type %}
               {{ entry.target_type }}
               {% if entry.target_id %}#{{ entry.target_id }}{% endif %}
@@ -140,7 +122,7 @@
               {% endif %}
             </td>
 
-            <td class="px-4 py-3 text-gray-500 text-xs max-w-xs truncate">
+            <td style="padding:0.85rem 1rem;color:#7A7680;font-size:0.78rem;max-width:20rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
               {{ entry.detail or '—' }}
             </td>
 
@@ -152,14 +134,14 @@
   </div>
 
   {% if total_pages > 1 %}
-  <div class="flex items-center gap-2 mt-4 flex-wrap">
+  <div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;flex-wrap:wrap">
     {% for p in range(1, total_pages + 1) %}
     <a href="?action={{ f_action }}&target_type={{ f_target_type }}&session_id={{ f_session_id }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&page={{ p }}"
-       class="text-xs px-3 py-1.5 rounded-lg transition-colors {% if p == page %}bg-violet-700 text-white{% else %}bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700{% endif %}">
+       style="font-size:0.78rem;padding:0.4rem 0.75rem;text-decoration:none;border:1px solid {% if p == page %}#C8A96E{% else %}#2A2A35{% endif %};color:{% if p == page %}#C8A96E{% else %}#7A7680{% endif %}">
       {{ p }}
     </a>
     {% endfor %}
-    <span class="text-xs text-gray-600 ml-2">{{ total }} registros</span>
+    <span style="font-size:0.78rem;color:#5A5762;margin-left:0.5rem">{{ total }} registros</span>
   </div>
   {% endif %}
   {% endif %}

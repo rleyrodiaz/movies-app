@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="movieLeyro">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -52,9 +52,9 @@
 
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-6 text-sm">
-        <a href="/feed" class="transition-colors {% if is_feed_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
-        <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">Mi watchlist</a>
-        <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-white font-medium{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
+        <a href="/feed" class="transition-colors {% if is_feed_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
+        <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Mi watchlist</a>
+        <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
 
         {% if user.role in ['admin', 'superadmin'] %}
         <div class="group relative">
@@ -144,17 +144,17 @@
       <div class="px-4 py-2 space-y-0.5 text-sm">
         <a href="/feed" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if is_feed_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_feed_active %}text-yellow-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Feed
         </a>
         <a href="/watchlist" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if is_watchlist_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_watchlist_active %}text-yellow-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Mi watchlist
         </a>
         <a href="/suggestions/new" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if is_sugerir_active %}text-white bg-gray-800 font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+                 {% if is_sugerir_active %}text-yellow-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           + Sugerir
         </a>
         {% if user.role in ['admin', 'superadmin'] %}
@@ -232,11 +232,34 @@
     }
     .pm-input:focus { border-color: #C8A96E; }
     .pm-btn-primary {
-      display: block; width: 100%; background: #C8A96E; color: #0D0D0F; font-weight: 600;
+      display: inline-block; background: #C8A96E; color: #0D0D0F; font-weight: 600;
       font-size: 0.85rem; letter-spacing: 0.02em; padding: 0.75rem 1.5rem; border: none;
-      cursor: pointer; transition: opacity 0.15s;
+      cursor: pointer; transition: opacity 0.15s; text-align: center;
     }
     .pm-btn-primary:hover { opacity: 0.86; }
+    .pm-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+    .pm-btn-secondary {
+      display: inline-block; background: #0D0D0F; border: 1px solid #2A2A35; color: #B8B4BE;
+      font-size: 0.82rem; font-weight: 500; padding: 0.6rem 1.1rem; cursor: pointer;
+      transition: border-color 0.15s, color 0.15s; font-family: inherit; text-align: center;
+    }
+    .pm-btn-secondary:hover { color: #F0EDE8; border-color: #7A7680; }
+    .pm-btn-danger {
+      display: inline-block; background: transparent; border: 1px solid #7f1d1d; color: #f87171;
+      font-size: 0.82rem; font-weight: 500; padding: 0.6rem 1.1rem; cursor: pointer;
+      transition: background 0.15s; font-family: inherit; text-align: center;
+    }
+    .pm-btn-danger:hover { background: rgba(248,113,113,0.08); }
+    .pm-btn-danger:disabled { opacity: 0.35; cursor: not-allowed; background: none; }
+    .pm-card { background: #15151A; border: 1px solid #2A2A35; padding: 1.5rem; }
+    .pm-label {
+      font-size: 0.68rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: #C8A96E;
+    }
+    .pm-title { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; color: #F0EDE8; }
+    .pm-badge {
+      display: inline-block; font-size: 0.68rem; letter-spacing: 0.02em; padding: 0.2rem 0.6rem; border: 1px solid;
+      font-family: inherit;
+    }
     .pm-platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.75rem; }
     @media (max-width: 480px) {
       .pm-nav { width: 108px !important; padding: 1.25rem 0 0.75rem !important; }
@@ -283,7 +306,7 @@
               </label>
               {% endfor %}
             </div>
-            <button onclick="savePlatforms()" class="pm-btn-primary" style="margin-top:1.5rem">Guardar plataformas</button>
+            <button onclick="savePlatforms()" class="pm-btn-primary" style="margin-top:1.5rem;width:100%">Guardar plataformas</button>
             <p id="platforms-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
           </div>
 
@@ -295,7 +318,7 @@
               <input id="pw-new" type="password" placeholder="Nueva contraseña" autocomplete="new-password" class="pm-input">
               <input id="pw-confirm" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password" class="pm-input">
             </div>
-            <button onclick="changePassword()" class="pm-btn-primary" style="margin-top:1.25rem">Actualizar contraseña</button>
+            <button onclick="changePassword()" class="pm-btn-primary" style="margin-top:1.25rem;width:100%">Actualizar contraseña</button>
             <p id="password-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
           </div>
 

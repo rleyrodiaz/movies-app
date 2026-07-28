@@ -2,93 +2,83 @@
 {% block title %}Settings — Admin{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-8">
+<div class="pm-panel" style="max-width:42rem;margin:0 auto;display:flex;flex-direction:column;gap:2rem">
 
-  <h1 class="text-2xl font-bold text-white">Settings</h1>
+  <h1 class="pm-title" style="font-size:1.5rem">Settings</h1>
 
   {# Mensajes de resultado #}
   {% if msg == 'init_ok' %}
-  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+  <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;padding:0.75rem 1rem;font-size:0.85rem">
     Base de datos inicializada correctamente.
   </div>
   {% elif msg == 'reset_ok' %}
-  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+  <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;padding:0.75rem 1rem;font-size:0.85rem">
     Base de datos reseteada. Redirigiendo al login...
   </div>
   {% elif msg == 'confirm_error' %}
-  <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+  <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);color:#f87171;padding:0.75rem 1rem;font-size:0.85rem">
     Texto de confirmación incorrecto. No se realizó ninguna acción.
   </div>
   {% elif msg == 'reset_tables_ok' %}
-  <div class="bg-green-900/40 border border-green-700 text-green-300 rounded-lg px-4 py-3 text-sm">
+  <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.3);color:#86efac;padding:0.75rem 1rem;font-size:0.85rem">
     Tablas seleccionadas regeneradas correctamente.
   </div>
   {% elif msg == 'no_selection' %}
-  <div class="bg-red-900/40 border border-red-700 text-red-300 rounded-lg px-4 py-3 text-sm">
+  <div style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.3);color:#f87171;padding:0.75rem 1rem;font-size:0.85rem">
     No seleccionaste ninguna tabla. No se realizó ninguna acción.
   </div>
   {% endif %}
 
   {# Inicializar DB #}
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
-    <h2 class="text-base font-semibold text-white mb-1">Inicializar base de datos</h2>
-    <p class="text-sm text-gray-500 mb-4">
+  <div class="pm-card">
+    <p class="pm-label" style="margin-bottom:0.75rem">Inicializar base de datos</p>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.25rem">
       Crea las tablas que no existen. Operación segura — no toca datos existentes.
     </p>
     <form method="post" action="/admin/settings/init">
-      <button type="submit"
-        class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-        Inicializar DB
-      </button>
+      <button type="submit" class="pm-btn-secondary">Inicializar DB</button>
     </form>
   </div>
 
   {# Reset selectivo por tabla #}
-  <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
-    <h2 class="text-base font-semibold text-red-400 mb-1">Regenerar tablas específicas</h2>
-    <p class="text-sm text-gray-500 mb-1">
+  <div class="pm-card" style="border-color:rgba(127,29,29,0.5)">
+    <p class="pm-label" style="color:#f87171;margin-bottom:0.75rem">Regenerar tablas específicas</p>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:0.4rem">
       Elegí qué datos borrar. Usuarios y el resto de las tablas no seleccionadas quedan intactos.
     </p>
-    <p class="text-xs text-gray-500 mb-4">
-      Solo afecta al club activo: <strong class="text-gray-300">{{ active_club.name if active_club else '—' }}</strong>. Los demás clubes no se tocan.
+    <p style="font-size:0.78rem;color:#7A7680;margin-bottom:1.25rem">
+      Solo afecta al club activo: <strong style="color:#B8B4BE">{{ active_club.name if active_club else '—' }}</strong>. Los demás clubes no se tocan.
     </p>
 
     <form method="post" action="/admin/settings/reset-tables" id="reset-tables-form">
-      <div class="space-y-3 mb-5">
+      <div style="display:flex;flex-direction:column;gap:0.9rem;margin-bottom:1.5rem">
         {% for key, cfg in reset_tables.items() %}
-        <label class="flex items-start gap-3 cursor-pointer">
+        <label style="display:flex;align-items:flex-start;gap:0.7rem;cursor:pointer">
           <input type="checkbox" name="tables" value="{{ key }}"
-            class="reset-table-chk mt-1 accent-red-600 w-4 h-4 shrink-0">
+            class="reset-table-chk" style="accent-color:#f87171;width:1rem;height:1rem;margin-top:0.2rem;flex-shrink:0">
           <div>
-            <div class="text-sm font-medium text-gray-200">
+            <div style="font-size:0.85rem;font-weight:500;color:#F0EDE8">
               {{ cfg.label }}
-              <span class="text-gray-600 font-normal">({{ stats.get(key, 0) }})</span>
+              <span style="color:#7A7680;font-weight:400">({{ stats.get(key, 0) }})</span>
             </div>
-            <div class="text-xs text-gray-500">{{ cfg.desc }}</div>
+            <div style="font-size:0.75rem;color:#7A7680;margin-top:0.1rem">{{ cfg.desc }}</div>
           </div>
         </label>
         {% endfor %}
       </div>
 
       {% set confirm_word = active_club.name.upper() if active_club else '' %}
-      <label class="block text-sm text-gray-400 mb-1.5" for="confirm-tables-input">
-        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">{{ confirm_word }}</code> (nombre del club) para confirmar
+      <label style="display:block;font-size:0.85rem;color:#B8B4BE;margin-bottom:0.5rem" for="confirm-tables-input">
+        Escribí <code style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.15rem 0.4rem;color:#f87171;font-size:0.75rem">{{ confirm_word }}</code> (nombre del club) para confirmar
       </label>
-      <div class="flex gap-2">
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
         <input
           type="text" id="confirm-tables-input" name="confirm"
           autocomplete="off" placeholder="{{ confirm_word }}"
           data-expected="{{ confirm_word }}"
-          class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm
-                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-56"
+          class="pm-input" style="width:14rem"
         >
-        <button
-          id="reset-tables-btn"
-          type="submit"
-          disabled
-          class="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg
-                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button id="reset-tables-btn" type="submit" disabled class="pm-btn-danger">
           Regenerar seleccionadas
         </button>
       </div>
@@ -96,38 +86,31 @@
   </div>
 
   {# Reset DB #}
-  <div class="bg-gray-900 border border-red-900/50 rounded-xl p-6">
-    <h2 class="text-base font-semibold text-red-400 mb-1">Resetear todo (incluye usuarios)</h2>
-    <p class="text-sm text-gray-500 mb-1">
-      Elimina <strong class="text-gray-300">todos los datos</strong> (sugerencias, comentarios, usuarios ({{ stats.get('users', 0) }}), invitaciones, watchlists)
+  <div class="pm-card" style="border-color:rgba(127,29,29,0.5)">
+    <p class="pm-label" style="color:#f87171;margin-bottom:0.75rem">Resetear todo (incluye usuarios)</p>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:0.4rem">
+      Elimina <strong style="color:#B8B4BE">todos los datos</strong> (sugerencias, comentarios, usuarios ({{ stats.get('users', 0) }}), invitaciones, watchlists)
       y recrea las tablas desde cero.
     </p>
-    <p class="text-sm text-gray-500 mb-1">
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:0.4rem">
       Tu cuenta de superadmin se vuelve a crear automáticamente con las mismas credenciales.
       Todos los demás usuarios perderán el acceso.
     </p>
-    <p class="text-xs text-amber-500/80 mb-4">
+    <p style="font-size:0.78rem;color:#C8A96E;margin-bottom:1.25rem">
       ⚠ Borra <strong>todos los clubes</strong>, no solo el activo — solo queda tu club ({{ active_club.name if active_club else '—' }}) recreado vacío.
     </p>
 
     <form method="post" action="/admin/settings/reset" id="reset-form">
-      <label class="block text-sm text-gray-400 mb-1.5" for="confirm-input">
-        Escribí <code class="bg-gray-800 px-1.5 py-0.5 rounded text-red-400 text-xs">RESET</code> para confirmar
+      <label style="display:block;font-size:0.85rem;color:#B8B4BE;margin-bottom:0.5rem" for="confirm-input">
+        Escribí <code style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.15rem 0.4rem;color:#f87171;font-size:0.75rem">RESET</code> para confirmar
       </label>
-      <div class="flex gap-2">
+      <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
         <input
           type="text" id="confirm-input" name="confirm"
           autocomplete="off" placeholder="RESET"
-          class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm
-                 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-colors w-40"
+          class="pm-input" style="width:10rem"
         >
-        <button
-          id="reset-btn"
-          type="submit"
-          disabled
-          class="bg-red-700 hover:bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-lg
-                 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        >
+        <button id="reset-btn" type="submit" disabled class="pm-btn-danger">
           Resetear todo
         </button>
       </div>

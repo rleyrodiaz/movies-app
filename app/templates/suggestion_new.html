@@ -57,11 +57,8 @@
       <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors">{{ s.title }}</p>
       <p class="text-gray-500 text-xs mt-0.5 flex items-center gap-1 flex-wrap">
         {% if s.release_date %}<span>{{ s.release_date.year }}</span>{% endif %}
-        {% if s.avg_rating %}
-        <span class="text-yellow-400" title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">· ★ {{ "%.1f"|format(s.avg_rating) }}</span>
-        {% elif s.tmdb_rating %}
-        <span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>
-        {% endif %}
+        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
+        {% if s.providers_list %}<span>· {{ s.providers_list[0] }}{% if s.providers_list|length > 1 %} +{{ s.providers_list|length - 1 }}{% endif %}</span>{% endif %}
       </p>
     </div>
   </button>
@@ -74,18 +71,12 @@
 <div id="confirm-delete-backdrop"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
      style="background:rgba(0,0,0,0.6)">
-  <div class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-sm p-6 shadow-2xl">
-    <h3 class="text-white font-semibold text-base mb-2">¿Borrar sugerencia?</h3>
-    <p class="text-gray-400 text-sm mb-6">Esta acción no se puede deshacer.</p>
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDelete()"
-        class="px-4 py-2 text-sm text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors">
-        Cancelar
-      </button>
-      <button id="confirm-delete-btn"
-        class="px-4 py-2 text-sm font-medium text-white bg-red-700 hover:bg-red-600 rounded-lg transition-colors">
-        Borrar
-      </button>
+      <button onclick="closeConfirmDelete()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-delete-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
     </div>
   </div>
 </div>
@@ -96,15 +87,15 @@
      style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)"
      onclick="handleDetailBackdrop(event)">
 
-  <div id="detail-box"
-       class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div id="detail-box" class="pm-panel"
+       style="width:100%;max-width:38rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-0">
-      <button onclick="closeDetail()" class="text-sm text-gray-500 hover:text-gray-300 transition-colors">← Volver a + Sugerir</button>
-      <button onclick="closeDetail()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
+      <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a + Sugerir</button>
+      <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <div id="detail-content" class="p-6"></div>
+    <div id="detail-content" style="padding:1.5rem"></div>
   </div>
 </div>
 
@@ -115,67 +106,57 @@
      style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)"
      onclick="handleAddBackdrop(event)">
 
-  <div id="add-box"
-       class="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+  <div id="add-box" class="pm-panel"
+       style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
-    <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-800">
-      <h2 class="text-lg font-bold text-white">Nueva sugerencia</h2>
-      <button onclick="closeAddModal()" class="text-gray-500 hover:text-white transition-colors text-xl leading-none">&times;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35">
+      <h2 class="pm-title" style="font-size:1.05rem">Nueva sugerencia</h2>
+      <button onclick="closeAddModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
-    <div class="px-6 py-5 space-y-4">
-      <div id="search-section" class="space-y-4">
+    <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
+      <div id="search-section" style="display:flex;flex-direction:column;gap:1rem">
         <div class="relative">
           <input id="search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..."
-            autocomplete="off"
-            class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white
-                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                   transition-colors">
+            autocomplete="off" class="pm-input">
           <div id="search-spinner" class="hidden absolute right-3 top-3.5">
-            <div class="w-5 h-5 border-2 border-gray-600 border-t-violet-400 rounded-full animate-spin"></div>
+            <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid #2A2A35;border-top-color:#C8A96E"></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <select id="filter-genre"
-            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                   focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors">
+          <select id="filter-genre" class="pm-input" style="padding:0.55rem 0.7rem">
             <option value="">Todos los géneros</option>
             {% for g in genres %}
             <option value="{{ g }}">{{ g }}</option>
             {% endfor %}
           </select>
           <input id="filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
-            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                   transition-colors">
+            class="pm-input" style="padding:0.55rem 0.7rem">
           <input id="filter-director" type="text" placeholder="Director" autocomplete="off"
-            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                   transition-colors">
+            class="pm-input" style="padding:0.55rem 0.7rem">
           <input id="filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
-            class="bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white
-                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                   transition-colors">
+            class="pm-input" style="padding:0.55rem 0.7rem">
         </div>
 
-        <div id="search-results" class="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden hidden"></div>
+        <div id="search-results" style="background:#0D0D0F;border:1px solid #2A2A35;overflow:hidden" class="hidden"></div>
       </div>
 
-      <div id="confirm-section" class="hidden space-y-4">
+      <div id="confirm-section" class="hidden" style="display:flex;flex-direction:column;gap:1rem">
         <button type="button" onclick="backToSearch()"
-          class="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Buscar otra</button>
+          style="background:none;border:none;cursor:pointer;font-size:0.78rem;color:#7A7680;text-align:left" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Buscar otra</button>
         <div id="preview"></div>
 
         <div>
-          <p class="text-sm text-gray-400 mb-2 font-medium">
-            Tu calificación <span class="text-red-500">*</span>
-            <span id="rating-label" class="text-yellow-400 ml-1 font-semibold"></span>
+          <p class="text-sm mb-2 font-medium" style="color:#B8B4BE">
+            Tu calificación <span style="color:#f87171">*</span>
+            <span id="rating-label" class="ml-1 font-semibold" style="color:#C8A96E"></span>
           </p>
           <div class="flex items-center gap-1 flex-wrap">
             {% for i in range(1, 11) %}
             <button type="button" data-val="{{ i }}" onclick="setAddRating({{ i }})"
-              class="add-rating-btn w-9 h-9 text-sm font-semibold rounded-lg transition-colors bg-gray-700 hover:bg-gray-600 text-gray-400">
+              class="add-rating-btn w-9 h-9 text-sm font-semibold transition-colors"
+              style="background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35">
               {{ i }}
             </button>
             {% endfor %}
@@ -183,13 +164,11 @@
         </div>
 
         <div>
-          <p class="text-sm text-gray-400 mb-2 font-medium">
-            Comentario <span class="text-gray-600 font-normal">(opcional)</span>
+          <p class="text-sm mb-2 font-medium" style="color:#B8B4BE">
+            Comentario <span class="font-normal" style="color:#5A5762">(opcional)</span>
           </p>
           <textarea id="comment-input" rows="2" placeholder="¿Por qué la recomendás?..."
-            class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white
-                   placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-                   transition-colors resize-none"></textarea>
+            class="pm-input" style="resize:none"></textarea>
         </div>
 
         <form id="suggest-form" method="post" action="/suggestions">
@@ -201,12 +180,10 @@
           <input type="hidden" id="f_release_date" name="release_date">
           <input type="hidden" id="f_rating"       name="rating" value="0">
           <input type="hidden" id="f_comment"      name="comment_body" value="">
-          <button id="submit-btn" type="submit" disabled
-            class="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-3 rounded-xl
-                   transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+          <button id="submit-btn" type="submit" disabled class="pm-btn-primary" style="width:100%;padding:0.85rem">
             Sugerir
           </button>
-          <p id="rating-warning" class="text-red-400 text-xs text-center mt-2 hidden">
+          <p id="rating-warning" class="text-xs text-center mt-2 hidden" style="color:#f87171">
             Elegí una calificación antes de sugerir.
           </p>
         </form>
@@ -264,24 +241,24 @@ function openDetail(id) {
     : null;
 
   const typeBadge = s.media_type === 'movie'
-    ? `<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>`
-    : `<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>`;
+    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
+    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
 
   const ratingBtns = Array.from({length:10}, (_,i) => {
     const n = i+1;
     const active = s.rating === n;
     return `<button type="button" onclick="updateDetailRating(${id},${n})"
       id="drbtn-${id}-${n}"
-      class="detail-rb w-8 h-8 text-xs font-semibold rounded-lg transition-colors
-             ${active ? 'bg-yellow-500 text-black' : 'bg-gray-800 hover:bg-gray-700 text-gray-400'}">${n}</button>`;
+      class="detail-rb w-8 h-8 text-xs font-semibold transition-colors"
+      style="${active ? 'background:#C8A96E;color:#0D0D0F' : 'background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35'}">${n}</button>`;
   }).join('');
 
-  const providersHtml = `<div class="border-t border-gray-800 pt-4 mt-4">
-    <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+  const providersHtml = `<div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+    <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
     <div class="flex flex-wrap gap-2">
       ${s.providers.length
-        ? s.providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
-        : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+        ? s.providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
+        : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
       }
     </div>
   </div>`;
@@ -295,15 +272,15 @@ function openDetail(id) {
   if (s.media_type === 'tv' && s.episode_count)  metaItems.push(['Episodios', s.episode_count]);
 
   const metaHtml = metaItems.length
-    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm" style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:0.75rem">
          ${metaItems.map(([k,v]) => `
            <div>
-             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
-             <p class="text-gray-300">${esc(String(v))}</p>
+             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
+             <p style="color:#B8B4BE">${esc(String(v))}</p>
            </div>`).join('')}
          ${s.cast.length ? `<div class="col-span-2">
-           <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
-           <p class="text-gray-300">${esc(s.cast.join(' · '))}</p>
+           <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
+           <p style="color:#B8B4BE">${esc(s.cast.join(' · '))}</p>
          </div>` : ''}
        </div>`
     : '';
@@ -312,77 +289,74 @@ function openDetail(id) {
     <div class="flex gap-5">
       <div class="shrink-0">
         ${posterUrl
-          ? `<img src="${posterUrl}" alt="${esc(s.title)}" class="w-28 rounded-xl shadow-2xl" style="object-fit:cover">`
-          : `<div class="w-28 h-40 bg-gray-800 rounded-xl flex items-center justify-center text-gray-600 text-3xl">🎬</div>`}
+          ? `<img src="${posterUrl}" alt="${esc(s.title)}" class="w-28" style="object-fit:cover;box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
+          : `<div class="w-28 h-40 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-3 mb-2">
           <div id="detail-badges-${id}" class="flex items-center gap-2 flex-wrap">
             ${typeBadge}
-            ${s.year ? `<span class="text-xs text-gray-500">${s.year}</span>` : ''}
-            ${s.tmdb_rating ? `<span class="text-xs text-gray-500">&#9733; ${s.tmdb_rating} <span class="text-gray-700">TMDB</span></span>` : ''}
-            ${s.avg_rating ? `<span class="text-xs bg-yellow-900/40 text-yellow-400 border border-yellow-900/60 px-2 py-0.5 rounded-full" title="Promedio de ${s.rating_count} calificaci${s.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${s.avg_rating}/10</span>` : ''}
+            ${s.year ? `<span class="text-xs" style="color:#7A7680">${s.year}</span>` : ''}
+            ${s.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${s.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
+            ${s.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${s.rating_count} calificaci${s.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${s.avg_rating}/10</span>` : ''}
           </div>
           <div class="text-right shrink-0">
-            <p class="text-sm font-semibold text-white flex items-center justify-end gap-1.5" title="Recomendado por">
-              <svg class="w-3.5 h-3.5 text-violet-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">
+              <svg class="w-3.5 h-3.5 shrink-0" style="color:#C8A96E" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
               </svg>
               ${esc(SUGGESTER_NAME)}
             </p>
           </div>
         </div>
-        <h2 class="text-xl font-bold text-white mb-2 leading-tight">${esc(s.title)}</h2>
-        ${s.overview ? `<p class="text-gray-400 text-sm leading-relaxed">${esc(s.overview)}</p>` : ''}
+        <h2 class="pm-title text-xl mb-2 leading-tight">${esc(s.title)}</h2>
+        ${s.overview ? `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(s.overview)}</p>` : ''}
       </div>
     </div>
 
     ${metaHtml}
     ${providersHtml}
 
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-3">Opiniones</p>
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">Opiniones</p>
       <div id="detail-entries-${id}" class="space-y-3">
         ${s.entries.length
           ? s.entries.map(e => `
-            <div class="bg-gray-800/60 rounded-xl px-4 py-3">
+            <div style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.75rem 1rem">
               <div class="flex justify-between items-baseline gap-2 mb-1">
-                <span class="text-sm font-medium text-gray-300">${esc(e.user)}</span>
-                <span class="text-xs text-yellow-400 font-semibold">&#9733; ${e.rating}/10</span>
+                <span class="text-sm font-medium" style="color:#B8B4BE">${esc(e.user)}</span>
+                <span class="text-xs font-semibold" style="color:#C8A96E">&#9733; ${e.rating}/10</span>
               </div>
               ${e.comment
-                ? `<p class="text-sm text-gray-400 leading-relaxed whitespace-pre-wrap">${esc(e.comment)}</p>`
-                : `<p class="text-xs text-gray-600 italic">Sin comentario.</p>`}
+                ? `<p class="text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">${esc(e.comment)}</p>`
+                : `<p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>`}
             </div>`).join('')
-          : `<p class="text-sm text-gray-600">Todavía nadie opinó.</p>`
+          : `<p class="text-sm" style="color:#7A7680">Todavía nadie opinó.</p>`
         }
       </div>
     </div>
 
-    <div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">
+    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">
         Tu calificación
-        <span id="detail-rating-label" class="text-yellow-400 font-semibold normal-case ml-1">
+        <span id="detail-rating-label" class="font-semibold normal-case ml-1" style="color:#C8A96E">
           ${s.rating ? s.rating + '/10' : ''}
         </span>
       </p>
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
       <textarea id="detail-comment-input-${id}" rows="2" placeholder="Tu comentario (opcional)..."
-        class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white
-               placeholder-gray-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500
-               transition-colors resize-none mb-3">${esc(s.comment || '')}</textarea>
+        class="pm-input" style="font-size:0.85rem;resize:none;margin-bottom:0.75rem">${esc(s.comment || '')}</textarea>
       <div class="flex items-center gap-3 flex-wrap">
-        <button onclick="saveDetailRating(${s.id})"
-          class="bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors">
+        <button onclick="saveDetailRating(${s.id})" class="pm-btn-secondary">
           Guardar calificación
         </button>
-        <span id="detail-save-ok" class="text-xs text-green-400 hidden">Guardado ✓</span>
+        <span id="detail-save-ok" class="text-xs hidden" style="color:#86efac">Guardado ✓</span>
         ${s.can_delete
           ? `<button onclick="deleteDetail(${s.id})"
-               class="ml-auto text-xs text-red-700 hover:text-red-400 transition-colors">
+               class="ml-auto text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">
                Borrar sugerencia
              </button>`
-          : `<span class="ml-auto text-xs text-gray-700 cursor-not-allowed select-none"
+          : `<span class="ml-auto text-xs select-none" style="color:#5A5762;cursor:not-allowed"
                   title="No se puede borrar: alguien la tiene en su watchlist">
                Borrar sugerencia
              </span>`
@@ -415,10 +389,9 @@ function updateDetailRating(suggestionId, n) {
     const btn = document.getElementById(`drbtn-${suggestionId}-${i}`);
     if (!btn) continue;
     const active = i === n;
-    btn.classList.toggle('bg-yellow-500', active);
-    btn.classList.toggle('text-black',    active);
-    btn.classList.toggle('bg-gray-800',   !active);
-    btn.classList.toggle('text-gray-400', !active);
+    btn.style.background = active ? '#C8A96E' : '#0D0D0F';
+    btn.style.color = active ? '#0D0D0F' : '#7A7680';
+    btn.style.border = active ? 'none' : '1px solid #2A2A35';
   }
   const label = document.getElementById('detail-rating-label');
   if (label) label.textContent = n + '/10';
@@ -576,19 +549,19 @@ window.handleAddBackdrop = function (e) {
       const already = item.already_suggested;
       return `
         <button type="button" data-idx="${i}"
-          class="result-item flex items-center gap-3 w-full text-left px-4 py-3
-                 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0">
+          class="result-item flex items-center gap-3 w-full text-left px-4 py-3 transition-colors"
+          style="border-bottom:1px solid #2A2A35" onmouseover="this.style.background='#15151A'" onmouseout="this.style.background='none'">
           ${item.poster_url_sm
-            ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 rounded object-cover" style="height:52px">`
-            : `<div class="w-9 shrink-0 flex items-center justify-center text-gray-600" style="height:52px">🎬</div>`}
+            ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 object-cover" style="height:52px">`
+            : `<div class="w-9 shrink-0 flex items-center justify-center" style="height:52px;color:#5A5762">🎬</div>`}
           <div class="flex-1 min-w-0">
-            <p class="text-white text-sm font-medium truncate">${esc(item.title)}</p>
+            <p class="text-sm font-medium truncate" style="color:#F0EDE8">${esc(item.title)}</p>
             <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span class="text-gray-500 text-xs">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
-              ${already ? `<span class="text-xs text-yellow-500 font-medium">Ya sugerida por ${esc(item.suggested_by_name)}</span>` : ''}
+              <span class="text-xs" style="color:#7A7680">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
+              ${already ? `<span class="text-xs font-medium" style="color:#C8A96E">Ya sugerida por ${esc(item.suggested_by_name)}</span>` : ''}
             </div>
           </div>
-          ${already ? '<span class="text-gray-600 text-xs shrink-0">Ver →</span>' : ''}
+          ${already ? '<span class="text-xs shrink-0" style="color:#7A7680">Ver →</span>' : ''}
         </button>`;
     }).join('');
     resultsBox.classList.remove('hidden');
@@ -617,7 +590,7 @@ window.handleAddBackdrop = function (e) {
 
     searchSection.classList.add('hidden');
     confirmSection.classList.remove('hidden');
-    preview.innerHTML = `<div class="text-center py-6 text-gray-500 text-sm">Cargando información…</div>`;
+    preview.innerHTML = `<div class="text-center py-6 text-sm" style="color:#7A7680">Cargando información…</div>`;
 
     let detail = null;
     try {
@@ -634,8 +607,8 @@ window.handleAddBackdrop = function (e) {
       : null;
     const year = item.release_date ? item.release_date.slice(0,4) : '';
     const typeBadge = item.media_type === 'movie'
-      ? '<span class="text-xs bg-blue-900/50 text-blue-400 border border-blue-900 px-2 py-0.5 rounded-full">Película</span>'
-      : '<span class="text-xs bg-violet-900/50 text-violet-400 border border-violet-900 px-2 py-0.5 rounded-full">Serie</span>';
+      ? '<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>'
+      : '<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>';
 
     const genres    = (detail && detail.genres)    ? detail.genres    : (item.genres || []);
     const country   = (detail && detail.origin_country) ? detail.origin_country : '';
@@ -652,25 +625,25 @@ window.handleAddBackdrop = function (e) {
     if (director)       metaItems.push(['Director', director]);
 
     const metaHtml = metaItems.length
-      ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm border-t border-gray-800 pt-4 mt-3">
+      ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm" style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:0.75rem">
            ${metaItems.map(([k,v]) => `
              <div>
-               <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">${k}</p>
-               <p class="text-gray-300">${esc(String(v))}</p>
+               <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
+               <p style="color:#B8B4BE">${esc(String(v))}</p>
              </div>`).join('')}
            ${cast.length ? `<div class="col-span-2">
-             <p class="text-xs text-gray-600 uppercase tracking-wider mb-0.5">Reparto</p>
-             <p class="text-gray-300">${esc(cast.join(' · '))}</p>
+             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
+             <p style="color:#B8B4BE">${esc(cast.join(' · '))}</p>
            </div>` : ''}
          </div>`
       : '';
 
-    const providersHtml = `<div class="border-t border-gray-800 pt-4 mt-4">
-      <p class="text-xs text-gray-600 uppercase tracking-wider mb-2">Disponible en</p>
+    const providersHtml = `<div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
       <div class="flex flex-wrap gap-2">
         ${providers.length
-          ? providers.map(p => `<span class="bg-gray-800 border border-gray-700 text-gray-300 text-xs px-3 py-1 rounded-full">${esc(p)}</span>`).join('')
-          : `<span class="bg-gray-800 border border-gray-700 text-gray-500 text-xs px-3 py-1 rounded-full">Stremio ??</span>`
+          ? providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
+          : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
         }
       </div>
     </div>`;
@@ -678,15 +651,15 @@ window.handleAddBackdrop = function (e) {
     preview.innerHTML = `
       <div class="flex items-start gap-3">
         ${posterUrl
-          ? `<img src="${esc(posterUrl)}" alt="" class="w-20 rounded-lg shrink-0 object-cover shadow-lg">`
-          : `<div class="w-20 shrink-0 bg-gray-700 rounded-lg flex items-center justify-center text-gray-500" style="height:120px">🎬</div>`}
+          ? `<img src="${esc(posterUrl)}" alt="" class="w-20 shrink-0 object-cover" style="box-shadow:0 10px 25px rgba(0,0,0,0.35)">`
+          : `<div class="w-20 shrink-0 flex items-center justify-center" style="height:120px;background:#0D0D0F;color:#5A5762">🎬</div>`}
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             ${typeBadge}
-            ${tmdbRating ? `<span class="text-xs text-gray-500">&#9733; ${tmdbRating} <span class="text-gray-700">TMDB</span></span>` : ''}
+            ${tmdbRating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${tmdbRating} <span style="color:#5A5762">TMDB</span></span>` : ''}
           </div>
-          <p class="text-white font-semibold text-base mb-1">${esc(item.title)}</p>
-          ${overview ? `<p class="text-gray-400 text-xs leading-relaxed">${esc(overview)}</p>` : ''}
+          <p class="font-semibold text-base mb-1" style="color:#F0EDE8">${esc(item.title)}</p>
+          ${overview ? `<p class="text-xs leading-relaxed" style="color:#7A7680">${esc(overview)}</p>` : ''}
         </div>
       </div>
       ${metaHtml}
@@ -709,10 +682,9 @@ window.handleAddBackdrop = function (e) {
     ratingLabel.textContent = n + '/10';
     document.querySelectorAll('.add-rating-btn').forEach(btn => {
       const v = parseInt(btn.dataset.val);
-      btn.classList.toggle('bg-yellow-500', v === n);
-      btn.classList.toggle('text-black',    v === n);
-      btn.classList.toggle('bg-gray-700',   v !== n);
-      btn.classList.toggle('text-gray-400', v !== n);
+      btn.style.background = v === n ? '#C8A96E' : '#0D0D0F';
+      btn.style.color = v === n ? '#0D0D0F' : '#7A7680';
+      btn.style.border = v === n ? 'none' : '1px solid #2A2A35';
     });
     ratingWarning.classList.add('hidden');
     submitBtn.disabled = false;
@@ -723,8 +695,9 @@ window.handleAddBackdrop = function (e) {
     document.getElementById('f_rating').value = 0;
     ratingLabel.textContent = '';
     document.querySelectorAll('.add-rating-btn').forEach(btn => {
-      btn.classList.remove('bg-yellow-500','text-black');
-      btn.classList.add('bg-gray-700','text-gray-400');
+      btn.style.background = '#0D0D0F';
+      btn.style.color = '#7A7680';
+      btn.style.border = '1px solid #2A2A35';
     });
     submitBtn.disabled = true;
   }
