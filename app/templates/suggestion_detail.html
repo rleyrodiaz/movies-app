@@ -5,10 +5,12 @@
 <div class="pm-panel" style="max-width:48rem;margin:0 auto">
 
 <div class="mb-4 flex items-center gap-4">
-  {% if request.query_params.get('back') == 'watchlist' %}
+  {% set qp = request.query_params %}
+  {% if qp.get('back') == 'watchlist' %}
 <a href="/watchlist" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a mi watchlist</a>
 {% else %}
-<a href="/feed" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
+{% set feed_qs = {'genre': qp.get('genre',''), 'platform': qp.get('platform',''), 'media': qp.get('media',''), 'by': qp.get('by',''), 'sort': qp.get('sort',''), 'min_rating': qp.get('min_rating',''), 'status_filter': qp.get('status_filter','')} %}
+<a href="/feed?{{ feed_qs | urlencode }}" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
 {% endif %}
 </div>
 

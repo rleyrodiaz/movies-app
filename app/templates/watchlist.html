@@ -30,8 +30,11 @@
   {% endif %}
 
   <span class="text-sm text-gray-600 ml-auto">
-    {{ entries|length }}{% if entries|length != total %}/{{ total }}{% endif %}
-    título{{ 's' if total != 1 else '' }}
+    {% if entries|length != total %}
+      {{ entries|length }} de {{ total }} título{{ 's' if total != 1 else '' }}
+    {% else %}
+      {{ total }} título{{ 's' if total != 1 else '' }}
+    {% endif %}
   </span>
 </div>
 

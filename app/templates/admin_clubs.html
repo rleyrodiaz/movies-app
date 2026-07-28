@@ -50,6 +50,32 @@
         {% endif %}
       </div>
 
+      {% if d.members %}
+      <div style="border-top:1px solid #2A2A35;margin-top:1rem;padding-top:0.85rem;display:flex;flex-direction:column;gap:0.5rem">
+        {% for m in d.members %}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+          <div style="display:flex;align-items:center;gap:0.6rem;min-width:0">
+            <span style="color:#B8B4BE;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.display_name }}</span>
+            {% if m.role.value == 'superadmin' %}
+            <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">superadmin</span>
+            {% elif m.role.value == 'admin' %}
+            <span class="pm-badge" style="color:#93c5fd;border-color:#1e3a8a">admin</span>
+            {% else %}
+            <span class="pm-badge" style="color:#7A7680;border-color:#2A2A35">user</span>
+            {% endif %}
+          </div>
+          {% if m.role.value != 'superadmin' %}
+          <form method="post" action="/admin/clubs/{{ d.club.id }}/members/{{ m.id }}/role" style="flex-shrink:0">
+            <button type="submit" class="pm-btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.72rem;white-space:nowrap">
+              {{ 'Quitar admin' if m.role.value == 'admin' else 'Hacer admin' }}
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
     </div>
     {% endfor %}
   </div>

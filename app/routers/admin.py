@@ -413,7 +413,18 @@ def clubs_page(
         .group_by(Club.id)
         .order_by(Club.name)
     ).all()
-    clubs_data = [{"club": club, "member_count": count} for club, count in rows]
+
+    all_members = db.scalars(
+        select(User).order_by(User.display_name)
+    ).all()
+    members_by_club: dict[int, list[User]] = {}
+    for member in all_members:
+        members_by_club.setdefault(member.club_id, []).append(member)
+
+    clubs_data = [
+        {"club": club, "member_count": count, "members": members_by_club.get(club.id, [])}
+        for club, count in rows
+    ]
 
     return templates.TemplateResponse(
         "admin_clubs.html",
@@ -508,3 +519,30 @@ def switch_club(
     response = RedirectResponse(redirect_to, status_code=303)
     _issue_active_club_cookie(response, request, current_user, club)
     return response
+
+
+@router.post("/clubs/{club_id}/members/{user_id}/role")
+def toggle_member_role(
+    request: Request,
+    club_id: int,
+    user_id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+):
+    member = db.get(User, user_id)
+    if member is None or member.club_id != club_id or member.role == UserRole.superadmin:
+        return RedirectResponse("/admin/clubs", status_code=303)
+
+    old_role = member.role
+    member.role = UserRole.user if member.role == UserRole.admin else UserRole.admin
+
+    log_activity(
+        db, ActivityAction.role_changed,
+        user_id=current_user.id,
+        club_id=club_id,
+        target_type="user",
+        target_id=member.id,
+        detail={"member": member.display_name, "old_role": old_role.value, "new_role": member.role.value},
+        session_id=get_session_id(request),
+    )
+    return RedirectResponse("/admin/clubs", status_code=303)

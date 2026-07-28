@@ -39,10 +39,10 @@
   {% endif %}
 
   <span class="text-sm text-gray-600 ml-auto">
-    {% if f_status == 'pending' and suggestions|length < total_count %}
-      {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }} no visto{{ 's' if suggestions|length != 1 else '' }} de {{ total_count }}
+    {% if suggestions|length != total_count %}
+      {{ suggestions|length }} de {{ total_count }} título{{ 's' if total_count != 1 else '' }}
     {% else %}
-      {{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}
+      {{ total_count }} título{{ 's' if total_count != 1 else '' }}
     {% endif %}
   </span>
 </div>
@@ -65,7 +65,7 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for s in suggestions %}
-  <a href="/suggestions/{{ s.id }}" class="group block">
+  <a href="/suggestions/{{ s.id }}?back=feed&{{ {'genre': f_genre, 'platform': f_platform, 'media': f_media, 'by': f_by, 'sort': f_sort, 'min_rating': f_min_rating, 'status_filter': f_status} | urlencode }}" class="group block">
 
     {# Poster #}
     <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
