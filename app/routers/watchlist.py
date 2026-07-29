@@ -37,8 +37,11 @@ def watchlist_page(
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
 ):
+    active_club = get_active_club(request, current_user, db)
+
     all_entries = db.scalars(
         select(WatchlistEntry)
+        .join(Suggestion, WatchlistEntry.suggestion_id == Suggestion.id)
         .options(
             joinedload(WatchlistEntry.suggestion).options(
                 joinedload(Suggestion.suggester),
@@ -48,6 +51,7 @@ def watchlist_page(
         .where(
             WatchlistEntry.user_id == current_user.id,
             WatchlistEntry.hidden_from_watchlist.is_(False),
+            Suggestion.club_id == active_club.id,
         )
         .order_by(WatchlistEntry.updated_at.desc())
     ).unique().all()
@@ -97,11 +101,17 @@ def watchlist_page(
 
     active_filters = sum([bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status)])
 
-    reminders = db.scalars(
-        select(PersonalReminder)
-        .where(PersonalReminder.user_id == current_user.id)
-        .order_by(PersonalReminder.created_at.desc())
-    ).all()
+    # Los recordatorios son privados y no tienen club propio — solo tiene sentido
+    # mostrarlos cuando estás parado en tu propio club (para el superadmin viendo
+    # otro club ajeno, no son "suyos" en ese contexto).
+    if active_club.id == current_user.club_id:
+        reminders = db.scalars(
+            select(PersonalReminder)
+            .where(PersonalReminder.user_id == current_user.id)
+            .order_by(PersonalReminder.created_at.desc())
+        ).all()
+    else:
+        reminders = []
     if f_my_platforms:
         my_platform_set = set(current_user.platforms_list)
         reminders = [r for r in reminders if my_platform_set & set(r.providers_list)]
@@ -127,7 +137,7 @@ def watchlist_page(
             "f_sort": f_sort,
             "f_status": f_status,
             "active_filters": active_filters,
-            "active_club": get_active_club(request, current_user, db),
+            "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
