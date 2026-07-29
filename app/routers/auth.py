@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.db import get_db_dep
 from app.models.activity_log import ActivityAction
 from app.models.club import Club
@@ -69,18 +70,21 @@ def login_submit(
         session_id=session_id,
     )
 
-    club = db.get(Club, user.club_id)
-    device = parse_device(request.headers.get("user-agent", ""))
-    background_tasks.add_task(
-        send_login_notification,
-        user.display_name,
-        user.email,
-        get_client_ip(request),
-        device.get("device_type", ""),
-        device.get("browser", ""),
-        device.get("os", ""),
-        club.name if club else "",
-    )
+    # No te mandamos el aviso de login a vos mismo si sos quien recibe los avisos
+    # (el de "nueva visita" ya te informa de todos modos, sin ser tan repetitivo).
+    if user.email.lower() != get_settings().visit_notify_to.lower():
+        club = db.get(Club, user.club_id)
+        device = parse_device(request.headers.get("user-agent", ""))
+        background_tasks.add_task(
+            send_login_notification,
+            user.display_name,
+            user.email,
+            get_client_ip(request),
+            device.get("device_type", ""),
+            device.get("browser", ""),
+            device.get("os", ""),
+            club.name if club else "",
+        )
     return response
 
 
