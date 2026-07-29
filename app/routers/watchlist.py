@@ -56,9 +56,24 @@ def watchlist_page(
         .order_by(WatchlistEntry.updated_at.desc())
     ).unique().all()
 
-    # Build filter option data from all entries
+    # Los recordatorios son privados y no tienen club propio — solo tiene sentido
+    # mostrarlos cuando estás parado en tu propio club (para el superadmin viendo
+    # otro club ajeno, no son "suyos" en ese contexto).
+    if active_club.id == current_user.club_id:
+        all_reminders = db.scalars(
+            select(PersonalReminder)
+            .where(PersonalReminder.user_id == current_user.id)
+            .order_by(PersonalReminder.created_at.desc())
+        ).all()
+    else:
+        all_reminders = []
+
+    # Build filter option data from all entries + reminders
     all_genres: list[str] = sorted({g for e in all_entries for g in e.suggestion.genres_list})
-    all_platforms: list[str] = sorted({p for e in all_entries for p in e.suggestion.providers_list})
+    all_platforms: list[str] = sorted(
+        {p for e in all_entries for p in e.suggestion.providers_list}
+        | {p for r in all_reminders for p in r.providers_list}
+    )
     suggesters: dict[int, User] = {}
     for e in all_entries:
         s = e.suggestion
@@ -101,17 +116,7 @@ def watchlist_page(
 
     active_filters = sum([bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status)])
 
-    # Los recordatorios son privados y no tienen club propio — solo tiene sentido
-    # mostrarlos cuando estás parado en tu propio club (para el superadmin viendo
-    # otro club ajeno, no son "suyos" en ese contexto).
-    if active_club.id == current_user.club_id:
-        reminders = db.scalars(
-            select(PersonalReminder)
-            .where(PersonalReminder.user_id == current_user.id)
-            .order_by(PersonalReminder.created_at.desc())
-        ).all()
-    else:
-        reminders = []
+    reminders = list(all_reminders)
     if f_my_platforms:
         my_platform_set = set(current_user.platforms_list)
         reminders = [r for r in reminders if my_platform_set & set(r.providers_list)]
@@ -124,7 +129,7 @@ def watchlist_page(
             "request": request,
             "user": current_user,
             "entries": entries,
-            "total": len(all_entries),
+            "total": len(all_entries) + len(all_reminders),
             "reminders": reminders,
             "all_genres": all_genres,
             "all_platforms": all_platforms,

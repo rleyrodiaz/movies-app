@@ -30,8 +30,9 @@
   {% endif %}
 
   <span class="text-sm text-gray-600 ml-auto">
-    {% if entries|length != total %}
-      {{ entries|length }} de {{ total }} título{{ 's' if total != 1 else '' }}
+    {% set shown = entries|length + reminders|length %}
+    {% if shown != total %}
+      {{ shown }} de {{ total }} título{{ 's' if total != 1 else '' }}
     {% else %}
       {{ total }} título{{ 's' if total != 1 else '' }}
     {% endif %}
