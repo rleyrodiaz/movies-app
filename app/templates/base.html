@@ -274,7 +274,7 @@
 
     <div class="pm-panel" style="position:relative;width:100%;max-width:480px;max-height:90vh;background:#15151A;border:1px solid #2A2A35;display:flex;flex-direction:column;overflow:hidden">
 
-      <button onclick="closeProfileModal()" aria-label="Cerrar"
+      <button onclick="pmCloseModal()" aria-label="Cerrar"
         style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.2rem;line-height:1;z-index:2;transition:color 0.15s"
         onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
 
@@ -328,6 +328,27 @@
   </div>
 
   <script>
+  /* Modal back-button integration: abrir un modal empuja una entrada al
+     historial, así el botón/gesto "atrás" del celular cierra el modal en
+     vez de salir de la página (los modales no navegan, así que sin esto
+     el navegador salta directo a la página anterior). */
+  var _pmModalStack = [];
+  function pmOpenModal(closeFn) {
+    _pmModalStack.push(closeFn);
+    history.pushState({ pmModal: true }, '');
+  }
+  function pmCloseModal() {
+    if (_pmModalStack.length) history.back();
+  }
+  window.addEventListener('popstate', function () {
+    if (_pmModalStack.length) {
+      var fn = _pmModalStack.pop();
+      if (fn) fn();
+    }
+  });
+  </script>
+
+  <script>
   function switchProfileTab(tab) {
     const tabs = ['platforms', 'password'];
     tabs.forEach(function (t) {
@@ -344,6 +365,7 @@
       icon.classList.remove('text-yellow-400', 'text-yellow-300');
       icon.classList.add('text-orange-400');
     });
+    pmOpenModal(closeProfileModal);
   }
   function closeProfileModal() {
     const el = document.getElementById('profile-backdrop');
@@ -355,7 +377,7 @@
     });
   }
   function handleProfileBackdrop(e) {
-    if (e.target === document.getElementById('profile-backdrop')) closeProfileModal();
+    if (e.target === document.getElementById('profile-backdrop')) pmCloseModal();
   }
 
   function _showMsg(id, text, ok) {
@@ -400,7 +422,7 @@
   }
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeProfileModal();
+    if (e.key === 'Escape') pmCloseModal();
   });
   </script>
 
@@ -426,7 +448,7 @@
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-    <p class="text-gray-600 text-[0.7rem] tracking-widest uppercase">MovieLeyro &middot; Privado</p>
+    <p class="text-gray-600 text-[0.7rem] tracking-widest uppercase">MovieLeyro &middot; Privado (<span class="normal-case">{{ app_version }}</span>)</p>
     <div class="flex items-center gap-2">
       <p class="text-gray-700 text-[0.65rem] tracking-wide uppercase">Datos provistos por</p>
       <img src="/static/img/Logo_tmdb_short.svg" alt="TMDB" class="h-3.5 opacity-45 grayscale">

@@ -127,7 +127,7 @@
     {# Modal header #}
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35;flex-shrink:0">
       <h2 class="pm-title" style="font-size:1.05rem">Filtros y orden</h2>
-      <button onclick="closeFilterModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.4rem;line-height:1"
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.4rem;line-height:1"
         onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
@@ -248,6 +248,7 @@ function openFilterModal() {
   const el = document.getElementById('filter-backdrop');
   el.classList.remove('hidden');
   el.classList.add('flex');
+  pmOpenModal(closeFilterModal);
 }
 function closeFilterModal() {
   const el = document.getElementById('filter-backdrop');
@@ -255,10 +256,10 @@ function closeFilterModal() {
   el.classList.remove('flex');
 }
 function handleFilterBackdrop(e) {
-  if (e.target === document.getElementById('filter-backdrop')) closeFilterModal();
+  if (e.target === document.getElementById('filter-backdrop')) pmCloseModal();
 }
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeFilterModal();
+  if (e.key === 'Escape') pmCloseModal();
 });
 </script>
 

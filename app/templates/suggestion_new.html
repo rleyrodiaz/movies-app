@@ -74,7 +74,7 @@
     <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
     <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDelete()" class="pm-btn-secondary">Cancelar</button>
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
       <button id="confirm-delete-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
     </div>
   </div>
@@ -90,8 +90,8 @@
        style="width:100%;max-width:38rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
-      <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a + Sugerir</button>
-      <button onclick="closeDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a + Sugerir</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
     <div id="detail-content" style="padding:1.5rem"></div>
@@ -110,7 +110,7 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35">
       <h2 class="pm-title" style="font-size:1.05rem">Nueva sugerencia</h2>
-      <button onclick="closeAddModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
     <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
@@ -366,6 +366,7 @@ function openDetail(id) {
 
   document.getElementById('detail-backdrop').classList.remove('hidden');
   document.getElementById('detail-backdrop').classList.add('flex');
+  pmOpenModal(closeDetail);
 }
 
 function closeDetail() {
@@ -374,7 +375,7 @@ function closeDetail() {
 }
 
 function handleDetailBackdrop(e) {
-  if (e.target === document.getElementById('detail-backdrop')) closeDetail();
+  if (e.target === document.getElementById('detail-backdrop')) pmCloseModal();
 }
 
 let _detailSelectedRating = null;
@@ -422,17 +423,14 @@ async function saveDetailRating(suggestionId) {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeConfirmDelete();
-    closeDetail();
-    closeAddModal();
-  }
+  if (e.key === 'Escape') pmCloseModal();
 });
 
 function deleteDetail(suggestionId) {
   const backdrop = document.getElementById('confirm-delete-backdrop');
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmDelete);
 
   const btn = document.getElementById('confirm-delete-btn');
   btn.onclick = async () => {
@@ -464,6 +462,7 @@ window.openAddModal = function () {
   document.getElementById('add-backdrop').classList.remove('hidden');
   document.getElementById('add-backdrop').classList.add('flex');
   setTimeout(() => document.getElementById('search-input').focus(), 50);
+  pmOpenModal(closeAddModal);
 };
 
 window.closeAddModal = function () {
@@ -473,7 +472,7 @@ window.closeAddModal = function () {
 };
 
 window.handleAddBackdrop = function (e) {
-  if (e.target === document.getElementById('add-backdrop')) closeAddModal();
+  if (e.target === document.getElementById('add-backdrop')) pmCloseModal();
 };
 
 (function () {

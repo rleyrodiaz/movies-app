@@ -223,7 +223,7 @@
     <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
     <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDeleteSuggestion()" class="pm-btn-secondary">Cancelar</button>
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
       <button onclick="document.getElementById('delete-suggestion-form').submit()" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
     </div>
   </div>
@@ -238,6 +238,7 @@ function confirmDeleteSuggestion() {
   const backdrop = document.getElementById('confirm-delete-backdrop');
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmDeleteSuggestion);
 }
 
 function closeConfirmDeleteSuggestion() {
@@ -247,7 +248,7 @@ function closeConfirmDeleteSuggestion() {
 }
 
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') closeConfirmDeleteSuggestion();
+  if (e.key === 'Escape') pmCloseModal();
 });
 </script>
 {% endblock %}

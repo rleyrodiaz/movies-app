@@ -19,10 +19,12 @@ from app.services.activity_log import log_activity
 from app.services.auth import get_session_id, require_user
 from app.services.clubs import get_active_club, list_clubs_for_switcher
 from app.services.suggestion_creation import create_suggestion
+from app.services.version import APP_VERSION
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
+templates.env.globals["app_version"] = APP_VERSION
 
 
 @router.get("/watchlist", response_class=HTMLResponse)

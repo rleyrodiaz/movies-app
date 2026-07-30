@@ -163,7 +163,7 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35;flex-shrink:0">
       <h2 class="pm-title" style="font-size:1.05rem">Filtros y orden</h2>
-      <button onclick="closeFilterModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.4rem;line-height:1"
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.4rem;line-height:1"
         onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
@@ -274,8 +274,8 @@
     style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
-      <button onclick="closeWDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
-      <button onclick="closeWDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
     <div id="wdetail-content" style="padding:1.5rem"></div>
@@ -293,7 +293,7 @@
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid #2A2A35">
       <h2 class="pm-title" style="font-size:1.05rem">Nuevo recordatorio</h2>
-      <button onclick="closeReminderAddModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
     <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
@@ -338,7 +338,7 @@
     <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Quitar de watchlist?</h3>
     <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Vas a perder tu calificación y comentario si ya la habías visto.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmRemove()" class="pm-btn-secondary">Cancelar</button>
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
       <button id="confirm-remove-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Quitar</button>
     </div>
   </div>
@@ -352,7 +352,7 @@
     <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Descartar recordatorio?</h3>
     <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">No vas a poder recuperarlo.</p>
     <div class="flex gap-3 justify-end">
-      <button onclick="closeConfirmDiscard()" class="pm-btn-secondary">Cancelar</button>
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
       <button id="confirm-discard-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Descartar</button>
     </div>
   </div>
@@ -367,8 +367,8 @@
     style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
 
     <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
-      <button onclick="closeReminderDetail()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
-      <button onclick="closeReminderDetail()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Mi watchlist</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
     </div>
 
     <div id="reminder-detail-content" style="padding:1.5rem"></div>
@@ -427,13 +427,14 @@ const REMINDERS = {
 function openFilterModal() {
   const el = document.getElementById('filter-backdrop');
   el.classList.remove('hidden'); el.classList.add('flex');
+  pmOpenModal(closeFilterModal);
 }
 function closeFilterModal() {
   const el = document.getElementById('filter-backdrop');
   el.classList.add('hidden'); el.classList.remove('flex');
 }
 function handleFilterBackdrop(e) {
-  if (e.target === document.getElementById('filter-backdrop')) closeFilterModal();
+  if (e.target === document.getElementById('filter-backdrop')) pmCloseModal();
 }
 
 /* ── Watchlist detail modal ── */
@@ -450,6 +451,7 @@ function openWDetail(id) {
   document.getElementById('wdetail-content').innerHTML = buildWDetailHTML(e);
   document.getElementById('wdetail-backdrop').classList.remove('hidden');
   document.getElementById('wdetail-backdrop').classList.add('flex');
+  pmOpenModal(closeWDetail);
 }
 
 function closeWDetail() {
@@ -458,7 +460,7 @@ function closeWDetail() {
 }
 
 function handleWDetailBackdrop(ev) {
-  if (ev.target === document.getElementById('wdetail-backdrop')) closeWDetail();
+  if (ev.target === document.getElementById('wdetail-backdrop')) pmCloseModal();
 }
 
 function buildWDetailHTML(e) {
@@ -625,6 +627,7 @@ function confirmRemoveFromWatchlist(id, status) {
   const backdrop = document.getElementById('confirm-remove-backdrop');
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmRemove);
 
   const btn = document.getElementById('confirm-remove-btn');
   btn.onclick = async () => {
@@ -648,6 +651,7 @@ window.openReminderAddModal = function () {
   document.getElementById('reminder-add-backdrop').classList.remove('hidden');
   document.getElementById('reminder-add-backdrop').classList.add('flex');
   setTimeout(() => document.getElementById('reminder-search-input').focus(), 50);
+  pmOpenModal(closeReminderAddModal);
 };
 
 window.closeReminderAddModal = function () {
@@ -665,7 +669,7 @@ window.closeReminderAddModal = function () {
 };
 
 window.handleReminderAddBackdrop = function (e) {
-  if (e.target === document.getElementById('reminder-add-backdrop')) closeReminderAddModal();
+  if (e.target === document.getElementById('reminder-add-backdrop')) pmCloseModal();
 };
 
 (function () {
@@ -831,6 +835,7 @@ function openReminderDetail(id) {
 
   document.getElementById('reminder-detail-backdrop').classList.remove('hidden');
   document.getElementById('reminder-detail-backdrop').classList.add('flex');
+  pmOpenModal(closeReminderDetail);
 
   loadReminderMeta(id, r);
 }
@@ -893,7 +898,7 @@ function closeReminderDetail() {
 }
 
 function handleReminderDetailBackdrop(ev) {
-  if (ev.target === document.getElementById('reminder-detail-backdrop')) closeReminderDetail();
+  if (ev.target === document.getElementById('reminder-detail-backdrop')) pmCloseModal();
 }
 
 function selectReminderRating(id, n) {
@@ -928,6 +933,7 @@ function discardReminder(id) {
   const backdrop = document.getElementById('confirm-discard-backdrop');
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmDiscard);
 
   const btn = document.getElementById('confirm-discard-btn');
   btn.onclick = async () => {
@@ -945,14 +951,7 @@ function closeConfirmDiscard() {
 }
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    closeWDetail();
-    closeFilterModal();
-    closeReminderAddModal();
-    closeReminderDetail();
-    closeConfirmDiscard();
-    closeConfirmRemove();
-  }
+  if (e.key === 'Escape') pmCloseModal();
 });
 </script>
 

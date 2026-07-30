@@ -28,11 +28,13 @@ from app.services.auth import (
 from app.services import tmdb
 from app.services.clubs import get_active_club, list_clubs_for_switcher
 from app.services.tz import to_local
+from app.services.version import APP_VERSION
 
 router = APIRouter(prefix="/admin")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["local_time"] = to_local
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
+templates.env.globals["app_version"] = APP_VERSION
 
 # Tablas que se pueden regenerar selectivamente desde Settings — siempre acotado
 # al club activo (ver _club_scope_filter). El orden de borrado (hijos antes que

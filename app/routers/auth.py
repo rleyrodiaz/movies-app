@@ -25,10 +25,12 @@ from app.services.auth import (
     verify_password,
 )
 from app.services.emails import send_login_notification, send_registration_notification
+from app.services.version import APP_VERSION
 from app.services.visit import get_client_ip, parse_device
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 
 

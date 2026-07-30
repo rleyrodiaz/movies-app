@@ -5,11 +5,13 @@ from fastapi.templating import Jinja2Templates
 
 from app.exceptions import AccessDenied, NeedsLogin
 from app.routers import admin, auth, suggestions, tracking, watchlist
+from app.services.version import APP_VERSION
 
 app = FastAPI(title="Movies & Series")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+templates.env.globals["app_version"] = APP_VERSION
 
 app.include_router(auth.router)
 app.include_router(admin.router)
