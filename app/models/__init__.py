@@ -5,7 +5,6 @@ from app.models.suggestion import Suggestion, MediaType
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.models.reminder import PersonalReminder
 from app.models.activity_log import ActivityLog, ActivityAction
-from app.models.app_version import AppVersionCommit
 
 __all__ = [
     "Club",
@@ -19,5 +18,4 @@ __all__ = [
     "PersonalReminder",
     "ActivityLog",
     "ActivityAction",
-    "AppVersionCommit",
 ]

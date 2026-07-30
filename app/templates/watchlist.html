@@ -417,6 +417,7 @@ const REMINDERS = {
     media_type: {{ r.media_type.value | tojson }},
     year: {{ r.release_date.year if r.release_date else 'null' }},
     overview: {{ (r.overview or '') | tojson }},
+    tmdb_rating: {{ r.tmdb_rating if r.tmdb_rating else 'null' }},
   },
   {% endfor %}
 };
@@ -804,6 +805,7 @@ function openReminderDetail(id) {
         <div class="flex items-center gap-2 mb-2 flex-wrap">
           ${typeBadge}
           ${r.year ? `<span class="text-xs" style="color:#7A7680">${r.year}</span>` : ''}
+          ${r.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${r.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
           <span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Privado</span>
         </div>
         <h2 class="pm-title text-xl mb-2 leading-tight">${esc(r.title)}</h2>
