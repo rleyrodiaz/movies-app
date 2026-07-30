@@ -274,12 +274,13 @@ def watchlist_update(
     else:
         if entry:
             entry.status = WatchlistStatus(status)
-            entry.hidden_from_watchlist = False
+            entry.hidden_from_watchlist = status == "watched"
         else:
             db.add(WatchlistEntry(
                 user_id=current_user.id,
                 suggestion_id=suggestion_id,
                 status=WatchlistStatus(status),
+                hidden_from_watchlist=status == "watched",
             ))
         action = ActivityAction.watchlist_added
 
@@ -326,6 +327,7 @@ def watchlist_rate(
         if valid_rating is not None:
             entry.rating = valid_rating
             entry.status = WatchlistStatus.watched
+            entry.hidden_from_watchlist = True
     else:
         if suggestion and valid_rating is not None:
             db.add(WatchlistEntry(
@@ -335,6 +337,7 @@ def watchlist_rate(
                 rating=valid_rating,
                 watched_on=clean_watched_on,
                 comment=clean_comment,
+                hidden_from_watchlist=True,
             ))
 
     if suggestion and valid_rating is not None:
@@ -390,7 +393,7 @@ def reminder_promote(
             entry.rating = rating
             entry.comment = clean_comment
             entry.status = WatchlistStatus.watched
-            entry.hidden_from_watchlist = False
+            entry.hidden_from_watchlist = True
         else:
             db.add(WatchlistEntry(
                 user_id=current_user.id,
@@ -398,6 +401,7 @@ def reminder_promote(
                 status=WatchlistStatus.watched,
                 rating=rating,
                 comment=clean_comment,
+                hidden_from_watchlist=True,
             ))
         log_activity(
             db, ActivityAction.watchlist_rated,
