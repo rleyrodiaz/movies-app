@@ -203,6 +203,7 @@ def activity_log_page(
     action: str = Query(default=""),
     target_type: str = Query(default=""),
     session_id: str = Query(default=""),
+    user_id: str = Query(default=""),
     date_from: str = Query(default=""),
     date_to: str = Query(default=""),
     page: int = Query(default=1),
@@ -217,10 +218,20 @@ def activity_log_page(
     ).unique().all()
 
     all_target_types = sorted({e.target_type for e in all_entries if e.target_type})
+    all_users: dict[int, User] = {}
+    for e in all_entries:
+        if e.user and e.user_id not in all_users:
+            all_users[e.user_id] = e.user
 
     f_action = action.strip()
     f_target_type = target_type.strip()
     f_session_id = session_id.strip()
+    try:
+        f_user_id = int(user_id)
+    except (ValueError, TypeError):
+        f_user_id = 0
+    if f_user_id not in all_users:
+        f_user_id = 0
     f_date_from = date_from.strip()
     f_date_to = date_to.strip()
 
@@ -231,6 +242,8 @@ def activity_log_page(
         entries = [e for e in entries if e.target_type == f_target_type]
     if f_session_id:
         entries = [e for e in entries if e.session_id == f_session_id]
+    if f_user_id:
+        entries = [e for e in entries if e.user_id == f_user_id]
     if f_date_from:
         try:
             d_from = date.fromisoformat(f_date_from)
@@ -245,12 +258,13 @@ def activity_log_page(
             f_date_to = ""
 
     total = len(entries)
+    all_total = len(all_entries)
     total_pages = max((total + ACTIVITY_LOG_PAGE_SIZE - 1) // ACTIVITY_LOG_PAGE_SIZE, 1)
     page = min(max(page, 1), total_pages)
     page_entries = entries[(page - 1) * ACTIVITY_LOG_PAGE_SIZE: page * ACTIVITY_LOG_PAGE_SIZE]
 
     active_filters = sum([
-        bool(f_action), bool(f_target_type), bool(f_session_id), bool(f_date_from), bool(f_date_to),
+        bool(f_action), bool(f_target_type), bool(f_session_id), bool(f_user_id), bool(f_date_from), bool(f_date_to),
     ])
 
     return templates.TemplateResponse(
@@ -262,14 +276,17 @@ def activity_log_page(
             "action_labels": ACTION_LABELS,
             "all_actions": list(ActivityAction),
             "all_target_types": all_target_types,
+            "all_users": sorted(all_users.values(), key=lambda u: u.display_name.lower()),
             "f_action": f_action,
             "f_target_type": f_target_type,
             "f_session_id": f_session_id,
+            "f_user_id": f_user_id,
             "f_date_from": f_date_from,
             "f_date_to": f_date_to,
             "page": page,
             "total_pages": total_pages,
             "total": total,
+            "all_total": all_total,
             "active_filters": active_filters,
             "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),

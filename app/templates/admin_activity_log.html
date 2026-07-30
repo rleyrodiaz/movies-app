@@ -7,7 +7,13 @@
   <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.75rem">
     <div>
       <h1 class="pm-title" style="font-size:1.5rem">Activity log</h1>
-      <p style="font-size:0.85rem;color:#7A7680;margin-top:0.25rem">{{ total }} acción{{ 'es' if total != 1 else '' }} registrada{{ 's' if total != 1 else '' }}.</p>
+      <p style="font-size:0.85rem;color:#7A7680;margin-top:0.25rem">
+        {% if total != all_total %}
+          {{ total }} de {{ all_total }} registro{{ 's' if all_total != 1 else '' }}.
+        {% else %}
+          {{ total }} registro{{ 's' if total != 1 else '' }}.
+        {% endif %}
+      </p>
     </div>
   </div>
 
@@ -38,6 +44,15 @@
         <option value="">Todas</option>
         {% for t in all_target_types %}
         <option value="{{ t }}" {% if f_target_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Usuario</label>
+      <select name="user_id" class="pm-input" style="padding:0.5rem 0.7rem">
+        <option value="">Todos</option>
+        {% for u in all_users %}
+        <option value="{{ u.id }}" {% if f_user_id == u.id %}selected{% endif %}>{{ u.display_name }}</option>
         {% endfor %}
       </select>
     </div>
@@ -136,7 +151,7 @@
   {% if total_pages > 1 %}
   <div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;flex-wrap:wrap">
     {% for p in range(1, total_pages + 1) %}
-    <a href="?action={{ f_action }}&target_type={{ f_target_type }}&session_id={{ f_session_id }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&page={{ p }}"
+    <a href="?action={{ f_action }}&target_type={{ f_target_type }}&session_id={{ f_session_id }}&user_id={{ f_user_id or '' }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&page={{ p }}"
        style="font-size:0.78rem;padding:0.4rem 0.75rem;text-decoration:none;border:1px solid {% if p == page %}#C8A96E{% else %}#2A2A35{% endif %};color:{% if p == page %}#C8A96E{% else %}#7A7680{% endif %}">
       {{ p }}
     </a>
