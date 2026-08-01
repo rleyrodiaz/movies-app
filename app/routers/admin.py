@@ -110,14 +110,14 @@ def invitations_page(
         is_used = inv.used_by is not None
         is_expired = expires_at < now
         link = f"{base_url}/register/{inv.token}"
+        guia_link = f"{base_url}/guia"
         msg = (
             "Armé movieLeyro: una app privada, de grupo cerrado, para sugerirnos pelis y series "
-            "entre nosotros, sin el eterno \"¿qué vemos hoy?\". Cargás tus sugerencias eligiendo "
-            "de toda la base de TMDB con filtros (título, género, calificación, director, actor). "
-            "Después, con esos mismos filtros, vas pasando lo que te interesa a Mi Watchlist, y "
-            "cuando la ves, la calificás y dejás tu comentario — así el rating no es de un "
-            "desconocido de internet sino de gente en la que confiás. Te dejo tu acceso, es de un "
-            f"solo uso, entrá acá:\n{link}"
+            "entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
+            f"Cómo funciona, acá: {guia_link} (al final vas a encontrar el instructivo para "
+            "instalarla en tu celular, Android o iPhone).\n\n"
+            f"Tu acceso, es de un solo uso, entrá acá: {link}\n\n"
+            f"Si preferís abrirlo directo en Chrome, usá este link: {base_url}"
         )
         invite_data.append({
             "inv": inv,
