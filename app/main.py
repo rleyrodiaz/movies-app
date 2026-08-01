@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -33,6 +33,12 @@ def service_worker():
 @app.get("/manifest.json")
 def manifest():
     return FileResponse("app/static/manifest.json", media_type="application/manifest+json")
+
+
+@app.get("/guia", response_class=HTMLResponse)
+def guia(request: Request):
+    # Pública (sin login) para poder compartirla con gente que todavía no se registró.
+    return templates.TemplateResponse("guia.html", {"request": request})
 
 
 @app.exception_handler(NeedsLogin)

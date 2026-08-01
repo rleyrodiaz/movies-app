@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cómo funciona el club — movieLeyro</title>
+  <meta name="description" content="Guía para nuevos miembros: qué es el club y cómo usarlo.">
+  <link rel="icon" type="image/svg+xml" href="/static/img/movieleyro-favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg: #0D0D0F;
+      --panel: #15151A;
+      --border: #2A2A35;
+      --border-soft: rgba(42, 42, 53, 0.6);
+      --text: #F0EDE8;
+      --text-soft: #B8B4BE;
+      --text-muted: #7A7680;
+      --text-faint: #5A5762;
+      --gold: #C8A96E;
+      --gold-soft: #8a6d2f;
+      --gold-wash: rgba(200, 169, 110, 0.08);
+    }
+
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-weight: 400;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    ::selection { background: var(--gold-wash); color: var(--text); }
+
+    a { color: var(--gold); text-decoration-color: var(--gold-soft); }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+    .display { font-family: 'Playfair Display', Georgia, 'Times New Roman', serif; }
+
+    .wrap { max-width: 640px; margin: 0 auto; padding: 4.5rem 1.5rem 5rem; }
+
+    @media (max-width: 560px) {
+      .wrap { padding: 3rem 1.25rem 3.5rem; }
+      body { font-size: 16px; }
+    }
+
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 1.4rem;
+    }
+    .eyebrow::before { content: ''; display: block; width: 1.6rem; height: 1px; background: var(--gold-soft); }
+
+    h1.hero-title {
+      font-size: clamp(2.3rem, 7vw, 3.1rem); font-weight: 700; line-height: 1.08;
+      letter-spacing: -0.01em; margin: 0 0 1.3rem; text-wrap: balance;
+      animation: rise 0.7s ease-out both;
+    }
+
+    .lead {
+      font-size: 1.14rem; line-height: 1.7; color: var(--text-soft);
+      max-width: 34rem; margin: 0; animation: rise 0.8s 0.08s ease-out both;
+    }
+    .lead strong { color: var(--text); font-weight: 600; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      h1.hero-title, .lead { animation: none; }
+    }
+
+    .thesis { margin: 3.2rem 0; padding: 0 0 0 1.4rem; border-left: 2px solid var(--gold-soft); }
+    .thesis p {
+      font-family: 'Playfair Display', Georgia, serif; font-style: italic;
+      font-size: 1.32rem; line-height: 1.5; color: var(--text); margin: 0; text-wrap: balance;
+    }
+    .thesis p span { color: var(--gold); font-style: normal; }
+
+    section.feature { padding: 2.1rem 0; border-top: 1px solid var(--border-soft); }
+    section.feature:first-of-type { border-top: none; padding-top: 0; }
+
+    .feature-kicker {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--gold); margin: 0 0 0.5rem;
+    }
+
+    .feature h2 {
+      font-family: 'Playfair Display', Georgia, serif; font-size: 1.44rem; font-weight: 700;
+      line-height: 1.25; margin: 0 0 0.55rem; color: var(--text); text-wrap: balance;
+    }
+
+    .feature p { color: var(--text-soft); margin: 0 0 0.7rem; max-width: 34rem; }
+    .feature p:last-child { margin-bottom: 0; }
+
+    .chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+    .chip {
+      font-size: 0.76rem; color: var(--text-muted); border: 1px solid var(--border);
+      background: var(--panel); padding: 0.3rem 0.7rem;
+    }
+
+    .closing { margin-top: 3.6rem; padding-top: 2.6rem; border-top: 1px solid var(--border-soft); }
+    .closing p.sign {
+      font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 1.15rem;
+      color: var(--text-soft); max-width: 30rem; margin: 0;
+    }
+
+    .footer-mark {
+      margin-top: 3.5rem; display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-faint);
+    }
+    .footer-mark .dot { width: 3px; height: 3px; background: var(--text-faint); border-radius: 50%; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <p class="eyebrow">Club privado · guía para empezar</p>
+  <h1 class="hero-title display">Bienvenido/a. Esto no es una app de streaming más.</h1>
+  <p class="lead">
+    Es un grupo cerrado de gente con gustos parecidos, tratando de resolver siempre la
+    misma pregunta: <strong>¿qué vemos hoy?</strong> La idea es simple — sumamos lo que cada
+    uno ya vio y calificó, y con eso el club se arma una opinión propia sobre cada título.
+    Cuanto más participás, mejor funciona para todos.
+  </p>
+
+  <div class="thesis">
+    <p>Ninguna crítica online conoce tu gusto. <span>Este grupo, sí.</span></p>
+  </div>
+
+  <section class="feature">
+    <p class="feature-kicker">Sugerir</p>
+    <h2>Contá lo que ya viste</h2>
+    <p>
+      Andá a "+ Sugerir". Ahí ves todo lo que propusiste y podés cargar un título nuevo:
+      lo calificás y, si querés, sumás un comentario corto con tu opinión. Con eso, tu
+      sugerencia pasa al Feed (Cartelera) y queda lista para el resto del club.
+    </p>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Feed</p>
+    <h2>Todo el club, de un vistazo</h2>
+    <p>
+      Cada sugerencia — la tuya y la de todos — aparece en el Feed, la pantalla
+      principal de la app. Ahí, sin entrar a nada, ya ves si es película o serie, el
+      año, la calificación de TMDB y la del club, quién la sugirió y en qué plataforma
+      está. Si te interesa más, la abrís — y con el botón "Watchlist" la sumás a tu
+      lista personal para verla.
+    </p>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Tu watchlist</p>
+    <h2>Lo que tenés pendiente</h2>
+    <p>
+      Ahí caen los títulos que marcaste desde el Feed. Cuando por fin los ves, los
+      calificás en esa misma pantalla — así compartís tu opinión con el club — y
+      automáticamente salen de tu Watchlist: ya no están pendientes, pasaron a formar
+      parte del promedio del título.
+    </p>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Recordatorios</p>
+    <h2>Lo que todavía no viste, en privado</h2>
+    <p>
+      En tu Watchlist también podés cargar títulos que ni siquiera viste — de esos
+      todavía no podés opinar, así que no se pueden sugerir y tampoco han sido
+      sugeridos por otro miembro del club. Quedan como recordatorios: 100% privados,
+      nadie del club los ve. El día que los mirás, los calificás y ahí sí pasan al Feed
+      como sugerencia tuya — o si cambiaste de idea, los descartás sin dejar rastro.
+    </p>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Tu perfil</p>
+    <h2>Decí qué plataformas tenés</h2>
+    <p>
+      Marcá tus servicios de streaming en tu perfil. Con eso, la app puede mostrarte de
+      un filtro todo lo que ya podés ver ahora mismo — y de paso, el resto del club sabe
+      dónde está disponible cada título que vos mirás.
+    </p>
+    <div class="chip-row">
+      <span class="chip">Netflix</span>
+      <span class="chip">HBO Max</span>
+      <span class="chip">Disney+</span>
+      <span class="chip">Apple TV</span>
+      <span class="chip">Prime Video</span>
+      <span class="chip">y más…</span>
+    </div>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Filtros</p>
+    <h2>Para no perderse en la lista</h2>
+    <p>
+      Género, plataforma, calificación mínima, película o serie, vista o pendiente,
+      quién la sugirió. Cruzalos como quieras — la idea es llegar en segundos a algo
+      que valga la pena, no scrollear media hora.
+    </p>
+  </section>
+
+  <section class="feature">
+    <p class="feature-kicker">Ficha completa</p>
+    <h2>Más que un póster y un título</h2>
+    <p>
+      Cada título trae su información real: sinopsis, elenco, director, temporadas,
+      plataformas, calificación general — todo lo que necesitás para decidir sin abrir
+      diez pestañas más.
+    </p>
+  </section>
+
+  <div class="closing">
+    <p class="sign display">
+      No hace falta que participes todo el tiempo. Alcanza con que, cuando veas algo,
+      lo sumes acá — el club se arma solo, de a poco, con lo que cada uno va aportando.
+    </p>
+  </div>
+
+  <div class="footer-mark">
+    <span>movieLeyro</span><span class="dot"></span><span>Privado</span>
+  </div>
+
+</div>
+</body>
+</html>
