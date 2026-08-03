@@ -107,7 +107,7 @@
       background: var(--panel); padding: 0.3rem 0.7rem;
     }
 
-    .feature h3 {
+    .feature h4 {
       font-size: 0.92rem; font-weight: 600; color: var(--text); margin: 1.1rem 0 0.5rem;
     }
     .feature ol {
@@ -115,10 +115,21 @@
     }
     .feature ol li { margin-bottom: 0.3rem; }
     .feature ol li:last-child { margin-bottom: 0; }
+    .feature p.note { font-size: 0.88rem; color: var(--text-faint); margin: 0; }
 
     .inline-icon {
       width: 1.2em; height: 1.2em; vertical-align: -0.3em;
       color: var(--gold); margin: 0 0.15em;
+    }
+
+    .install-group {
+      border-left: 2px solid var(--gold-soft);
+      padding-left: 1.1rem;
+      margin-top: 1.5rem;
+    }
+    .install-group-title {
+      font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 1.1rem;
+      color: var(--text); margin: 0 0 0.4rem;
     }
 
     .closing { margin-top: 3.6rem; padding-top: 2.6rem; border-top: 1px solid var(--border-soft); }
@@ -239,69 +250,62 @@
     <h2>Un ícono en tu pantalla de inicio</h2>
     <p>
       No hace falta bajarla de ninguna tienda de aplicaciones — se instala directo desde
-      este link, en un minuto.
-    </p>
-    <p>
-      <strong style="color:var(--text)">Si te llega por WhatsApp:</strong> abrí el link ahí
-      primero.
-    </p>
-    <p>
-      <strong style="color:var(--text)">Android:</strong> tocá los tres puntos de arriba a
-      la derecha. Si aparece "Abrir en Chrome", usalo y seguí los pasos de abajo. Si en
-      cambio aparece "Instalar" directo ahí, entrá y elegí <strong style="color:var(--gold)">"Instalar
-      movieLeyro"</strong> — no "Crear acceso directo" (eso solo deja un ícono de acceso
-      rápido, no instala la app de verdad).
-    </p>
-    <p>
-      <strong style="color:var(--text)">iPhone:</strong> tocá el ícono de compartir y elegí
-      "Abrir en Safari", después seguí los pasos de abajo. Instalado desde adentro de
-      WhatsApp no funciona bien.
+      este link, en un minuto. Primero, iniciá sesión con tu acceso. Y una sola cosa a
+      tener en cuenta en todos los casos: si en algún momento ves dos opciones para
+      instalar, elegí siempre <strong style="color:var(--gold)">"Instalar movieLeyro"</strong>,
+      nunca "Crear acceso directo" (eso solo deja un ícono de acceso rápido, no instala
+      la app de verdad).
     </p>
 
-    <h3>Android (Chrome)</h3>
-    <ol>
-      <li>Iniciá sesión con tu acceso.</li>
-      <li>Tocá los tres puntos de arriba a la derecha.</li>
-      <li>Elegí "Instalar app" (o "Agregar a pantalla de inicio"). Si ves dos opciones,
-        elegí <strong style="color:var(--gold)">"Instalar movieLeyro"</strong>, no "Crear
-        acceso directo".</li>
-    </ol>
+    <div class="install-group">
+      <h3 class="install-group-title">Para celular</h3>
 
-    <h3>iPhone (Safari)</h3>
-    <ol>
-      <li>Iniciá sesión con tu acceso.</li>
-      <li>Tocá el ícono de compartir (el cuadrado con la flecha hacia arriba).</li>
-      <li>Elegí "Agregar a pantalla de inicio" y confirmá.</li>
-    </ol>
+      <p class="note" style="margin-bottom:1rem">
+        Si te llega por WhatsApp, abrí el link ahí primero.
+      </p>
 
-    <h3>Computadora (Chrome o Edge)</h3>
-    <ol>
-      <li>Entrá a <a href="https://movies-app-p2sk.onrender.com/" target="_blank" rel="noopener">https://movies-app-p2sk.onrender.com/</a></li>
-      <li>Iniciá sesión con tu acceso.</li>
-      <li>
-        Fijate al final de la barra de direcciones (donde escribís los links) si aparece
-        este ícono:
-        <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="4" width="18" height="12" rx="1.2"></rect>
-          <path d="M8.5 20h7"></path>
-          <path d="M12 16v4"></path>
-          <path d="M9.2 9.2 12 12l2.8-2.8"></path>
-          <path d="M12 6.5v5"></path>
-        </svg>
-        Si está, tocalo e instalá directo.
-      </li>
-      <li>
-        Si no lo ves, entrá al menú de tres puntos
-        <svg class="inline-icon" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="5" r="1.8"></circle>
-          <circle cx="12" cy="12" r="1.8"></circle>
-          <circle cx="12" cy="19" r="1.8"></circle>
-        </svg>
-        (arriba a la derecha) y buscá "Instalar movieLeyro...". Puede estar directo en ese
-        menú, o adentro de un submenú como "Enviar, Guardar y Compartir" (en Edge suele
-        estar en "Aplicaciones").
-      </li>
-    </ol>
+      <h4>Android (Chrome)</h4>
+      <ol>
+        <li>Tocá los tres puntos de arriba a la derecha.</li>
+        <li>Elegí "Instalar app" (o "Agregar a pantalla de inicio"). Si no aparece
+          directo, puede estar adentro de "Enviar, Guardar y Compartir".</li>
+      </ol>
+
+      <h4>iPhone (Safari)</h4>
+      <ol>
+        <li>Tocá el ícono de compartir (el cuadrado con la flecha hacia arriba).</li>
+        <li>Elegí "Agregar a pantalla de inicio" y confirmá.</li>
+      </ol>
+    </div>
+
+    <div class="install-group">
+      <h3 class="install-group-title">Para computadora</h3>
+      <p class="note" style="margin-bottom:1rem">Con Chrome o Edge.</p>
+
+      <ol>
+        <li>Entrá a <a href="https://movies-app-p2sk.onrender.com/" target="_blank" rel="noopener">https://movies-app-p2sk.onrender.com/</a></li>
+        <li>
+          Fijate al final de la barra de direcciones si aparece este ícono:
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="12" rx="1.2"></rect>
+            <path d="M8.5 20h7"></path>
+            <path d="M12 16v4"></path>
+            <path d="M9.2 9.2 12 12l2.8-2.8"></path>
+            <path d="M12 6.5v5"></path>
+          </svg>
+          Si está, tocalo.
+        </li>
+        <li>
+          Si no, entrá al menú de tres puntos
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="1.8"></circle>
+            <circle cx="12" cy="12" r="1.8"></circle>
+            <circle cx="12" cy="19" r="1.8"></circle>
+          </svg>
+          y buscá "Instalar movieLeyro..." (en Edge puede estar dentro de "Aplicaciones").
+        </li>
+      </ol>
+    </div>
 
     <p style="margin-top:0.9rem">
       Se puede instalar en el celular y en la computadora al mismo tiempo, sin límite —
