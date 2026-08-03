@@ -1,10 +1,12 @@
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.exceptions import AccessDenied, NeedsLogin
+from app.models.user import User
 from app.routers import admin, auth, suggestions, tracking, watchlist
+from app.services.auth import get_current_user
 from app.services.version import APP_VERSION
 
 app = FastAPI(title="Movies & Series")
@@ -36,9 +38,9 @@ def manifest():
 
 
 @app.get("/guia", response_class=HTMLResponse)
-def guia(request: Request):
+def guia(request: Request, current_user: User | None = Depends(get_current_user)):
     # Pública (sin login) para poder compartirla con gente que todavía no se registró.
-    return templates.TemplateResponse("guia.html", {"request": request})
+    return templates.TemplateResponse("guia.html", {"request": request, "user": current_user})
 
 
 @app.exception_handler(NeedsLogin)

@@ -31,6 +31,8 @@ def landing(
     current_user: User | None = Depends(get_current_user),
     login_error: str = Query(default=""),
 ):
+    if current_user:
+        return RedirectResponse("/feed", status_code=303)
     return templates.TemplateResponse(
         "landing.html",
         {"request": request, "user": current_user, "login_error": login_error},

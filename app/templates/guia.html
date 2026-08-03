@@ -245,7 +245,7 @@
     </p>
   </section>
 
-  <section class="feature">
+  <section class="feature" id="instalacion">
     <p class="feature-kicker">Instalación</p>
     <h2>Un ícono en tu pantalla de inicio</h2>
     <p>
@@ -312,6 +312,10 @@
       cada instalación es independiente, y entrás a las dos con el mismo email y
       contraseña.
     </p>
+
+    {% if user %}
+    <a href="/feed" style="display:inline-block;margin-top:1.25rem;background:var(--gold);color:#0D0D0F;font-weight:600;padding:0.65rem 1.4rem;text-decoration:none;font-size:0.85rem;letter-spacing:0.02em">Ir al Feed →</a>
+    {% endif %}
   </section>
 
   <div class="closing">
