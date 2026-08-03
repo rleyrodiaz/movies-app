@@ -55,6 +55,7 @@
         <a href="/feed" class="transition-colors {% if is_feed_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
         <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Mi watchlist</a>
         <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
+        <a href="/guia" class="transition-colors text-gray-400 hover:text-white">Guía</a>
 
         {% if user.role in ['admin', 'superadmin'] %}
         <div class="group relative">
@@ -163,6 +164,10 @@
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
                  {% if is_sugerir_active %}text-yellow-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           + Sugerir
+        </a>
+        <a href="/guia" onclick="closeMobileNav()"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-800">
+          Guía
         </a>
         {% if user.role in ['admin', 'superadmin'] %}
         <div class="border-t border-gray-800 pt-0.5 mt-0.5">
@@ -297,7 +302,6 @@
           <p class="pm-nav-title pm-display" style="font-size:1rem;font-weight:700;color:#F0EDE8;padding:0 1.25rem 1rem;margin-bottom:0.5rem;border-bottom:1px solid #2A2A35;line-height:1.3">{{ user.display_name }}</p>
           <button id="profile-tab-btn-platforms" class="pm-nav-item" onclick="switchProfileTab('platforms')">Plataformas</button>
           <button id="profile-tab-btn-password" class="pm-nav-item" onclick="switchProfileTab('password')">Cambio de contraseña</button>
-          <a href="/guia" class="pm-nav-item" style="text-decoration:none">Guía del club</a>
           <form method="post" action="/logout" style="margin:0">
             <button type="submit" class="pm-nav-item pm-danger">Cerrar sesión</button>
           </form>
@@ -463,7 +467,6 @@
   <footer class="border-t border-gray-800 px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
     <p class="text-gray-600 text-[0.7rem] tracking-widest uppercase">
       MovieLeyro &middot; Privado (<span class="normal-case">{{ app_version }}</span>)
-      &middot; <a href="/guia" class="hover:text-gray-400 transition-colors">Guía</a>
     </p>
     <div class="flex items-center gap-2">
       <p class="text-gray-700 text-[0.65rem] tracking-wide uppercase">Datos provistos por</p>
