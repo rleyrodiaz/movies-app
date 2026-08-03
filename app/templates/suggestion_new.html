@@ -36,7 +36,7 @@
 
       {% if s.avg_rating %}
       <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full backdrop-blur-sm rating-badge-{{ s.id }}">
-        {{ s.avg_rating }}/10
+        {{ s.avg_rating }} ({{ s.rating_count }}p)
       </div>
       {% endif %}
 
@@ -297,7 +297,7 @@ function openDetail(id) {
             ${typeBadge}
             ${s.year ? `<span class="text-xs" style="color:#7A7680">${s.year}</span>` : ''}
             ${s.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${s.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
-            ${s.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${s.rating_count} calificaci${s.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${s.avg_rating}/10</span>` : ''}
+            ${s.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${s.rating_count} calificaci${s.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${s.avg_rating} (${s.rating_count}p)</span>` : ''}
           </div>
           <div class="text-right shrink-0">
             <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">

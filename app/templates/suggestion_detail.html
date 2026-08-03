@@ -50,7 +50,7 @@
           {% if s.avg_rating %}
           <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f"
                 title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
-            &#9733; {{ s.avg_rating }}/10
+            &#9733; {{ s.avg_rating }} ({{ s.rating_count }}p)
           </span>
           {% endif %}
         </div>
@@ -167,7 +167,8 @@
       {% endif %}
 
       {% if is_owner and can_delete %}
-      <form id="delete-suggestion-form" method="post" action="/suggestions/{{ s.id }}/delete" class="ml-auto">
+      {% set del_qs = {'back': qp.get('back',''), 'genre': qp.get('genre',''), 'platform': qp.get('platform',''), 'media': qp.get('media',''), 'by': qp.get('by',''), 'sort': qp.get('sort',''), 'min_rating': qp.get('min_rating',''), 'status_filter': qp.get('status_filter','')} %}
+      <form id="delete-suggestion-form" method="post" action="/suggestions/{{ s.id }}/delete?{{ del_qs | urlencode }}" class="ml-auto">
         <button type="button" onclick="confirmDeleteSuggestion()" class="text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">Borrar sugerencia</button>
       </form>
       {% elif is_owner %}
@@ -189,7 +190,7 @@
   <div id="opinions-section" class="hidden" style="border-top:1px solid #2A2A35;padding:1rem 1.5rem">
     <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">
       Opiniones de quienes la vieron
-      {% if s.avg_rating %}<span class="normal-case ml-1" style="color:#C8A96E">· Promedio {{ s.avg_rating }}/10</span>{% endif %}
+      {% if s.avg_rating %}<span class="normal-case ml-1" style="color:#C8A96E">· Promedio {{ s.avg_rating }} ({{ s.rating_count }}p)</span>{% endif %}
     </p>
     <div class="space-y-3">
       {% for e in watched_entries %}

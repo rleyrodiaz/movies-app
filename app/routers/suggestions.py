@@ -1,9 +1,11 @@
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
- 
+
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction
@@ -404,4 +406,8 @@ def suggestion_delete(
         detail={"title": title, "media_type": media_type},
         session_id=get_session_id(request),
     )
-    return RedirectResponse("/suggestions/new", status_code=303)
+    if request.query_params.get("back") == "watchlist":
+        return RedirectResponse("/watchlist", status_code=303)
+    feed_qs = {k: v for k, v in request.query_params.items() if k != "back"}
+    query = f"?{urlencode(feed_qs)}" if feed_qs else ""
+    return RedirectResponse(f"/feed{query}", status_code=303)

@@ -556,7 +556,7 @@ function buildWDetailHTML(e) {
             ${e.status === 'watched' ? `<span class="text-xs" style="color:#86efac;border:1px solid #166534;padding:0.15rem 0.55rem">Vista</span>` : ''}
             ${e.year ? `<span class="text-xs" style="color:#7A7680">${e.year}</span>` : ''}
             ${e.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${e.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
-            ${e.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating}/10</span>` : ''}
+            ${e.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating} (${e.rating_count}p)</span>` : ''}
           </div>
           <div class="text-right shrink-0">
             <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">

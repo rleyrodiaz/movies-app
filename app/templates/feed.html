@@ -89,7 +89,7 @@
       {% if s.avg_rating %}
       <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm"
            title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
-        {{ s.avg_rating }}/10
+        {{ s.avg_rating }} ({{ s.rating_count }}p)
       </div>
       {% endif %}
 
