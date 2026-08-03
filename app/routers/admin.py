@@ -114,10 +114,10 @@ def invitations_page(
         msg = (
             "Armé movieLeyro: una app privada, de grupo cerrado, para sugerirnos pelis y series "
             "entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
-            f"Cómo funciona, acá: {guia_link} (al final vas a encontrar el instructivo para "
-            "instalarla en tu celular, Android o iPhone).\n\n"
-            f"Tu acceso, es de un solo uso, entrá acá: {link}\n\n"
-            f"Si preferís abrirlo directo en Chrome, usá este link: {base_url}"
+            f"Con el siguiente link, accedés a una Guía de Uso: {guia_link} (al final vas a "
+            "encontrar el instructivo para instalarla en tu celular, Android o iPhone, y/o en "
+            "tu desktop/notebook).\n\n"
+            f"Esta invitación es de un solo uso, para registrarte entrá al siguiente link: {link}"
         )
         invite_data.append({
             "inv": inv,
