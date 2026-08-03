@@ -154,6 +154,14 @@
 
 <div class="wrap">
 
+  {% if user %}
+  <a href="/feed" onclick="if (window.history.length > 1) { history.back(); return false; }"
+     style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.82rem;color:var(--text-faint);text-decoration:none;margin-bottom:2rem"
+     onmouseover="this.style.color='var(--text-soft)'" onmouseout="this.style.color='var(--text-faint)'">
+    ← Volver
+  </a>
+  {% endif %}
+
   <p class="eyebrow">Club privado · guía para empezar</p>
   <h1 class="hero-title display">Bienvenido/a, a tu club de cine privado.</h1>
   <p class="lead">
