@@ -110,14 +110,13 @@ def invitations_page(
         is_used = inv.used_by is not None
         is_expired = expires_at < now
         link = f"{base_url}/register/{inv.token}"
-        guia_link = f"{base_url}/guia"
         msg = (
             "Armé movieLeyro: una app privada, de grupo cerrado, para sugerirnos pelis y series "
             "entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
-            f"Con el siguiente link, accedés a una Guía de Uso: {guia_link} (al final vas a "
-            "encontrar el instructivo para instalarla en tu celular, Android o iPhone, y/o en "
-            "tu desktop/notebook).\n\n"
-            f"Esta invitación es de un solo uso, para registrarte entrá al siguiente link: {link}"
+            f"Esta invitación es de un solo uso, para registrarte entrá al siguiente link: {link}\n\n"
+            "Una vez que entrás al club, en el menú vas a encontrar la opción \"Guía\" — ahí te "
+            "explico cómo funciona todo, y al final tenés las instrucciones para instalarla en "
+            "tu celular o computadora."
         )
         invite_data.append({
             "inv": inv,

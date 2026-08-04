@@ -187,7 +187,7 @@ def register_submit(
     invitation.used_by = user.id
     invitation.used_at = datetime.now(timezone.utc)
 
-    response = RedirectResponse("/guia#instalacion", status_code=303)
+    response = RedirectResponse("/feed", status_code=303)
     session_id = set_session(response, user.id, user.club_id)
 
     log_activity(
