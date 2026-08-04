@@ -64,6 +64,7 @@ def login_submit(
         )
     response = RedirectResponse("/feed", status_code=303)
     session_id = set_session(response, user.id, user.club_id)
+    user.last_login_at = datetime.now(timezone.utc)
     log_activity(
         db, ActivityAction.user_login,
         user_id=user.id,
@@ -180,6 +181,7 @@ def register_submit(
         display_name=display_name.strip(),
         invited_by=invitation.created_by,
         club_id=invitation.club_id,
+        last_login_at=datetime.now(timezone.utc),
     )
     db.add(user)
     db.flush()

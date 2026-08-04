@@ -34,6 +34,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     inviter: Mapped["User | None"] = relationship("User", remote_side="User.id", foreign_keys=[invited_by])
     suggestions: Mapped[list["Suggestion"]] = relationship("Suggestion", back_populates="suggester", foreign_keys="Suggestion.suggested_by")
