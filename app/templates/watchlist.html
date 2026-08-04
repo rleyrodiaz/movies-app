@@ -400,7 +400,7 @@ const WENTRIES = {
     rating_count: {{ e.suggestion.rating_count }},
     rating: {{ e.rating if e.rating else 'null' }},
     comment: {{ (e.comment or '') | tojson }},
-    watched_on: {{ (e.watched_on or '') | tojson }},
+    watched_on: {{ (e.watched_on.isoformat() if e.watched_on else '') | tojson }},
     suggester_name: {{ e.suggestion.suggester.display_name | tojson }},
     entries: [{% for oe in e.suggestion.watchlist_entries | sort(attribute='updated_at', reverse=True) %}{% if oe.rating %}{ user:{{ oe.user.display_name | tojson }}, rating:{{ oe.rating }}, comment:{{ (oe.comment or '') | tojson }} },{% endif %}{% endfor %}],
   },

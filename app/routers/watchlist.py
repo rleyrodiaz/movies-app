@@ -312,7 +312,12 @@ def watchlist_rate(
             WatchlistEntry.suggestion_id == suggestion_id,
         )
     )
-    clean_watched_on = watched_on.strip() or None
+    clean_watched_on = None
+    if watched_on.strip():
+        try:
+            clean_watched_on = date.fromisoformat(watched_on.strip())
+        except ValueError:
+            clean_watched_on = None
     clean_comment = comment.strip() or None
     valid_rating = rating if 1 <= rating <= 10 else None
     suggestion = entry.suggestion if entry else db.get(Suggestion, suggestion_id)

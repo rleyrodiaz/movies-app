@@ -205,7 +205,7 @@
         <p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>
         {% endif %}
         {% if e.watched_on %}
-        <p class="text-xs mt-1" style="color:#5A5762">Vista en {{ e.watched_on }}</p>
+        <p class="text-xs mt-1" style="color:#5A5762">Vista el {{ e.watched_on.strftime('%d/%m/%Y') }}</p>
         {% endif %}
       </div>
       {% endfor %}
