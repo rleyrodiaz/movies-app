@@ -15,7 +15,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_current_user, get_session_id, require_user
-from app.services.clubs import get_active_club, list_clubs_for_switcher
+from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher
 from app.services.suggestion_creation import create_suggestion
 from app.services.version import APP_VERSION
 
@@ -52,7 +52,7 @@ def feed(
     status_filter: str = Query(default=""),
     min_rating: str = Query(default="0"),
 ):
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     all_suggestions = db.scalars(
         select(Suggestion)
@@ -167,6 +167,7 @@ def feed(
             "has_any_suggestions": bool(all_suggestions),
             "total_count": len(all_suggestions),
             "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
@@ -185,7 +186,7 @@ def tmdb_search(
 ):
     if current_user is None:
         return JSONResponse({"error": "not_authenticated"}, status_code=401)
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     q = q.strip()
     genre = genre.strip()
@@ -242,7 +243,7 @@ def my_suggestions(
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
 ):
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     suggestions = db.scalars(
         select(Suggestion)
@@ -273,6 +274,7 @@ def my_suggestions(
         ).all())
 
     can_delete_map = {s.id: s.id not in locked_ids for s in suggestions}
+    user_clubs = sorted((m.club for m in current_user.memberships), key=lambda c: c.name)
 
     return templates.TemplateResponse(
         "suggestion_new.html",
@@ -284,6 +286,8 @@ def my_suggestions(
             "can_delete_map": can_delete_map,
             "genres": tmdb.get_all_genre_names(),
             "active_club": active_club,
+            "user_clubs": user_clubs,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
@@ -310,32 +314,47 @@ def suggestion_create(
     release_date: str = Form(""),
     rating: int = Form(0),
     comment_body: str = Form(""),
+    club_ids: list[int] = Form(default=[]),
 ):
     if media_type not in ("movie", "tv"):
         return RedirectResponse("/suggestions/add", status_code=303)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
-    # Check if already suggested by anyone in this club
-    existing = db.scalar(
-        select(Suggestion).where(
-            Suggestion.tmdb_id == tmdb_id,
-            Suggestion.media_type == MediaType(media_type),
-            Suggestion.club_id == active_club.id,
+    # Solo se puede sugerir a clubes propios — se ignora cualquier id ajeno.
+    my_club_ids = {m.club_id for m in current_user.memberships}
+    target_ids = [cid for cid in dict.fromkeys(club_ids) if cid in my_club_ids] or [active_club.id]
+
+    active_result_id: int | None = None
+    active_was_existing = False
+    for club_id in target_ids:
+        # Se respeta lo que ya exista en ese club — no se duplica ni se pisa.
+        existing = db.scalar(
+            select(Suggestion).where(
+                Suggestion.tmdb_id == tmdb_id,
+                Suggestion.media_type == MediaType(media_type),
+                Suggestion.club_id == club_id,
+            )
         )
-    )
-    if existing:
-        return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
+        if existing:
+            result_id, was_existing = existing.id, True
+        else:
+            new_suggestion = create_suggestion(
+                db, current_user.id, club_id, tmdb_id, media_type, title,
+                poster_path=poster_path,
+                overview=overview,
+                release_date=release_date,
+                rating=rating,
+                comment=comment_body,
+                session_id=get_session_id(request),
+            )
+            result_id, was_existing = new_suggestion.id, False
 
-    create_suggestion(
-        db, current_user.id, active_club.id, tmdb_id, media_type, title,
-        poster_path=poster_path,
-        overview=overview,
-        release_date=release_date,
-        rating=rating,
-        comment=comment_body,
-        session_id=get_session_id(request),
-    )
+        if club_id == active_club.id:
+            active_result_id, active_was_existing = result_id, was_existing
+
+    if active_result_id is not None and active_was_existing:
+        return RedirectResponse(f"/suggestions/{active_result_id}?duplicate=1", status_code=303)
     return RedirectResponse("/suggestions/new", status_code=303)
 
 
@@ -357,7 +376,7 @@ def suggestion_detail(
     if suggestion is None:
         return RedirectResponse("/feed", status_code=303)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
     if suggestion.club_id != active_club.id:
         return RedirectResponse("/feed", status_code=303)
 
@@ -402,6 +421,7 @@ def suggestion_detail(
             "nav_active": nav_active,
             "back_feed_qs": back_feed_qs,
             "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )

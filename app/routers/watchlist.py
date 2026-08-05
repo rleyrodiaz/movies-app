@@ -17,7 +17,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_session_id, require_user
-from app.services.clubs import get_active_club, list_clubs_for_switcher
+from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher
 from app.services.suggestion_creation import create_suggestion
 from app.services.version import APP_VERSION
 
@@ -39,7 +39,7 @@ def watchlist_page(
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
 ):
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     all_entries = db.scalars(
         select(WatchlistEntry)
@@ -59,9 +59,9 @@ def watchlist_page(
     ).unique().all()
 
     # Los recordatorios son privados y no tienen club propio — solo tiene sentido
-    # mostrarlos cuando estás parado en tu propio club (para el superadmin viendo
-    # otro club ajeno, no son "suyos" en ese contexto).
-    if active_club.id == current_user.club_id:
+    # mostrarlos cuando estás parado en un club del que sos miembro de verdad
+    # (para el superadmin viendo un club ajeno, no son "suyos" en ese contexto).
+    if any(m.club_id == active_club.id for m in current_user.memberships):
         all_reminders = db.scalars(
             select(PersonalReminder)
             .where(PersonalReminder.user_id == current_user.id)
@@ -146,6 +146,7 @@ def watchlist_page(
             "f_status": f_status,
             "active_filters": active_filters,
             "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
@@ -166,7 +167,7 @@ def reminder_create(
     if media_type not in ("movie", "tv"):
         return RedirectResponse("/watchlist", status_code=303)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     # Si ya es una sugerencia pública en este club, se agrega normalmente como
     # pendiente en vez de crear un recordatorio privado duplicado.
@@ -258,7 +259,7 @@ def watchlist_update(
     if suggestion is None:
         return RedirectResponse("/watchlist", status_code=303)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
     if suggestion.club_id != active_club.id:
         return RedirectResponse("/watchlist", status_code=303)
 
@@ -323,7 +324,7 @@ def watchlist_rate(
     valid_rating = rating if 1 <= rating <= 10 else None
     suggestion = entry.suggestion if entry else db.get(Suggestion, suggestion_id)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
     if suggestion and suggestion.club_id != active_club.id:
         return RedirectResponse("/watchlist", status_code=303)
 
@@ -376,7 +377,7 @@ def reminder_promote(
     if not (1 <= rating <= 10):
         return RedirectResponse("/watchlist", status_code=303)
 
-    active_club = get_active_club(request, current_user, db)
+    active_club = get_active_club(current_user, db)
 
     # Puede haberse sugerido públicamente mientras estaba en tus recordatorios.
     # En ese caso no se pierde tu calificación: se aplica sobre la sugerencia existente.

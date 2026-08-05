@@ -12,18 +12,21 @@ from app.config import get_settings
 from app.db import get_db_dep
 from app.models.activity_log import ActivityAction
 from app.models.club import Club
+from app.models.club_membership import ClubMembership
 from app.models.invitation import Invitation
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import (
     clear_session,
     get_current_user,
+    get_session_id,
     hash_password,
     require_user,
     set_session,
     verify_password,
 )
+from app.services.clubs import get_active_club
 from app.services.emails import send_login_notification, send_registration_notification
 from app.services.version import APP_VERSION
 from app.services.visit import get_client_ip, parse_device
@@ -62,13 +65,14 @@ def login_submit(
             f"/?login_error={quote('Email o contraseña incorrectos.')}",
             status_code=303,
         )
+    active_club = get_active_club(user, db)
     response = RedirectResponse("/feed", status_code=303)
-    session_id = set_session(response, user.id, user.club_id)
+    session_id = set_session(response, user.id)
     user.last_login_at = datetime.now(timezone.utc)
     log_activity(
         db, ActivityAction.user_login,
         user_id=user.id,
-        club_id=user.club_id,
+        club_id=active_club.id,
         detail=_client_origin(request),
         session_id=session_id,
     )
@@ -76,7 +80,6 @@ def login_submit(
     # No te mandamos el aviso de login a vos mismo si sos quien recibe los avisos
     # (el de "nueva visita" ya te informa de todos modos, sin ser tan repetitivo).
     if user.email.lower() != get_settings().visit_notify_to.lower():
-        club = db.get(Club, user.club_id)
         device = parse_device(request.headers.get("user-agent", ""))
         background_tasks.add_task(
             send_login_notification,
@@ -86,7 +89,7 @@ def login_submit(
             device.get("device_type", ""),
             device.get("browser", ""),
             device.get("os", ""),
-            club.name if club else "",
+            active_club.name,
         )
     return response
 
@@ -106,6 +109,8 @@ def register_page(
     db: Session = Depends(get_db_dep),
 ):
     invitation = _get_valid_invitation(token, db)
+    if user is not None and invitation is not None:
+        return _join_club_and_redirect(request, user, invitation, db)
     return templates.TemplateResponse(
         "landing.html",
         {
@@ -145,6 +150,27 @@ def register_submit(
             },
         )
 
+    clean_email = email.lower().strip()
+    existing = db.scalar(select(User).where(User.email == clean_email))
+    if existing:
+        # Ya tiene cuenta: si la contraseña coincide, tratamos esto como un login
+        # y la sumamos al club nuevo, en vez de rechazar el registro.
+        if verify_password(password, existing.password_hash):
+            return _join_club_and_redirect(request, existing, invitation, db)
+        return templates.TemplateResponse(
+            "landing.html",
+            {
+                "request": request,
+                "user": user,
+                "login_error": "",
+                "register_open": True,
+                "token": token,
+                "invitation_invalid": False,
+                "errors": ["Ya existe una cuenta con ese email. Si es tuya, iniciá sesión con tu contraseña real."],
+                "form": {"display_name": display_name, "email": email},
+            },
+        )
+
     errors: list[str] = []
     if len(display_name.strip()) < 2:
         errors.append("El nombre debe tener al menos 2 caracteres.")
@@ -154,11 +180,6 @@ def register_submit(
         errors.append("La contraseña debe tener al menos 8 caracteres.")
     if password != confirm_password:
         errors.append("Las contraseñas no coinciden.")
-
-    if not errors:
-        existing = db.scalar(select(User).where(User.email == email.lower().strip()))
-        if existing:
-            errors.append("Ya existe una cuenta con ese email.")
 
     if errors:
         return templates.TemplateResponse(
@@ -176,21 +197,22 @@ def register_submit(
         )
 
     user = User(
-        email=email.lower().strip(),
+        email=clean_email,
         password_hash=hash_password(password),
         display_name=display_name.strip(),
         invited_by=invitation.created_by,
-        club_id=invitation.club_id,
         last_login_at=datetime.now(timezone.utc),
+        last_active_club_id=invitation.club_id,
     )
     db.add(user)
     db.flush()
+    db.add(ClubMembership(user_id=user.id, club_id=invitation.club_id, role=UserRole.user))
 
     invitation.used_by = user.id
     invitation.used_at = datetime.now(timezone.utc)
 
     response = RedirectResponse("/feed", status_code=303)
-    session_id = set_session(response, user.id, user.club_id)
+    session_id = set_session(response, user.id)
 
     log_activity(
         db, ActivityAction.user_registered,
@@ -220,6 +242,47 @@ def register_submit(
         club.name if club else "",
     )
 
+    return response
+
+
+def _join_club_and_redirect(request: Request, user: User, invitation: Invitation, db: Session) -> RedirectResponse:
+    """El usuario (con cuenta existente) se suma al club de la invitación, si
+    todavía no es miembro, y queda parado ahí. Sirve tanto para alguien ya
+    logueado que abre una invitación nueva, como para el caso "login disfrazado
+    de registro" en register_submit."""
+    response = RedirectResponse("/feed", status_code=303)
+    session_id = get_session_id(request)
+    if session_id is None:
+        session_id = set_session(response, user.id)
+
+    already_member = db.scalar(
+        select(ClubMembership.id).where(
+            ClubMembership.user_id == user.id, ClubMembership.club_id == invitation.club_id
+        )
+    )
+    if not already_member:
+        db.add(ClubMembership(user_id=user.id, club_id=invitation.club_id, role=UserRole.user))
+        invitation.used_by = user.id
+        invitation.used_at = datetime.now(timezone.utc)
+        log_activity(
+            db, ActivityAction.club_joined,
+            user_id=user.id,
+            club_id=invitation.club_id,
+            target_type="invitation",
+            target_id=invitation.id,
+            session_id=session_id,
+        )
+        log_activity(
+            db, ActivityAction.invitation_used,
+            user_id=invitation.created_by,
+            club_id=invitation.club_id,
+            target_type="invitation",
+            target_id=invitation.id,
+            detail={"used_by_email": user.email},
+            session_id=session_id,
+        )
+
+    user.last_active_club_id = invitation.club_id
     return response
 
 

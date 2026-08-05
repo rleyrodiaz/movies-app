@@ -1,5 +1,6 @@
 from app.models.club import Club
 from app.models.user import User, UserRole
+from app.models.club_membership import ClubMembership
 from app.models.invitation import Invitation
 from app.models.suggestion import Suggestion, MediaType
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
@@ -10,6 +11,7 @@ __all__ = [
     "Club",
     "User",
     "UserRole",
+    "ClubMembership",
     "Invitation",
     "Suggestion",
     "MediaType",

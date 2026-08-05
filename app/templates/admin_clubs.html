@@ -56,8 +56,8 @@
         <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
           <div style="min-width:0">
             <div style="display:flex;align-items:center;gap:0.6rem">
-              <span style="color:#B8B4BE;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.display_name }}</span>
-              {% if m.role.value == 'superadmin' %}
+              <span style="color:#B8B4BE;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.user.display_name }}</span>
+              {% if m.user.is_superadmin %}
               <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">superadmin</span>
               {% elif m.role.value == 'admin' %}
               <span class="pm-badge" style="color:#93c5fd;border-color:#1e3a8a">admin</span>
@@ -66,11 +66,11 @@
               {% endif %}
             </div>
             <p style="font-size:0.72rem;color:#5A5762;margin-top:0.2rem">
-              {% if m.last_login_at %}Último acceso: {{ (m.last_login_at|local_time).strftime('%d/%m/%Y %H:%M') }}{% else %}Nunca ingresó{% endif %}
+              {% if m.user.last_login_at %}Último acceso: {{ (m.user.last_login_at|local_time).strftime('%d/%m/%Y %H:%M') }}{% else %}Nunca ingresó{% endif %}
             </p>
           </div>
-          {% if m.role.value != 'superadmin' %}
-          <form method="post" action="/admin/clubs/{{ d.club.id }}/members/{{ m.id }}/role" style="flex-shrink:0">
+          {% if not m.user.is_superadmin %}
+          <form method="post" action="/admin/clubs/{{ d.club.id }}/members/{{ m.user.id }}/role" style="flex-shrink:0">
             <button type="submit" class="pm-btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.72rem;white-space:nowrap">
               {{ 'Quitar admin' if m.role.value == 'admin' else 'Hacer admin' }}
             </button>

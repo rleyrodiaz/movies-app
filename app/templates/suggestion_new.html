@@ -167,6 +167,26 @@
             class="pm-input" style="resize:none"></textarea>
         </div>
 
+        {% if user_clubs|length > 1 %}
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+            <p class="text-sm font-medium" style="color:#B8B4BE">¿A qué club(es) va?</p>
+            <button type="button" onclick="selectAllClubs()"
+              style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:#C8A96E">Todos mis clubes</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem">
+            {% for c in user_clubs %}
+            <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+              <input type="checkbox" name="club_ids" value="{{ c.id }}" class="club-ids-checkbox" form="suggest-form"
+                     {% if c.id == active_club.id %}checked{% endif %}
+                     style="accent-color:#C8A96E;width:1rem;height:1rem">
+              <span style="font-size:0.85rem;color:#B8B4BE">{{ c.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         <form id="suggest-form" method="post" action="/suggestions">
           <input type="hidden" id="f_tmdb_id"      name="tmdb_id">
           <input type="hidden" id="f_media_type"   name="media_type">
@@ -192,6 +212,7 @@
 {# ── Datos embebidos ── #}
 <script>
 const SUGGESTER_NAME = {{ user.display_name | tojson }};
+const ACTIVE_CLUB_ID = {{ active_club.id }};
 const SUGGESTIONS = {
   {% for s in suggestions %}
   {% set entry = rating_map.get(s.id) %}
@@ -710,6 +731,13 @@ window.handleAddBackdrop = function (e) {
     document.getElementById('comment-input').value = '';
     document.getElementById('f_tmdb_id').value = '';
     resetRating();
+    document.querySelectorAll('.club-ids-checkbox').forEach(cb => {
+      cb.checked = cb.value === String(ACTIVE_CLUB_ID);
+    });
+  };
+
+  window.selectAllClubs = function () {
+    document.querySelectorAll('.club-ids-checkbox').forEach(cb => { cb.checked = true; });
   };
 
   document.getElementById('suggest-form').addEventListener('submit', function (e) {

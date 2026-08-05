@@ -26,6 +26,7 @@ class ActivityAction(str, enum.Enum):
     club_created = "club_created"
     club_renamed = "club_renamed"
     club_switched = "club_switched"
+    club_joined = "club_joined"
 
 
 class ActivityLog(Base):

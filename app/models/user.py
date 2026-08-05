@@ -2,7 +2,7 @@ import enum
 import json
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -21,11 +21,11 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        Enum(UserRole, name="userrole"), nullable=False, default=UserRole.user
+    is_superadmin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
-    club_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False
+    last_active_club_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True
     )
     invited_by: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
@@ -42,6 +42,7 @@ class User(Base):
     reminders: Mapped[list["PersonalReminder"]] = relationship("PersonalReminder", back_populates="user", cascade="all, delete-orphan")
     activity_logs: Mapped[list["ActivityLog"]] = relationship("ActivityLog", back_populates="user")
     created_invitations: Mapped[list["Invitation"]] = relationship("Invitation", back_populates="creator", foreign_keys="Invitation.created_by")
+    memberships: Mapped[list["ClubMembership"]] = relationship("ClubMembership", back_populates="user", cascade="all, delete-orphan")
 
     @property
     def platforms_list(self) -> list[str]:

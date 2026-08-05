@@ -54,7 +54,7 @@
       {# ── Club activo (mobile): fuera de la hamburguesa, siempre visible ── #}
       {% if active_club %}
       <div class="md:hidden flex-1 flex justify-center px-2 min-w-0">
-        {% if user.role == 'superadmin' %}
+        {% if user.is_superadmin %}
         <a href="/admin/clubs"
           class="flex items-center gap-1.5 text-xs border border-violet-400/50 rounded-full px-3 py-1 text-violet-400 max-w-full">
           <span class="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0"></span>
@@ -76,7 +76,7 @@
         <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
         <a href="/guia" class="transition-colors text-gray-400 hover:text-white">Guía</a>
 
-        {% if user.role in ['admin', 'superadmin'] %}
+        {% if is_club_admin %}
         <div class="group relative">
           <button class="text-gray-400 hover:text-white transition-colors flex items-center gap-1">
             Admin
@@ -88,7 +88,7 @@
             <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-44 py-1 overflow-hidden">
               <a href="/admin/invitations" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Invitaciones</a>
               <a href="/admin/activity-log" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Activity log</a>
-              {% if user.role == 'superadmin' %}
+              {% if user.is_superadmin %}
               <div class="border-t border-gray-700 mt-1 pt-1">
                 <a href="/admin/clubs" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Clubes</a>
                 <a href="/admin/settings" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Settings</a>
@@ -100,7 +100,7 @@
         {% endif %}
 
         {% if active_club %}
-          {% if user.role == 'superadmin' %}
+          {% if all_clubs %}
           <div class="group relative">
             <button class="flex items-center gap-1.5 text-xs border border-violet-400/50 rounded-full px-3 py-1 text-violet-400 hover:border-violet-400 transition-colors">
               <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
@@ -121,9 +121,11 @@
                   </button>
                 </form>
                 {% endfor %}
+                {% if user.is_superadmin %}
                 <div class="border-t border-gray-700 mt-1 pt-1">
                   <a href="/admin/clubs" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Gestionar clubes</a>
                 </div>
+                {% endif %}
               </div>
             </div>
           </div>
@@ -188,7 +190,7 @@
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-800">
           Guía
         </a>
-        {% if user.role in ['admin', 'superadmin'] %}
+        {% if is_club_admin %}
         <div class="border-t border-gray-800 pt-0.5 mt-0.5">
           <a href="/admin/invitations" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
@@ -198,7 +200,7 @@
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Activity log
           </a>
-          {% if user.role == 'superadmin' %}
+          {% if user.is_superadmin %}
           <a href="/admin/clubs" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Clubes
@@ -208,6 +210,23 @@
             Settings
           </a>
           {% endif %}
+        </div>
+        {% endif %}
+        {% if all_clubs and not user.is_superadmin %}
+        <div class="border-t border-gray-800 pt-2 mt-1 px-3">
+          <p class="text-xs text-violet-400/80 uppercase tracking-wide mb-1.5">Cambiar de club</p>
+          <div class="flex flex-wrap gap-1.5">
+            {% for c in all_clubs %}
+            <form method="post" action="/admin/clubs/switch">
+              <input type="hidden" name="club_id" value="{{ c.id }}">
+              <button type="submit"
+                class="text-xs px-2.5 py-1 rounded-full border transition-colors
+                       {% if c.id == active_club.id %}border-violet-400 text-violet-400{% else %}border-gray-700 text-gray-400 hover:text-white hover:border-gray-600{% endif %}">
+                {{ c.name }}
+              </button>
+            </form>
+            {% endfor %}
+          </div>
         </div>
         {% endif %}
         <div class="border-t border-gray-800 pt-2 mt-1 pb-1 flex items-center justify-between px-3">

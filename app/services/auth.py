@@ -6,12 +6,15 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from passlib.context import CryptContext
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db_dep
 from app.exceptions import AccessDenied, NeedsLogin
+from app.models.club_membership import ClubMembership
 from app.models.user import User, UserRole
+from app.services.clubs import get_active_club
 
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -34,15 +37,15 @@ def _new_session_id() -> str:
     return secrets.token_hex(8)
 
 
-def create_session_cookie(user_id: int, session_id: str, club_id: int) -> str:
-    return _serializer().dumps({"uid": user_id, "sid": session_id, "club_id": club_id})
+def create_session_cookie(user_id: int, session_id: str) -> str:
+    return _serializer().dumps({"uid": user_id, "sid": session_id})
 
 
 def decode_session_cookie(value: str) -> dict | None:
     max_age = get_settings().session_max_age_days * 86400
     try:
         data = _serializer().loads(value, max_age=max_age)
-        return {"uid": int(data["uid"]), "sid": data.get("sid"), "club_id": data.get("club_id")}
+        return {"uid": int(data["uid"]), "sid": data.get("sid")}
     except (BadSignature, SignatureExpired, KeyError, ValueError):
         return None
 
@@ -55,7 +58,6 @@ def get_current_user(request: Request, db: Session = Depends(get_db_dep)) -> Use
     if not data:
         return None
     request.state.session_id = data.get("sid")
-    request.state.active_club_id = data.get("club_id")
     return db.get(User, data["uid"])
 
 
@@ -70,25 +72,33 @@ def require_user(user: User | None = Depends(get_current_user)) -> User:
     return user
 
 
-def require_admin(user: User = Depends(require_user)) -> User:
-    if user.role not in (UserRole.admin, UserRole.superadmin):
+def require_admin(user: User = Depends(require_user), db: Session = Depends(get_db_dep)) -> User:
+    if user.is_superadmin:
+        return user
+    active_club = get_active_club(user, db)
+    membership = db.scalar(
+        select(ClubMembership).where(
+            ClubMembership.user_id == user.id, ClubMembership.club_id == active_club.id
+        )
+    )
+    if membership is None or membership.role != UserRole.admin:
         raise AccessDenied()
     return user
 
 
 def require_superadmin(user: User = Depends(require_user)) -> User:
-    if user.role != UserRole.superadmin:
+    if not user.is_superadmin:
         raise AccessDenied()
     return user
 
 
-def set_session(response, user_id: int, club_id: int) -> str:
+def set_session(response, user_id: int) -> str:
     """Crea la cookie de sesión y devuelve el session_id generado (para el activity log)."""
     settings = get_settings()
     session_id = _new_session_id()
     response.set_cookie(
         COOKIE_NAME,
-        create_session_cookie(user_id, session_id, club_id),
+        create_session_cookie(user_id, session_id),
         max_age=settings.session_max_age_days * 86400,
         httponly=True,
         samesite="lax",
