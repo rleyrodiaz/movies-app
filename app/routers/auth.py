@@ -109,7 +109,9 @@ def register_page(
     db: Session = Depends(get_db_dep),
 ):
     invitation = _get_valid_invitation(token, db)
-    if user is not None and invitation is not None:
+    # Si quien la abre es quien la creó (la está previendo/copiando/probando),
+    # no la consumimos — si no, se quema antes de que la use el destinatario real.
+    if user is not None and invitation is not None and invitation.created_by != user.id:
         return _join_club_and_redirect(request, user, invitation, db)
     return templates.TemplateResponse(
         "landing.html",

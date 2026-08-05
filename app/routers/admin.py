@@ -115,8 +115,8 @@ def invitations_page(
         is_expired = expires_at < now
         link = f"{base_url}/register/{inv.token}"
         msg = (
-            "Armé movieLeyro: una app privada, de grupo cerrado, para sugerirnos pelis y series "
-            "entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
+            f"Te invito a mi club privado de pelis y series en movieLeyro: *{active_club.name}*.\n\n"
+            "Armé la app para sugerirnos títulos entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
             f"Esta invitación es de un solo uso, para registrarte entrá al siguiente link: {link}\n\n"
             "Una vez que entrás al club, en el menú vas a encontrar la opción \"Guía\" — ahí te "
             "explico cómo funciona todo, y al final tenés las instrucciones para instalarla en "
