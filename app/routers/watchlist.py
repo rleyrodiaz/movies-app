@@ -32,10 +32,10 @@ def watchlist_page(
     request: Request,
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
-    genre: str = Query(default=""),
-    platform: str = Query(default=""),
+    genre: list[str] = Query(default=[]),
+    platform: list[str] = Query(default=[]),
     media: str = Query(default=""),
-    by: str = Query(default=""),
+    by: list[str] = Query(default=[]),
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
 ):
@@ -84,14 +84,16 @@ def watchlist_page(
 
     # Normalize filters
     f_media = media if media in ("movie", "tv") else ""
-    f_genre = genre.strip()
-    f_platform = platform.strip()
+    f_genre = [g.strip() for g in genre if g.strip()]
+    f_platform = [p.strip() for p in platform if p.strip()]
     f_sort = sort if sort in ("name", "rating") else ""
     f_status = status_filter if status_filter in ("pending", "watched") else ""
-    try:
-        f_by = int(by)
-    except (ValueError, TypeError):
-        f_by = 0
+    f_by: list[int] = []
+    for b in by:
+        try:
+            f_by.append(int(b))
+        except (ValueError, TypeError):
+            pass
 
     # Apply filters
     entries = list(all_entries)
@@ -100,15 +102,17 @@ def watchlist_page(
     if f_media:
         entries = [e for e in entries if e.suggestion.media_type.value == f_media]
     if f_by:
-        entries = [e for e in entries if e.suggestion.suggested_by == f_by]
+        entries = [e for e in entries if e.suggestion.suggested_by in f_by]
     if f_genre:
-        entries = [e for e in entries if f_genre in e.suggestion.genres_list]
-    f_my_platforms = f_platform == "__mine__" and bool(current_user.platforms_list)
+        genre_set = set(f_genre)
+        entries = [e for e in entries if genre_set & set(e.suggestion.genres_list)]
+    f_my_platforms = "__mine__" in f_platform and bool(current_user.platforms_list)
+    f_platform_specific = [p for p in f_platform if p != "__mine__"]
+    platform_set = set(f_platform_specific)
     if f_my_platforms:
-        my_platform_set = set(current_user.platforms_list)
-        entries = [e for e in entries if my_platform_set & set(e.suggestion.providers_list)]
-    elif f_platform:
-        entries = [e for e in entries if f_platform in e.suggestion.providers_list]
+        platform_set |= set(current_user.platforms_list)
+    if platform_set:
+        entries = [e for e in entries if platform_set & set(e.suggestion.providers_list)]
 
     # Sort
     if f_sort == "name":
@@ -119,11 +123,8 @@ def watchlist_page(
     active_filters = sum([bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status)])
 
     reminders = list(all_reminders)
-    if f_my_platforms:
-        my_platform_set = set(current_user.platforms_list)
-        reminders = [r for r in reminders if my_platform_set & set(r.providers_list)]
-    elif f_platform:
-        reminders = [r for r in reminders if f_platform in r.providers_list]
+    if platform_set:
+        reminders = [r for r in reminders if platform_set & set(r.providers_list)]
 
     return templates.TemplateResponse(
         "watchlist.html",

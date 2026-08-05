@@ -44,10 +44,10 @@ def feed(
     request: Request,
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
-    genre: str = Query(default=""),
-    platform: str = Query(default=""),
+    genre: list[str] = Query(default=[]),
+    platform: list[str] = Query(default=[]),
     media: str = Query(default=""),
-    by: str = Query(default=""),
+    by: list[str] = Query(default=[]),
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
     min_rating: str = Query(default="0"),
@@ -76,15 +76,18 @@ def feed(
 
     # Normalize filter values
     f_media = media if media in ("movie", "tv") else ""
-    f_genre = genre.strip()
-    f_platform = platform.strip()
+    f_genre = [g.strip() for g in genre if g.strip()]
+    f_platform = [p.strip() for p in platform if p.strip()]
     f_sort = sort if sort in ("name", "rating") else ""
     f_status = status_filter if status_filter in ("pending", "watched") else ""
-    f_my_platforms = f_platform == "__mine__" and bool(current_user.platforms_list)
-    try:
-        f_by = int(by)
-    except (ValueError, TypeError):
-        f_by = 0
+    f_my_platforms = "__mine__" in f_platform and bool(current_user.platforms_list)
+    f_platform_specific = [p for p in f_platform if p != "__mine__"]
+    f_by: list[int] = []
+    for b in by:
+        try:
+            f_by.append(int(b))
+        except (ValueError, TypeError):
+            pass
     try:
         f_min_rating = max(0, min(10, int(min_rating)))
     except (ValueError, TypeError):
@@ -95,14 +98,15 @@ def feed(
     if f_media:
         suggestions = [s for s in suggestions if s.media_type.value == f_media]
     if f_by:
-        suggestions = [s for s in suggestions if s.suggested_by == f_by]
+        suggestions = [s for s in suggestions if s.suggested_by in f_by]
     if f_genre:
-        suggestions = [s for s in suggestions if f_genre in s.genres_list]
+        genre_set = set(f_genre)
+        suggestions = [s for s in suggestions if genre_set & set(s.genres_list)]
+    platform_set = set(f_platform_specific)
     if f_my_platforms:
-        my_platform_set = set(current_user.platforms_list)
-        suggestions = [s for s in suggestions if my_platform_set & set(s.providers_list)]
-    elif f_platform:
-        suggestions = [s for s in suggestions if f_platform in s.providers_list]
+        platform_set |= set(current_user.platforms_list)
+    if platform_set:
+        suggestions = [s for s in suggestions if platform_set & set(s.providers_list)]
     if f_min_rating:
         suggestions = [s for s in suggestions if s.avg_rating and s.avg_rating >= f_min_rating]
     if f_status == "watched":
@@ -126,6 +130,21 @@ def feed(
         bool(f_genre), bool(f_platform), bool(f_media), bool(f_by), bool(f_status), bool(f_min_rating),
     ])
 
+    filter_qs = urlencode(
+        {
+            "genre": f_genre, "platform": f_platform, "media": f_media, "by": f_by,
+            "sort": f_sort, "min_rating": f_min_rating, "status_filter": f_status,
+        },
+        doseq=True,
+    )
+    filter_qs_no_status = urlencode(
+        {
+            "genre": f_genre, "platform": f_platform, "media": f_media, "by": f_by,
+            "sort": f_sort, "min_rating": f_min_rating,
+        },
+        doseq=True,
+    )
+
     return templates.TemplateResponse(
         "feed.html",
         {
@@ -143,6 +162,8 @@ def feed(
             "f_status": f_status,
             "f_min_rating": f_min_rating,
             "active_filters": active_filters,
+            "filter_qs": filter_qs,
+            "filter_qs_no_status": filter_qs_no_status,
             "has_any_suggestions": bool(all_suggestions),
             "total_count": len(all_suggestions),
             "active_club": active_club,
@@ -356,6 +377,17 @@ def suggestion_detail(
 
     nav_active = "watchlist" if request.query_params.get("back") == "watchlist" else "feed"
 
+    qp = request.query_params
+    back_feed_qs = urlencode(
+        {
+            "genre": qp.getlist("genre"), "platform": qp.getlist("platform"),
+            "media": qp.get("media", ""), "by": qp.getlist("by"),
+            "sort": qp.get("sort", ""), "min_rating": qp.get("min_rating", ""),
+            "status_filter": qp.get("status_filter", ""),
+        },
+        doseq=True,
+    )
+
     return templates.TemplateResponse(
         "suggestion_detail.html",
         {
@@ -368,6 +400,7 @@ def suggestion_detail(
             "is_owner": is_owner,
             "can_delete": can_delete,
             "nav_active": nav_active,
+            "back_feed_qs": back_feed_qs,
             "active_club": active_club,
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
@@ -410,6 +443,12 @@ def suggestion_delete(
     )
     if request.query_params.get("back") == "watchlist":
         return RedirectResponse("/watchlist", status_code=303)
-    feed_qs = {k: v for k, v in request.query_params.items() if k != "back"}
-    query = f"?{urlencode(feed_qs)}" if feed_qs else ""
+    qp = request.query_params
+    feed_qs = {
+        "genre": qp.getlist("genre"), "platform": qp.getlist("platform"),
+        "media": qp.get("media", ""), "by": qp.getlist("by"),
+        "sort": qp.get("sort", ""), "min_rating": qp.get("min_rating", ""),
+        "status_filter": qp.get("status_filter", ""),
+    }
+    query = f"?{urlencode(feed_qs, doseq=True)}"
     return RedirectResponse(f"/feed{query}", status_code=303)

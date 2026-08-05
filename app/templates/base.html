@@ -26,7 +26,7 @@
     }
   </script>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-full flex flex-col">
+<body class="bg-gray-950 text-gray-100 min-h-full flex flex-col {% if user %}pb-16 md:pb-0{% endif %}">
 
   {% if user %}
   {% set path = request.url.path %}
@@ -227,6 +227,28 @@
         </div>
       </div>
     </div>
+  </div>
+
+  {# ── Barra fija inferior (solo mobile): acceso directo a las 3 funciones principales ── #}
+  <div class="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-gray-900 border-t border-gray-800 flex items-stretch" style="padding-bottom:env(safe-area-inset-bottom)">
+    <a href="/feed" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_feed_active %}text-yellow-400{% else %}text-gray-400{% endif %}">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+      </svg>
+      <span class="text-[0.65rem] {% if is_feed_active %}font-bold{% else %}font-medium{% endif %}">Feed</span>
+    </a>
+    <a href="/watchlist" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_watchlist_active %}text-yellow-400{% else %}text-gray-400{% endif %}">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z" />
+      </svg>
+      <span class="text-[0.65rem] {% if is_watchlist_active %}font-bold{% else %}font-medium{% endif %}">Watchlist</span>
+    </a>
+    <a href="/suggestions/new" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_sugerir_active %}text-yellow-400{% else %}text-gray-400{% endif %}">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      <span class="text-[0.65rem] {% if is_sugerir_active %}font-bold{% else %}font-medium{% endif %}">Sugerir</span>
+    </a>
   </div>
 
   {# ── Profile modal (contraseña + plataformas) — estilo del modal de login de la landing ── #}

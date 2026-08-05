@@ -9,8 +9,7 @@
   {% if qp.get('back') == 'watchlist' %}
 <a href="/watchlist" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a mi watchlist</a>
 {% else %}
-{% set feed_qs = {'genre': qp.get('genre',''), 'platform': qp.get('platform',''), 'media': qp.get('media',''), 'by': qp.get('by',''), 'sort': qp.get('sort',''), 'min_rating': qp.get('min_rating',''), 'status_filter': qp.get('status_filter','')} %}
-<a href="/feed?{{ feed_qs | urlencode }}" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
+<a href="/feed?{{ back_feed_qs }}" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
 {% endif %}
 </div>
 
@@ -167,8 +166,7 @@
       {% endif %}
 
       {% if is_owner and can_delete %}
-      {% set del_qs = {'back': qp.get('back',''), 'genre': qp.get('genre',''), 'platform': qp.get('platform',''), 'media': qp.get('media',''), 'by': qp.get('by',''), 'sort': qp.get('sort',''), 'min_rating': qp.get('min_rating',''), 'status_filter': qp.get('status_filter','')} %}
-      <form id="delete-suggestion-form" method="post" action="/suggestions/{{ s.id }}/delete?{{ del_qs | urlencode }}" class="ml-auto">
+      <form id="delete-suggestion-form" method="post" action="/suggestions/{{ s.id }}/delete?back={{ qp.get('back','') }}&{{ back_feed_qs }}" class="ml-auto">
         <button type="button" onclick="confirmDeleteSuggestion()" class="text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">Borrar sugerencia</button>
       </form>
       {% elif is_owner %}

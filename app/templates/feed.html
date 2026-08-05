@@ -18,7 +18,7 @@
   </button>
 
   {% set is_hiding_watched = f_status == 'pending' %}
-  <a href="/feed?{{ {'genre': f_genre, 'platform': f_platform, 'media': f_media, 'by': f_by, 'sort': f_sort, 'min_rating': f_min_rating, 'status_filter': ('' if is_hiding_watched else 'pending')} | urlencode }}"
+  <a href="/feed?{{ filter_qs_no_status }}{% if not is_hiding_watched %}&status_filter=pending{% endif %}"
     title="{{ 'Mostrar vistas' if is_hiding_watched else 'Ocultar vistas' }}"
     class="p-2 rounded-lg transition-colors
            {% if is_hiding_watched %}bg-violet-700 hover:bg-violet-800 text-white{% else %}bg-gray-800 hover:bg-gray-700 text-gray-300{% endif %}">
@@ -65,7 +65,7 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for s in suggestions %}
-  <a href="/suggestions/{{ s.id }}?back=feed&{{ {'genre': f_genre, 'platform': f_platform, 'media': f_media, 'by': f_by, 'sort': f_sort, 'min_rating': f_min_rating, 'status_filter': f_status} | urlencode }}" class="group block">
+  <a href="/suggestions/{{ s.id }}?back=feed&{{ filter_qs }}" class="group block">
 
     {# Poster #}
     <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
@@ -168,12 +168,15 @@
       {% if all_genres %}
       <div>
         <p class="pm-label" style="margin-bottom:0.75rem">Género</p>
-        <select name="genre" class="pm-input">
-          <option value="">Todos los géneros</option>
+        <div style="display:flex;flex-direction:column;gap:0.6rem;max-height:11rem;overflow-y:auto;padding-right:0.25rem">
           {% for g in all_genres %}
-          <option value="{{ g }}" {% if f_genre == g %}selected{% endif %}>{{ g }}</option>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" name="genre" value="{{ g }}" {% if g in f_genre %}checked{% endif %}
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ g }}</span>
+          </label>
           {% endfor %}
-        </select>
+        </div>
       </div>
       {% endif %}
 
@@ -181,15 +184,22 @@
       {% if all_platforms %}
       <div>
         <p class="pm-label" style="margin-bottom:0.75rem">Plataforma</p>
-        <select name="platform" class="pm-input">
-          <option value="">Todas las plataformas</option>
+        <div style="display:flex;flex-direction:column;gap:0.6rem;max-height:11rem;overflow-y:auto;padding-right:0.25rem">
           {% if user.platforms_list %}
-          <option value="__mine__" {% if f_platform == '__mine__' %}selected{% endif %}>Las que tengo</option>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" name="platform" value="__mine__" {% if '__mine__' in f_platform %}checked{% endif %}
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">Las que tengo</span>
+          </label>
           {% endif %}
           {% for p in all_platforms %}
-          <option value="{{ p }}" {% if f_platform == p %}selected{% endif %}>{{ p }}</option>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" name="platform" value="{{ p }}" {% if p in f_platform %}checked{% endif %}
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ p }}</span>
+          </label>
           {% endfor %}
-        </select>
+        </div>
       </div>
       {% endif %}
 
@@ -210,12 +220,15 @@
       {% if suggesters|length > 1 %}
       <div>
         <p class="pm-label" style="margin-bottom:0.75rem">Recomendado por</p>
-        <select name="by" class="pm-input">
-          <option value="" {% if not f_by %}selected{% endif %}>Todos</option>
+        <div style="display:flex;flex-direction:column;gap:0.6rem;max-height:11rem;overflow-y:auto;padding-right:0.25rem">
           {% for uid, u in suggesters.items() %}
-          <option value="{{ uid }}" {% if f_by == uid %}selected{% endif %}>{{ u.display_name }}</option>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" name="by" value="{{ uid }}" {% if uid in f_by %}checked{% endif %}
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.85rem;color:#B8B4BE">{{ u.display_name }}</span>
+          </label>
           {% endfor %}
-        </select>
+        </div>
       </div>
       {% endif %}
 
