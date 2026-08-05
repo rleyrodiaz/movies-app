@@ -50,6 +50,24 @@
         <img src="/static/img/movieleyro-logo.svg" alt="movieLeyro" class="h-7 w-auto block">
       </a>
 
+      {# ── Club activo (mobile): fuera de la hamburguesa, siempre visible ── #}
+      {% if active_club %}
+      <div class="md:hidden flex-1 flex justify-center px-2 min-w-0">
+        {% if user.role == 'superadmin' %}
+        <a href="/admin/clubs"
+          class="flex items-center gap-1.5 text-xs border border-[#E50914]/50 rounded-full px-3 py-1 text-[#E50914] max-w-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] shrink-0"></span>
+          <span class="truncate">{{ active_club.name }}</span>
+        </a>
+        {% else %}
+        <span class="flex items-center gap-1.5 text-xs border border-[#E50914]/50 rounded-full px-3 py-1 text-[#E50914] max-w-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-[#E50914] shrink-0"></span>
+          <span class="truncate">{{ active_club.name }}</span>
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-6 text-sm">
         <a href="/feed" class="transition-colors {% if is_feed_active %}text-yellow-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
@@ -188,28 +206,6 @@
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Settings
           </a>
-          {% endif %}
-        </div>
-        {% endif %}
-        {% if active_club %}
-        <div class="border-t border-gray-800 pt-2 mt-1 px-3">
-          <p class="text-xs text-[#E50914] uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#E50914]"></span>
-            Club activo: {{ active_club.name }}
-          </p>
-          {% if user.role == 'superadmin' %}
-          <div class="flex flex-wrap gap-1.5">
-            {% for c in all_clubs %}
-            <form method="post" action="/admin/clubs/switch">
-              <input type="hidden" name="club_id" value="{{ c.id }}">
-              <button type="submit"
-                class="text-xs px-2.5 py-1 rounded-full border transition-colors
-                       {% if c.id == active_club.id %}border-[#E50914] text-[#E50914]{% else %}border-gray-700 text-gray-400 hover:text-white hover:border-gray-600{% endif %}">
-                {{ c.name }}
-              </button>
-            </form>
-            {% endfor %}
-          </div>
           {% endif %}
         </div>
         {% endif %}
