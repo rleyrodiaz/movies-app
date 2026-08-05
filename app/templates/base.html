@@ -53,13 +53,30 @@
 
       {# ── Club activo (mobile): fuera de la hamburguesa, siempre visible ── #}
       {% if active_club %}
-      <div class="md:hidden flex-1 flex justify-center px-2 min-w-0">
-        {% if user.is_superadmin %}
-        <a href="/admin/clubs"
+      <div class="md:hidden flex-1 flex justify-center px-2 min-w-0 relative">
+        {% if all_clubs %}
+        <button type="button" onclick="toggleMobileClubSwitcher(event)"
           class="flex items-center gap-1.5 text-xs border border-violet-400/50 rounded-full px-3 py-1 text-violet-400 max-w-full">
           <span class="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0"></span>
           <span class="truncate">{{ active_club.name }}</span>
-        </a>
+          <svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+          </svg>
+        </button>
+        <div id="mobile-club-switcher" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-1.5 z-30 w-48">
+          <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl py-1 overflow-hidden">
+            {% for c in all_clubs %}
+            <form method="post" action="/admin/clubs/switch">
+              <input type="hidden" name="club_id" value="{{ c.id }}">
+              <button type="submit"
+                class="w-full text-left px-4 py-2.5 text-sm transition-colors
+                       {% if c.id == active_club.id %}text-violet-400 font-medium{% else %}text-gray-300{% endif %}">
+                {{ c.name }}
+              </button>
+            </form>
+            {% endfor %}
+          </div>
+        </div>
         {% else %}
         <span class="flex items-center gap-1.5 text-xs border border-violet-400/50 rounded-full px-3 py-1 text-violet-400 max-w-full">
           <span class="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0"></span>
@@ -210,23 +227,6 @@
             Settings
           </a>
           {% endif %}
-        </div>
-        {% endif %}
-        {% if all_clubs and not user.is_superadmin %}
-        <div class="border-t border-gray-800 pt-2 mt-1 px-3">
-          <p class="text-xs text-violet-400/80 uppercase tracking-wide mb-1.5">Cambiar de club</p>
-          <div class="flex flex-wrap gap-1.5">
-            {% for c in all_clubs %}
-            <form method="post" action="/admin/clubs/switch">
-              <input type="hidden" name="club_id" value="{{ c.id }}">
-              <button type="submit"
-                class="text-xs px-2.5 py-1 rounded-full border transition-colors
-                       {% if c.id == active_club.id %}border-violet-400 text-violet-400{% else %}border-gray-700 text-gray-400 hover:text-white hover:border-gray-600{% endif %}">
-                {{ c.name }}
-              </button>
-            </form>
-            {% endfor %}
-          </div>
         </div>
         {% endif %}
         <div class="border-t border-gray-800 pt-2 mt-1 pb-1 flex items-center justify-between px-3">
@@ -399,6 +399,20 @@
     if (_pmModalStack.length) {
       var fn = _pmModalStack.pop();
       if (fn) fn();
+    }
+  });
+  </script>
+
+  <script>
+  function toggleMobileClubSwitcher(e) {
+    e.stopPropagation();
+    const panel = document.getElementById('mobile-club-switcher');
+    if (panel) panel.classList.toggle('hidden');
+  }
+  document.addEventListener('click', function (e) {
+    const panel = document.getElementById('mobile-club-switcher');
+    if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target)) {
+      panel.classList.add('hidden');
     }
   });
   </script>
