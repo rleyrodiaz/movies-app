@@ -121,8 +121,7 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <select id="filter-genre" class="pm-input" style="padding:0.55rem 0.7rem">
-            <option value="">Todos los géneros</option>
+          <select id="filter-genre" multiple size="4" class="pm-input" style="padding:0.35rem">
             {% for g in genres %}
             <option value="{{ g }}">{{ g }}</option>
             {% endfor %}
@@ -514,7 +513,7 @@ window.handleAddBackdrop = function (e) {
 
   function getFilters() {
     return {
-      genre: filterGenre.value.trim(),
+      genre: Array.from(filterGenre.selectedOptions).map(o => o.value),
       min_rating: filterMinRating.value.trim(),
       director: filterDirector.value.trim(),
       actor: filterActor.value.trim(),
@@ -522,7 +521,7 @@ window.handleAddBackdrop = function (e) {
   }
 
   function hasActiveFilters(f) {
-    return !!(f.genre || f.min_rating || f.director || f.actor);
+    return !!(f.genre.length || f.min_rating || f.director || f.actor);
   }
 
   function triggerSearch() {
@@ -543,7 +542,7 @@ window.handleAddBackdrop = function (e) {
     spinner.classList.remove('hidden');
     try {
       const params = new URLSearchParams({ q });
-      if (filters.genre)      params.set('genre', filters.genre);
+      filters.genre.forEach(g => params.append('genre', g));
       if (filters.min_rating) params.set('min_rating', filters.min_rating);
       if (filters.director)   params.set('director', filters.director);
       if (filters.actor)      params.set('actor', filters.actor);

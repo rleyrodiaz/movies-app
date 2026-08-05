@@ -134,7 +134,7 @@ def _apply_person_filters(items: list[dict], director: str, actor: str, limit: i
 
 def search_multi(
     query: str,
-    genre: str = "",
+    genres: list[str] = [],
     min_rating: float = 0,
     director: str = "",
     actor: str = "",
@@ -158,8 +158,9 @@ def search_multi(
         if item:
             items.append(item)
 
-    if genre:
-        items = [i for i in items if genre in i["genres"]]
+    if genres:
+        genre_set = set(genres)
+        items = [i for i in items if genre_set & set(i["genres"])]
     if min_rating:
         items = [i for i in items if i["tmdb_rating"] and i["tmdb_rating"] >= min_rating]
 
@@ -169,7 +170,7 @@ def search_multi(
 
 
 def discover(
-    genre: str = "",
+    genres: list[str] = [],
     min_rating: float = 0,
     director: str = "",
     actor: str = "",
@@ -184,14 +185,18 @@ def discover(
 
     results: list[dict] = []
     for media_type in ("movie", "tv"):
-        genre_id = _genre_id_for_name(media_type, genre) if genre else None
-        if genre and genre_id is None:
+        genre_ids = [
+            gid for name in genres
+            if (gid := _genre_id_for_name(media_type, name)) is not None
+        ]
+        if genres and not genre_ids:
             continue
 
         params = _params(sort_by="popularity.desc", include_adult="false")
         params["vote_count.gte"] = 20
-        if genre_id:
-            params["with_genres"] = genre_id
+        if genre_ids:
+            # TMDB acepta IDs separados por coma como OR dentro de with_genres.
+            params["with_genres"] = ",".join(str(g) for g in genre_ids)
         if min_rating:
             params["vote_average.gte"] = min_rating
         if actor_id:

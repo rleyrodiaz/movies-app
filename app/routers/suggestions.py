@@ -177,7 +177,7 @@ def feed(
 def tmdb_search(
     request: Request,
     q: str = "",
-    genre: str = "",
+    genre: list[str] = Query(default=[]),
     min_rating: float = Query(default=0.0),
     director: str = "",
     actor: str = "",
@@ -189,15 +189,15 @@ def tmdb_search(
     active_club = get_active_club(current_user, db)
 
     q = q.strip()
-    genre = genre.strip()
+    genres = [g.strip() for g in genre if g.strip()]
     director = director.strip()
     actor = actor.strip()
-    has_filters = bool(genre or min_rating or director or actor)
+    has_filters = bool(genres or min_rating or director or actor)
 
     if len(q) >= 2:
-        results = tmdb.search_multi(q, genre=genre, min_rating=min_rating, director=director, actor=actor)
+        results = tmdb.search_multi(q, genres=genres, min_rating=min_rating, director=director, actor=actor)
     elif has_filters:
-        results = tmdb.discover(genre=genre, min_rating=min_rating, director=director, actor=actor)
+        results = tmdb.discover(genres=genres, min_rating=min_rating, director=director, actor=actor)
     else:
         return JSONResponse([])
 
