@@ -2,14 +2,11 @@
 {% block title %}Mis sugerencias{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-  <div class="flex items-center gap-3">
-    <h1 class="text-2xl font-bold text-white">Mis sugerencias</h1>
-    <span class="text-sm text-gray-600">{{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}</span>
-  </div>
+<div class="flex items-center gap-3 mb-5 flex-wrap">
   <button onclick="openAddModal()" class="pm-btn-primary">
     + Nueva sugerencia
   </button>
+  <span class="text-sm text-gray-600 ml-auto">{{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}</span>
 </div>
 
 {% if not suggestions %}

@@ -7,7 +7,7 @@
 <div class="mb-4 flex items-center gap-4">
   {% set qp = request.query_params %}
   {% if qp.get('back') == 'watchlist' %}
-<a href="/watchlist" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a mi watchlist</a>
+<a href="/watchlist" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver a Watchlist</a>
 {% else %}
 <a href="/feed?{{ back_feed_qs }}" style="font-size:0.85rem;color:#7A7680;text-decoration:none" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Volver al feed</a>
 {% endif %}
