@@ -15,7 +15,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_current_user, get_session_id, require_user
-from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher
+from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher, list_own_clubs
 from app.services.suggestion_creation import create_suggestion
 from app.services.version import APP_VERSION
 
@@ -274,7 +274,7 @@ def my_suggestions(
         ).all())
 
     can_delete_map = {s.id: s.id not in locked_ids for s in suggestions}
-    user_clubs = sorted((m.club for m in current_user.memberships), key=lambda c: c.name)
+    user_clubs = list_own_clubs(current_user, db)
 
     return templates.TemplateResponse(
         "suggestion_new.html",
@@ -321,8 +321,9 @@ def suggestion_create(
 
     active_club = get_active_club(current_user, db)
 
-    # Solo se puede sugerir a clubes propios — se ignora cualquier id ajeno.
-    my_club_ids = {m.club_id for m in current_user.memberships}
+    # Solo se puede sugerir a clubes propios (todos, si es superadmin) — se
+    # ignora cualquier id ajeno.
+    my_club_ids = {c.id for c in list_own_clubs(current_user, db)}
     target_ids = [cid for cid in dict.fromkeys(club_ids) if cid in my_club_ids] or [active_club.id]
 
     active_result_id: int | None = None

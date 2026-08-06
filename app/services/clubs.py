@@ -42,13 +42,21 @@ def is_active_club_admin(user: User, active_club: Club) -> bool:
     return any(m.club_id == active_club.id and m.role == UserRole.admin for m in user.memberships)
 
 
+def list_own_clubs(user: User, db: Session) -> list[Club]:
+    """Clubes "propios" del usuario: todos si es superadmin (tiene acceso a
+    cualquiera, aunque no tenga una membresía explícita ahí), o los de sus
+    membresías reales para cualquier otro usuario."""
+    if user.is_superadmin:
+        return list(db.scalars(select(Club).order_by(Club.name)).all())
+    club_ids = [m.club_id for m in user.memberships]
+    return list(db.scalars(select(Club).where(Club.id.in_(club_ids)).order_by(Club.name)).all())
+
+
 def list_clubs_for_switcher(user: User, db: Session) -> list[Club] | None:
     """Lista de clubes para el selector del nav. None si no hace falta
     mostrarlo (superadmin siempre lo ve; cualquier otro usuario solo si
     pertenece a más de un club)."""
-    if user.is_superadmin:
-        return list(db.scalars(select(Club).order_by(Club.name)).all())
-    club_ids = [m.club_id for m in user.memberships]
-    if len(club_ids) <= 1:
+    clubs = list_own_clubs(user, db)
+    if not user.is_superadmin and len(clubs) <= 1:
         return None
-    return list(db.scalars(select(Club).where(Club.id.in_(club_ids)).order_by(Club.name)).all())
+    return clubs
