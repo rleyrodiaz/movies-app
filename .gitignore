@@ -22,4 +22,5 @@ env/
 create_superadmin.py
 tmdb.py
 movies.xlsx
+backfill_backdrop_paths.py
 
