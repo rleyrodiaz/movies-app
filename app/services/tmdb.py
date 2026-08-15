@@ -287,6 +287,7 @@ def get_detail(tmdb_id: int, media_type: str) -> dict | None:
         return {
             "title": d.get("title") or d.get("name", ""),
             "poster_path": d.get("poster_path") or "",
+            "backdrop_path": d.get("backdrop_path") or "",
             "overview": d.get("overview") or "",
             "release_date": d.get("release_date") or d.get("first_air_date") or "",
             "genres": genres,

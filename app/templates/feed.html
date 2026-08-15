@@ -65,7 +65,7 @@
 {% else %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for s in suggestions %}
-  <a href="/suggestions/{{ s.id }}?back=feed&{{ filter_qs }}" class="group block">
+  <button type="button" onclick="openSuggestionDetail({{ s.id }})" class="group block text-left">
 
     {# Poster #}
     <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
@@ -110,7 +110,7 @@
       </div>
       <p class="text-xs text-gray-600 mt-0.5 truncate">{{ s.suggester.display_name }}</p>
     </div>
-  </a>
+  </button>
   {% endfor %}
 </div>
 {% endif %}
@@ -256,6 +256,37 @@
   </div>
 </div>
 
+{# ── Suggestion Detail Modal ── #}
+<div id="sdetail-backdrop" onclick="handleSDetailBackdrop(event)"
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
+  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+
+  <div id="sdetail-box" class="pm-panel"
+    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Feed</button>
+      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+    </div>
+
+    <div id="sdetail-content"></div>
+  </div>
+</div>
+
+{# ── MODAL: CONFIRMAR BORRADO DE SUGERENCIA ── #}
+<div id="confirm-sdelete-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-sdelete-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function openFilterModal() {
   const el = document.getElementById('filter-backdrop');
@@ -274,6 +305,190 @@ function handleFilterBackdrop(e) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') pmCloseModal();
 });
+</script>
+
+<script>
+/* ── Suggestion detail modal ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function openSuggestionDetail(id) {
+  document.getElementById('sdetail-content').innerHTML = '<p style="padding:2rem;text-align:center;color:#7A7680">Cargando…</p>';
+  document.getElementById('sdetail-backdrop').classList.remove('hidden');
+  document.getElementById('sdetail-backdrop').classList.add('flex');
+  pmOpenModal(closeSDetail);
+  try {
+    const resp = await fetch(`/suggestions/${id}/json`);
+    if (!resp.ok) { document.getElementById('sdetail-content').innerHTML = '<p style="padding:2rem;text-align:center;color:#7A7680">No se pudo cargar.</p>'; return; }
+    const d = await resp.json();
+    document.getElementById('sdetail-content').innerHTML = buildSDetailHTML(d);
+  } catch (e) {
+    document.getElementById('sdetail-content').innerHTML = '<p style="padding:2rem;text-align:center;color:#7A7680">No se pudo cargar.</p>';
+  }
+}
+
+function closeSDetail() {
+  document.getElementById('sdetail-backdrop').classList.add('hidden');
+  document.getElementById('sdetail-backdrop').classList.remove('flex');
+}
+
+function handleSDetailBackdrop(ev) {
+  if (ev.target === document.getElementById('sdetail-backdrop')) pmCloseModal();
+}
+
+function buildSDetailHTML(d) {
+  const posterUrl = d.poster_path ? `https://image.tmdb.org/t/p/w342${d.poster_path}` : null;
+  const backdropUrl = d.backdrop_path ? `https://image.tmdb.org/t/p/w780${d.backdrop_path}` : null;
+
+  const typeBadge = d.media_type === 'movie'
+    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
+    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
+
+  const SYNOPSIS_LIMIT = 160;
+  let overviewHtml = '';
+  if (d.overview) {
+    if (d.overview.length > SYNOPSIS_LIMIT) {
+      overviewHtml = `
+        <p id="sdetail-overview-short" class="text-sm leading-relaxed" style="color:#7A7680">
+          ${esc(d.overview.slice(0, SYNOPSIS_LIMIT))}&hellip;
+          <button type="button" onclick="toggleSynopsis()" style="color:#C8A96E;background:none;border:none;cursor:pointer;font-size:0.85rem;padding:0">Más</button>
+        </p>
+        <p id="sdetail-overview-full" class="hidden text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">
+          ${esc(d.overview)}
+          <button type="button" onclick="toggleSynopsis()" style="color:#C8A96E;background:none;border:none;cursor:pointer;font-size:0.85rem;padding:0">Menos</button>
+        </p>`;
+    } else {
+      overviewHtml = `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(d.overview)}</p>`;
+    }
+  }
+
+  const watchBtn = d.watchlist_status === 'pending'
+    ? `<button type="button" onclick="addToSWatchlist(${d.id})" class="pm-btn-primary" style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1.1rem;font-size:0.85rem">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M5 3a2 2 0 00-2 2v16l7-3 7 3V5a2 2 0 00-2-2H5z"/></svg>
+        Watchlist
+      </button>`
+    : `<button type="button" onclick="addToSWatchlist(${d.id})" class="pm-btn-secondary" style="display:flex;align-items:center;gap:0.5rem">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z"/></svg>
+        Watchlist
+      </button>`;
+
+  const opinionsBtn = d.watched_entries.length
+    ? `<button type="button" onclick="toggleSOpinions()" class="pm-btn-secondary" style="display:flex;align-items:center;gap:0.5rem">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" /></svg>
+        Ver opiniones (${d.watched_entries.length})
+      </button>`
+    : '';
+
+  const deleteHtml = !d.is_owner ? '' : (
+    d.can_delete
+      ? `<button type="button" onclick="confirmDeleteSSuggestion(${d.id})" class="text-xs ml-auto transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">Borrar sugerencia</button>`
+      : `<span class="text-xs ml-auto select-none" style="color:#5A5762;cursor:not-allowed" title="Alguien la tiene en su watchlist">Borrar sugerencia</span>`
+  );
+
+  const opinionsHtml = !d.watched_entries.length ? '' : `
+    <div id="sdetail-opinions" class="hidden" style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+      <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">
+        Opiniones de quienes la vieron
+        ${d.avg_rating ? `<span class="normal-case ml-1" style="color:#C8A96E">· Promedio ${d.avg_rating} (${d.rating_count}p)</span>` : ''}
+      </p>
+      <div class="space-y-3">
+        ${d.watched_entries.map(e => `
+          <div style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.75rem 1rem">
+            <div class="flex justify-between items-baseline gap-2 mb-1">
+              <span class="text-sm font-medium" style="color:#B8B4BE">${esc(e.user)}</span>
+              <span class="text-xs font-semibold" style="color:#C8A96E">&#9733; ${e.rating}/10</span>
+            </div>
+            ${e.comment
+              ? `<p class="text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">${esc(e.comment)}</p>`
+              : `<p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>`}
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  return `
+    ${backdropUrl ? `<img src="${backdropUrl}" alt="" class="w-full object-cover" style="aspect-ratio:16/9">` : ''}
+    <div style="padding:1.5rem">
+      <h2 class="pm-title text-xl mb-3 leading-tight">${esc(d.title)}</h2>
+
+      <div class="flex gap-4 mb-3">
+        <div class="shrink-0">
+          ${posterUrl
+            ? `<img src="${posterUrl}" alt="${esc(d.title)}" class="w-24 object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
+            : `<div class="w-24 h-36 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
+        </div>
+        <div class="flex-1 min-w-0 text-sm" style="color:#B8B4BE">
+          ${d.director ? `<p class="mb-1"><span style="color:#7A7680">Dirección:</span> ${esc(d.director)}</p>` : ''}
+          ${d.cast.length ? `<p class="mb-2"><span style="color:#7A7680">Elenco:</span> ${esc(d.cast.join(', '))}</p>` : ''}
+          <div class="flex items-center gap-2 flex-wrap text-xs" style="color:#7A7680">
+            ${typeBadge}
+            ${d.year ? `<span>${d.year}</span>` : ''}
+            ${d.genres.length ? `<span>${esc(d.genres.join(', '))}</span>` : ''}
+            ${d.tmdb_rating ? `<span>&#9733; ${d.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
+            ${d.avg_rating ? `<span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f" title="Promedio de ${d.rating_count} calificaci${d.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${d.avg_rating} (${d.rating_count}p)</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs font-semibold flex items-center gap-1.5 mb-4" style="color:#F0EDE8">
+        <svg class="w-3.5 h-3.5 shrink-0" style="color:#e35d6a" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21s-6.716-4.35-9.428-8.06C.354 9.646 1.5 5.5 5.1 4.5c2.03-.564 3.99.36 4.9 2.1.91-1.74 2.87-2.664 4.9-2.1 3.6 1 4.746 5.146 2.528 8.44C18.716 16.65 12 21 12 21z"/></svg>
+        Sugerida por ${esc(d.suggester_name)}
+      </p>
+
+      ${overviewHtml}
+
+      <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
+        <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
+        <div class="flex flex-wrap gap-2">
+          ${d.providers.length
+            ? d.providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
+            : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`}
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem" class="flex items-center gap-2 flex-wrap">
+        ${watchBtn}
+        ${opinionsBtn}
+        ${deleteHtml}
+      </div>
+
+      ${opinionsHtml}
+    </div>`;
+}
+
+function toggleSynopsis() {
+  document.getElementById('sdetail-overview-short').classList.toggle('hidden');
+  document.getElementById('sdetail-overview-full').classList.toggle('hidden');
+}
+
+function toggleSOpinions() {
+  document.getElementById('sdetail-opinions').classList.toggle('hidden');
+}
+
+async function addToSWatchlist(id) {
+  const fd = new FormData();
+  fd.append('status', 'pending');
+  try { await fetch(`/watchlist/${id}`, { method: 'POST', body: fd }); } catch (e) {}
+  location.reload();
+}
+
+function confirmDeleteSSuggestion(id) {
+  const backdrop = document.getElementById('confirm-sdelete-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmSDelete);
+  const btn = document.getElementById('confirm-sdelete-btn');
+  btn.onclick = async () => {
+    try { await fetch(`/suggestions/${id}/delete`, { method: 'POST', body: new FormData() }); } catch (e) {}
+    location.reload();
+  };
+}
+
+function closeConfirmSDelete() {
+  const backdrop = document.getElementById('confirm-sdelete-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
+}
 </script>
 
 {% endblock %}

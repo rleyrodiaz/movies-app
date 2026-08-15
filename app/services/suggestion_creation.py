@@ -34,6 +34,7 @@ def create_suggestion(
     detail = tmdb.get_detail(tmdb_id, media_type) or {}
     final_title = detail.get("title") or title
     final_poster = detail.get("poster_path") or poster_path or None
+    final_backdrop = detail.get("backdrop_path") or None
     final_overview = detail.get("overview") or overview or None
     final_date_str = detail.get("release_date") or release_date or None
 
@@ -49,6 +50,7 @@ def create_suggestion(
         media_type=MediaType(media_type),
         title=final_title,
         poster_path=final_poster,
+        backdrop_path=final_backdrop,
         overview=final_overview,
         release_date=parsed_date,
         suggested_by=user_id,

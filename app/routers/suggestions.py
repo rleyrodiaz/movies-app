@@ -428,6 +428,77 @@ def suggestion_detail(
     )
 
 
+@router.get("/suggestions/{suggestion_id}/json", response_class=JSONResponse)
+def suggestion_detail_json(
+    suggestion_id: int,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    """Detalle de una sugerencia para el modal del feed (mismo criterio de
+    acceso y permisos que la página suggestion_detail.html)."""
+    suggestion = db.scalar(
+        select(Suggestion)
+        .options(
+            joinedload(Suggestion.suggester),
+            selectinload(Suggestion.watchlist_entries).joinedload(WatchlistEntry.user),
+        )
+        .where(Suggestion.id == suggestion_id)
+    )
+    if suggestion is None:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+
+    active_club = get_active_club(current_user, db)
+    if suggestion.club_id != active_club.id:
+        return JSONResponse({"error": "not_found"}, status_code=404)
+
+    watchlist_entry = next(
+        (e for e in suggestion.watchlist_entries if e.user_id == current_user.id), None
+    )
+    watched_entries = sorted(
+        (e for e in suggestion.watchlist_entries if e.rating is not None),
+        key=lambda e: e.updated_at,
+        reverse=True,
+    )
+    is_owner = suggestion.suggested_by == current_user.id
+    can_delete = is_owner and not any(
+        e.user_id != suggestion.suggested_by for e in suggestion.watchlist_entries
+    )
+
+    return JSONResponse({
+        "id": suggestion.id,
+        "title": suggestion.title,
+        "poster_path": suggestion.poster_path or "",
+        "backdrop_path": suggestion.backdrop_path or "",
+        "media_type": suggestion.media_type.value,
+        "year": suggestion.release_date.year if suggestion.release_date else None,
+        "overview": suggestion.overview or "",
+        "genres": suggestion.genres_list,
+        "country": suggestion.origin_country or "",
+        "director": suggestion.director or "",
+        "cast": suggestion.cast_list,
+        "providers": suggestion.providers_list,
+        "season_count": suggestion.season_count,
+        "episode_count": suggestion.episode_count,
+        "tmdb_rating": suggestion.tmdb_rating,
+        "avg_rating": suggestion.avg_rating,
+        "rating_count": suggestion.rating_count,
+        "suggester_name": suggestion.suggester.display_name,
+        "created_at": suggestion.created_at.strftime("%d/%m/%Y"),
+        "is_owner": is_owner,
+        "can_delete": can_delete,
+        "watchlist_status": watchlist_entry.status.value if watchlist_entry else None,
+        "watched_entries": [
+            {
+                "user": e.user.display_name,
+                "rating": e.rating,
+                "comment": e.comment or "",
+                "watched_on": e.watched_on.isoformat() if e.watched_on else "",
+            }
+            for e in watched_entries
+        ],
+    })
+
+
 @router.post("/suggestions/{suggestion_id}/delete")
 def suggestion_delete(
     request: Request,
