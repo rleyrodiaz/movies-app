@@ -63,6 +63,7 @@ def create_suggestion(
         episode_count=detail.get("episode_count"),
         season_count=detail.get("season_count"),
         tmdb_rating=detail.get("tmdb_rating"),
+        runtime_minutes=detail.get("runtime_minutes"),
     )
     db.add(suggestion)
     db.flush()

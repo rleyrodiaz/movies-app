@@ -33,6 +33,7 @@ class Suggestion(Base):
     providers: Mapped[str | None] = mapped_column(Text, nullable=True)
     episode_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     season_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    runtime_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tmdb_rating: Mapped[float | None] = mapped_column(nullable=True)
     suggested_by: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False

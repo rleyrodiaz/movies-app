@@ -479,6 +479,7 @@ def suggestion_detail_json(
         "providers": suggestion.providers_list,
         "season_count": suggestion.season_count,
         "episode_count": suggestion.episode_count,
+        "runtime_minutes": suggestion.runtime_minutes,
         "tmdb_rating": suggestion.tmdb_rating,
         "avg_rating": suggestion.avg_rating,
         "rating_count": suggestion.rating_count,

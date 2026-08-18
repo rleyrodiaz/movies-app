@@ -284,6 +284,12 @@ def get_detail(tmdb_id: int, media_type: str) -> dict | None:
         raw_rating = d.get("vote_average")
         tmdb_rating = round(raw_rating, 1) if raw_rating else None
 
+        if media_type == "movie":
+            runtime_minutes = d.get("runtime") or None
+        else:
+            episode_run_times = d.get("episode_run_time") or []
+            runtime_minutes = episode_run_times[0] if episode_run_times else None
+
         return {
             "title": d.get("title") or d.get("name", ""),
             "poster_path": d.get("poster_path") or "",
@@ -298,6 +304,7 @@ def get_detail(tmdb_id: int, media_type: str) -> dict | None:
             "episode_count": episode_count,
             "season_count": season_count if media_type == "tv" else None,
             "tmdb_rating": tmdb_rating,
+            "runtime_minutes": runtime_minutes,
         }
     except httpx.HTTPError:
         return None
