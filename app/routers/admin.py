@@ -484,6 +484,10 @@ def create_club(
         session_id=get_session_id(request),
     )
 
+    # El superadmin que crea el club queda como miembro real (admin) — así
+    # el club funciona como "propio" (recordatorios, etc.), no solo administrado.
+    db.add(ClubMembership(user_id=current_user.id, club_id=club.id, role=UserRole.admin))
+
     current_user.last_active_club_id = club.id
     return RedirectResponse("/admin/clubs", status_code=303)
 

@@ -393,6 +393,8 @@
 
 {# ── Datos embebidos ── #}
 <script>
+const ACTIVE_CLUB_ID = {{ active_club.id }};
+const USER_CLUBS = [{% for c in user_clubs %}{ id: {{ c.id }}, name: {{ c.name|tojson }} },{% endfor %}];
 const WENTRIES = {
   {% for e in entries %}
   {{ e.suggestion.id }}: {
@@ -823,6 +825,22 @@ function openReminderDetail(id) {
       style="background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35">${n}</button>`;
   }).join('');
 
+  const clubChecklist = USER_CLUBS.length > 1 ? `
+    <div style="margin-bottom:0.75rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+        <p class="text-xs uppercase tracking-wider" style="color:#7A7680">¿A qué club(es) va?</p>
+        <button type="button" onclick="selectAllReminderClubs()" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#C8A96E">Todos mis clubes</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.4rem">
+        ${USER_CLUBS.map(c => `
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" class="rclub-ids-checkbox" value="${c.id}" ${c.id === ACTIVE_CLUB_ID ? 'checked' : ''}
+                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+            <span style="font-size:0.82rem;color:#B8B4BE">${esc(c.name)}</span>
+          </label>`).join('')}
+      </div>
+    </div>` : '';
+
   document.getElementById('reminder-detail-content').innerHTML = `
     <div class="flex gap-5">
       <div class="shrink-0">
@@ -852,6 +870,7 @@ function openReminderDetail(id) {
       <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
       <textarea id="rcomment-${id}" rows="2" placeholder="Tu comentario (opcional)..."
         class="pm-input" style="font-size:0.82rem;resize:none;margin-bottom:0.75rem"></textarea>
+      ${clubChecklist}
       <div class="flex items-center gap-3 flex-wrap">
         <button id="rpromote-btn-${id}" onclick="promoteReminder(${id})" disabled
           title="Elegí una calificación antes de publicar"
@@ -947,6 +966,10 @@ function selectReminderRating(id, n) {
   if (btn) { btn.disabled = false; btn.removeAttribute('title'); }
 }
 
+function selectAllReminderClubs() {
+  document.querySelectorAll('.rclub-ids-checkbox').forEach(cb => { cb.checked = true; });
+}
+
 async function promoteReminder(id) {
   const n = _rSelectedRating;
   if (!n) return;
@@ -954,6 +977,7 @@ async function promoteReminder(id) {
   const fd = new FormData();
   fd.append('rating', n);
   fd.append('comment', comment);
+  document.querySelectorAll('.rclub-ids-checkbox:checked').forEach(cb => fd.append('club_ids', cb.value));
   try {
     await fetch(`/watchlist/reminders/${id}/rate`, { method: 'POST', body: fd });
   } catch(e) {}

@@ -18,7 +18,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
 from app.services.auth import get_session_id, require_user
-from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher
+from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher, list_own_clubs
 from app.services.suggestion_creation import create_suggestion
 from app.services.version import APP_VERSION
 
@@ -149,6 +149,7 @@ def watchlist_page(
             "active_club": active_club,
             "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
+            "user_clubs": list_own_clubs(current_user, db),
         },
     )
 
@@ -374,6 +375,7 @@ def reminder_promote(
     reminder_id: int,
     rating: int = Form(0),
     comment: str = Form(""),
+    club_ids: list[int] = Form(default=[]),
     current_user: User = Depends(require_user),
     db: Session = Depends(get_db_dep),
 ):
@@ -387,60 +389,68 @@ def reminder_promote(
 
     active_club = get_active_club(current_user, db)
 
-    # Puede haberse sugerido públicamente mientras estaba en tus recordatorios.
-    # En ese caso no se pierde tu calificación: se aplica sobre la sugerencia existente.
-    existing = db.scalar(
-        select(Suggestion).where(
-            Suggestion.tmdb_id == reminder.tmdb_id,
-            Suggestion.media_type == reminder.media_type,
-            Suggestion.club_id == active_club.id,
-        )
-    )
-    if existing:
-        clean_comment = comment.strip() or None
-        entry = db.scalar(
-            select(WatchlistEntry).where(
-                WatchlistEntry.user_id == current_user.id,
-                WatchlistEntry.suggestion_id == existing.id,
+    # Solo se puede publicar en clubes propios (todos, si es superadmin) — se
+    # ignora cualquier id ajeno. Si no llega ninguno válido, se usa el club activo.
+    my_club_ids = {c.id for c in list_own_clubs(current_user, db)}
+    target_ids = [cid for cid in dict.fromkeys(club_ids) if cid in my_club_ids] or [active_club.id]
+
+    clean_comment = comment.strip() or None
+    last_suggestion_id: int | None = None
+    for club_id in target_ids:
+        # Puede haberse sugerido públicamente mientras estaba en tus recordatorios.
+        # En ese caso no se pierde tu calificación: se aplica sobre la sugerencia existente.
+        existing = db.scalar(
+            select(Suggestion).where(
+                Suggestion.tmdb_id == reminder.tmdb_id,
+                Suggestion.media_type == reminder.media_type,
+                Suggestion.club_id == club_id,
             )
         )
-        if entry:
-            entry.rating = rating
-            entry.comment = clean_comment
-            entry.status = WatchlistStatus.watched
-            entry.hidden_from_watchlist = True
-        else:
-            db.add(WatchlistEntry(
+        if existing:
+            entry = db.scalar(
+                select(WatchlistEntry).where(
+                    WatchlistEntry.user_id == current_user.id,
+                    WatchlistEntry.suggestion_id == existing.id,
+                )
+            )
+            if entry:
+                entry.rating = rating
+                entry.comment = clean_comment
+                entry.status = WatchlistStatus.watched
+                entry.hidden_from_watchlist = True
+            else:
+                db.add(WatchlistEntry(
+                    user_id=current_user.id,
+                    suggestion_id=existing.id,
+                    status=WatchlistStatus.watched,
+                    rating=rating,
+                    comment=clean_comment,
+                    hidden_from_watchlist=True,
+                ))
+            log_activity(
+                db, ActivityAction.watchlist_rated,
                 user_id=current_user.id,
-                suggestion_id=existing.id,
-                status=WatchlistStatus.watched,
+                club_id=club_id,
+                target_type="suggestion",
+                target_id=existing.id,
+                detail={"title": existing.title, "media_type": existing.media_type.value},
+                session_id=get_session_id(request),
+            )
+            last_suggestion_id = existing.id
+        else:
+            new_suggestion = create_suggestion(
+                db, current_user.id, club_id, reminder.tmdb_id, reminder.media_type.value, reminder.title,
+                poster_path=reminder.poster_path or "",
+                overview=reminder.overview or "",
+                release_date=reminder.release_date.isoformat() if reminder.release_date else "",
                 rating=rating,
-                comment=clean_comment,
-                hidden_from_watchlist=True,
-            ))
-        log_activity(
-            db, ActivityAction.watchlist_rated,
-            user_id=current_user.id,
-            club_id=active_club.id,
-            target_type="suggestion",
-            target_id=existing.id,
-            detail={"title": existing.title, "media_type": existing.media_type.value},
-            session_id=get_session_id(request),
-        )
-        db.delete(reminder)
-        return RedirectResponse(f"/suggestions/{existing.id}?duplicate=1", status_code=303)
+                comment=comment,
+                session_id=get_session_id(request),
+            )
+            last_suggestion_id = new_suggestion.id
 
-    create_suggestion(
-        db, current_user.id, active_club.id, reminder.tmdb_id, reminder.media_type.value, reminder.title,
-        poster_path=reminder.poster_path or "",
-        overview=reminder.overview or "",
-        release_date=reminder.release_date.isoformat() if reminder.release_date else "",
-        rating=rating,
-        comment=comment,
-        session_id=get_session_id(request),
-    )
     db.delete(reminder)
-    return RedirectResponse("/suggestions/new", status_code=303)
+    return RedirectResponse(f"/suggestions/{last_suggestion_id}?duplicate=1", status_code=303)
 
 
 @router.post("/watchlist/reminders/{reminder_id}/discard")
