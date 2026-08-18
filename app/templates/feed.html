@@ -457,8 +457,15 @@ async function toggleSWatchlistHeart() {
   if (!_sCurrentId) return;
   const fd = new FormData();
   fd.append('status', 'pending');
-  try { await fetch(`/watchlist/${_sCurrentId}`, { method: 'POST', body: fd }); } catch (e) {}
-  location.reload();
+  try {
+    await fetch(`/watchlist/${_sCurrentId}`, { method: 'POST', body: fd });
+    const resp = await fetch(`/suggestions/${_sCurrentId}/json`);
+    if (resp.ok) {
+      const d = await resp.json();
+      _sCurrentWatchlistStatus = d.watchlist_status;
+      updateSHeartState();
+    }
+  } catch (e) {}
 }
 
 function formatSDuration(min) {
