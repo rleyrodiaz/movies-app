@@ -2,7 +2,7 @@ import json
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction
+from app.models.club import Club
 from app.models.reminder import PersonalReminder
 from app.models.suggestion import MediaType, Suggestion
 from app.models.user import User
@@ -211,37 +212,44 @@ def reminder_create(
             PersonalReminder.media_type == MediaType(media_type),
         )
     )
-    if not already:
-        parsed_date: date | None = None
-        if release_date:
-            try:
-                parsed_date = date.fromisoformat(release_date[:10])
-            except ValueError:
-                pass
-        detail = tmdb.get_detail(tmdb_id, media_type) or {}
-        reminder = PersonalReminder(
-            user_id=current_user.id,
-            tmdb_id=tmdb_id,
-            media_type=MediaType(media_type),
-            title=title,
-            poster_path=poster_path or None,
-            overview=overview or None,
-            release_date=parsed_date,
-            tmdb_rating=detail.get("tmdb_rating"),
-            providers=json.dumps(detail.get("providers", []), ensure_ascii=False) if detail.get("providers") else None,
-        )
-        db.add(reminder)
-        db.flush()
-        log_activity(
-            db, ActivityAction.reminder_created,
-            user_id=current_user.id,
-            club_id=active_club.id,
-            target_type="reminder",
-            target_id=reminder.id,
-            detail={"title": title, "media_type": media_type},
-            session_id=get_session_id(request),
-        )
-    return RedirectResponse("/watchlist", status_code=303)
+    if already:
+        club_name = None
+        if already.created_in_club_id:
+            club = db.get(Club, already.created_in_club_id)
+            club_name = club.name if club else None
+        return JSONResponse({"status": "duplicate", "club_name": club_name})
+
+    parsed_date: date | None = None
+    if release_date:
+        try:
+            parsed_date = date.fromisoformat(release_date[:10])
+        except ValueError:
+            pass
+    detail = tmdb.get_detail(tmdb_id, media_type) or {}
+    reminder = PersonalReminder(
+        user_id=current_user.id,
+        created_in_club_id=active_club.id,
+        tmdb_id=tmdb_id,
+        media_type=MediaType(media_type),
+        title=title,
+        poster_path=poster_path or None,
+        overview=overview or None,
+        release_date=parsed_date,
+        tmdb_rating=detail.get("tmdb_rating"),
+        providers=json.dumps(detail.get("providers", []), ensure_ascii=False) if detail.get("providers") else None,
+    )
+    db.add(reminder)
+    db.flush()
+    log_activity(
+        db, ActivityAction.reminder_created,
+        user_id=current_user.id,
+        club_id=active_club.id,
+        target_type="reminder",
+        target_id=reminder.id,
+        detail={"title": title, "media_type": media_type},
+        session_id=get_session_id(request),
+    )
+    return JSONResponse({"status": "created"})
 
 
 @router.post("/watchlist/{suggestion_id}")

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip install *)"
+      "Bash(pip install *)",
+      "Bash(alembic current)",
+      "Bash(curl -sf http://127.0.0.1:*)"
     ]
   }
 }

@@ -337,6 +337,8 @@
           class="pm-input" style="padding:0.55rem 0.7rem">
       </div>
 
+      <div id="reminder-notice" class="hidden" style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);color:#C8A96E;font-size:0.8rem;padding:0.65rem 0.9rem"></div>
+
       <div id="reminder-search-results" style="background:#0D0D0F;border:1px solid #2A2A35;overflow:hidden" class="hidden"></div>
     </div>
   </div>
@@ -680,6 +682,9 @@ window.closeReminderAddModal = function () {
   const box = document.getElementById('reminder-search-results');
   box.classList.add('hidden');
   box.innerHTML = '';
+  const notice = document.getElementById('reminder-notice');
+  notice.classList.add('hidden');
+  notice.textContent = '';
 };
 
 window.handleReminderAddBackdrop = function (e) {
@@ -774,9 +779,20 @@ window.handleReminderAddBackdrop = function (e) {
     fd.append('poster_path', item.poster_path || '');
     fd.append('overview', item.overview || '');
     fd.append('release_date', item.release_date || '');
+    let result = null;
     try {
-      await fetch('/watchlist/reminders', { method: 'POST', body: fd });
-    } catch(e) {}
+      const resp = await fetch('/watchlist/reminders', { method: 'POST', body: fd });
+      result = await resp.json();
+    } catch (e) {}
+
+    if (result && result.status === 'duplicate') {
+      const notice = document.getElementById('reminder-notice');
+      notice.textContent = result.club_name
+        ? `Ya tenés esto como recordatorio — lo agregaste desde ${result.club_name}.`
+        : 'Ya tenés esto como recordatorio.';
+      notice.classList.remove('hidden');
+      return;
+    }
     location.reload();
   }
 

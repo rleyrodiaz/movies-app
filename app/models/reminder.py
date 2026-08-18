@@ -22,6 +22,9 @@ class PersonalReminder(Base):
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
+    created_in_club_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True
+    )
     tmdb_id: Mapped[int] = mapped_column(Integer, nullable=False)
     media_type: Mapped[MediaType] = mapped_column(
         Enum(MediaType, name="mediatype"), nullable=False
