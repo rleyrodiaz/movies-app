@@ -278,20 +278,134 @@
 </div>
 
 
-{# ── Detail Modal ── #}
-<div id="wdetail-backdrop" onclick="handleWDetailBackdrop(event)"
-  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
-  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+{# ── Detail Modal (v2 — mismo sistema visual del feed) ── #}
+<style>
+.sd2-root { font-family: 'Inter', system-ui, sans-serif; }
+.sd2-screen { position: fixed; inset: 0; z-index: 50; background: #1F1D2B; display: flex; flex-direction: column; }
+.sd2-topbar {
+  flex-shrink: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.65rem 0.85rem; padding-top: calc(0.65rem + env(safe-area-inset-top));
+  background: #151519;
+}
+.sd2-iconbtn {
+  width: 2.25rem; height: 2.25rem; border-radius: 999px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06); border: none; cursor: pointer;
+  color: #686868; transition: color 0.15s;
+}
+.sd2-iconbtn svg { width: 1.15rem; height: 1.15rem; }
+.sd2-iconbtn.sd2-active { color: #FFD180; }
+.sd2-topbar-title {
+  flex: 1; min-width: 0; text-align: center; font-family: 'Montserrat', sans-serif;
+  font-weight: 600; text-transform: uppercase; font-size: 0.92rem; letter-spacing: 0.02em;
+  color: #FFFCFC; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sd2-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sd2-hero-wrap { position: relative; width: 100%; height: 340px; background: #14131c; }
+.sd2-hero-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sd2-hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(to bottom, rgba(31,29,43,0) 0%, #1F1D2B 100%); }
+.sd2-body { padding: 0 1.1rem 2.5rem; }
+.sd2-overlap { margin-top: -56px; position: relative; z-index: 1; display: flex; gap: 1rem; }
+.sd2-poster { width: 7rem; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); flex-shrink: 0; background: #14131c; }
+.sd2-info { flex: 1; min-width: 0; padding-top: 0.4rem; font-size: 0.8rem; line-height: 1.55; color: #92929D; }
+.sd2-info-link { color: #92929D; text-decoration: none; }
+.sd2-info-link:hover { color: #FFD180; text-decoration: underline; }
+.sd2-meta-row { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.4rem; }
+.sd2-meta-item { display: inline-flex; align-items: center; gap: 0.3rem; }
+.sd2-meta-item svg { width: 0.8rem; height: 0.8rem; flex-shrink: 0; }
+.sd2-pill {
+  display: inline-flex; align-items: center; gap: 0.25rem; border: 1px solid #FFD180;
+  color: #FFD180; border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; font-weight: 600;
+}
+.sd2-suggested-by { margin-top: 0.5rem; font-size: 0.75rem; color: #686868; }
+.sd2-synopsis { margin-top: 1.4rem; font-size: 0.8125rem; line-height: 1.6; color: #FFFCFC; font-weight: 400; }
+.sd2-synopsis button { color: #FFD180; background: none; border: none; cursor: pointer; font-size: 0.8125rem; padding: 0; }
+.sd2-section { margin-top: 1.6rem; }
+.sd2-section-label {
+  font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-weight: 600;
+  font-size: 0.68rem; letter-spacing: 0.05em; color: #92929D; margin-bottom: 0.65rem;
+}
+.sd2-providers { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sd2-provider-chip { font-size: 0.72rem; color: #92929D; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.65rem; border-radius: 999px; }
+.sd2-activity-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; background: none; border: none; cursor: pointer; padding: 0; color: inherit; font-family: inherit; }
+.sd2-activity-toggle svg { transition: transform 0.2s; color: #92929D; width: 1rem; height: 1rem; }
+.sd2-activity-toggle.sd2-open svg { transform: rotate(180deg); color: #FFD180; }
+.sd2-activity-list { max-height: 15rem; overflow-y: auto; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.sd2-activity-list.hidden { display: none; }
+.sd2-activity-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 0.65rem 0.85rem; }
+.sd2-ratebar { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.sd2-ratebtn { width: 2rem; height: 2rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #92929D; cursor: pointer; }
+.sd2-ratebtn.sd2-selected { background: #FFD180; color: #1F1D2B; border-color: #FFD180; }
+.sd2-textarea {
+  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+  color: #FFFCFC; font-family: inherit; font-size: 0.8rem; padding: 0.6rem 0.75rem; resize: none; margin-bottom: 0.85rem;
+}
+.sd2-btn-primary {
+  background: #FFD180; color: #1F1D2B; border: none; border-radius: 999px; font-weight: 600;
+  padding: 0.65rem 1.3rem; font-size: 0.85rem; cursor: pointer;
+}
+.sd2-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.sd2-club-checklist label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; color: #B8B4BE; margin-bottom: 0.4rem; }
+.sd2-club-checklist input { accent-color: #FFD180; width: 1rem; height: 1rem; }
+.sd2-bottombar {
+  flex-shrink: 0; z-index: 2; display: flex; background: #151519;
+  border-top: 1px solid rgba(255,255,255,0.06); padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+}
+.sd2-navitem {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  padding: 0.6rem 0 0.25rem; text-decoration: none; color: #686868; font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.03em;
+  border: none; background: none; cursor: pointer;
+}
+.sd2-navitem svg { width: 1.3rem; height: 1.3rem; }
+.sd2-navitem.sd2-active { color: #FFD180; }
+.sd2-navitem-primary svg { width: 1.65rem; height: 1.65rem; }
+.sd2-navitem-primary { color: #FFD180; }
 
-  <div id="wdetail-box" class="pm-panel"
-    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
+@media (min-width: 768px) {
+  .sd2-root:not(.hidden) {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center; padding: 2rem;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+  }
+  .sd2-screen {
+    position: relative; inset: auto; width: 100%; max-width: 30rem; max-height: 90vh;
+    border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,0.55);
+  }
+}
+</style>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
-      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Watchlist</button>
-      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+<div id="wdetail-backdrop" class="sd2-root hidden" onclick="handleWDetailBackdrop(event)">
+  <div id="wdetail-box" class="sd2-screen">
+
+    <div class="sd2-topbar">
+      <button class="sd2-iconbtn" onclick="pmCloseModal()" aria-label="Volver a watchlist">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+      </button>
+      <h1 id="wdetail-topbar-title" class="sd2-topbar-title"></h1>
+      <button id="wdetail-remove-btn" class="sd2-iconbtn" aria-label="Quitar de watchlist">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+      </button>
     </div>
 
-    <div id="wdetail-content" style="padding:1.5rem"></div>
+    <div class="sd2-scroll">
+      <div id="wdetail-content"></div>
+    </div>
+
+    <div class="sd2-bottombar">
+      <a href="/feed" class="sd2-navitem">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Feed
+      </a>
+      <a href="/suggestions/new" class="sd2-navitem sd2-navitem-primary">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        Sugerir
+      </a>
+      <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3a2 2 0 00-2 2v16l9-6 9 6V5a2 2 0 00-2-2H5z"/></svg>
+        Watchlist
+      </button>
+    </div>
   </div>
 </div>
 
@@ -374,19 +488,37 @@
 </div>
 
 {# ── MODAL: DETALLE RECORDATORIO ── #}
-<div id="reminder-detail-backdrop" onclick="handleReminderDetailBackdrop(event)"
-  class="fixed inset-0 z-50 hidden items-center justify-center p-4"
-  style="background:rgba(0,0,0,0.8);backdrop-filter:blur(4px)">
+<div id="reminder-detail-backdrop" class="sd2-root hidden" onclick="handleReminderDetailBackdrop(event)">
+  <div id="reminder-detail-box" class="sd2-screen">
 
-  <div id="reminder-detail-box" class="pm-panel"
-    style="width:100%;max-width:32rem;max-height:90vh;background:#15151A;border:1px solid #2A2A35;overflow-y:auto">
-
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 0">
-      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;font-size:0.85rem;color:#7A7680" onmouseover="this.style.color='#B8B4BE'" onmouseout="this.style.color='#7A7680'">← Watchlist</button>
-      <button onclick="pmCloseModal()" style="background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.3rem;line-height:1" onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+    <div class="sd2-topbar">
+      <button class="sd2-iconbtn" onclick="pmCloseModal()" aria-label="Volver a watchlist">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+      </button>
+      <h1 id="reminder-detail-topbar-title" class="sd2-topbar-title"></h1>
+      <button id="reminder-detail-discard-btn" class="sd2-iconbtn" aria-label="Descartar recordatorio">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+      </button>
     </div>
 
-    <div id="reminder-detail-content" style="padding:1.5rem"></div>
+    <div class="sd2-scroll">
+      <div id="reminder-detail-content"></div>
+    </div>
+
+    <div class="sd2-bottombar">
+      <a href="/feed" class="sd2-navitem">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        Feed
+      </a>
+      <a href="/suggestions/new" class="sd2-navitem sd2-navitem-primary">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        Sugerir
+      </a>
+      <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3a2 2 0 00-2 2v16l9-6 9 6V5a2 2 0 00-2-2H5z"/></svg>
+        Watchlist
+      </button>
+    </div>
   </div>
 </div>
 
@@ -402,6 +534,7 @@ const WENTRIES = {
     status: {{ e.status.value | tojson }},
     title: {{ e.suggestion.title | tojson }},
     poster_path: {{ (e.suggestion.poster_path or '') | tojson }},
+    backdrop_path: {{ (e.suggestion.backdrop_path or '') | tojson }},
     media_type: {{ e.suggestion.media_type.value | tojson }},
     year: {{ e.suggestion.release_date.year if e.suggestion.release_date else 'null' }},
     overview: {{ (e.suggestion.overview or '') | tojson }},
@@ -412,6 +545,7 @@ const WENTRIES = {
     providers: {{ e.suggestion.providers_list | tojson }},
     season_count: {{ e.suggestion.season_count if e.suggestion.season_count else 'null' }},
     episode_count: {{ e.suggestion.episode_count if e.suggestion.episode_count else 'null' }},
+    runtime_minutes: {{ e.suggestion.runtime_minutes if e.suggestion.runtime_minutes else 'null' }},
     tmdb_rating: {{ e.suggestion.tmdb_rating if e.suggestion.tmdb_rating else 'null' }},
     avg_rating: {{ e.suggestion.avg_rating if e.suggestion.avg_rating else 'null' }},
     rating_count: {{ e.suggestion.rating_count }},
@@ -462,19 +596,30 @@ function esc(s) {
 
 let _wSelectedRating = null;
 
+function formatSDuration(min) {
+  if (!min) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}min`;
+}
+
 function openWDetail(id) {
   const e = WENTRIES[id];
   if (!e) return;
   _wSelectedRating = e.rating;
+  document.getElementById('wdetail-topbar-title').textContent = e.title;
+  document.getElementById('wdetail-remove-btn').onclick = () => confirmRemoveFromWatchlist(e.id, e.status);
   document.getElementById('wdetail-content').innerHTML = buildWDetailHTML(e);
   document.getElementById('wdetail-backdrop').classList.remove('hidden');
-  document.getElementById('wdetail-backdrop').classList.add('flex');
+  document.body.style.overflow = 'hidden';
   pmOpenModal(closeWDetail);
 }
 
 function closeWDetail() {
   document.getElementById('wdetail-backdrop').classList.add('hidden');
-  document.getElementById('wdetail-backdrop').classList.remove('flex');
+  document.body.style.overflow = '';
 }
 
 function handleWDetailBackdrop(ev) {
@@ -483,134 +628,108 @@ function handleWDetailBackdrop(ev) {
 
 function buildWDetailHTML(e) {
   const posterUrl = e.poster_path ? `https://image.tmdb.org/t/p/w342${e.poster_path}` : null;
+  const backdropUrl = e.backdrop_path ? `https://image.tmdb.org/t/p/w780${e.backdrop_path}` : null;
+  const heroHtml = backdropUrl
+    ? `<div class="sd2-hero-wrap"><img src="${backdropUrl}" alt=""><div class="sd2-hero-fade"></div></div>`
+    : '';
 
-  const typeBadge = e.media_type === 'movie'
-    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
-    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
+  const directorHtml = e.director ? `<div>Director: <span class="sd2-info-link">${esc(e.director)}</span></div>` : '';
+  const castHtml = e.cast.length
+    ? `<div>Elenco: ${e.cast.map(c => `<span class="sd2-info-link">${esc(c)}</span>`).join(', ')}</div>`
+    : '';
+
+  const duration = formatSDuration(e.runtime_minutes);
+  const iconCalendar = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>`;
+  const iconClock = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+  const iconTag = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg>`;
+
+  const metaHtml = `
+    <div class="sd2-meta-row">
+      ${e.year ? `<span class="sd2-meta-item">${iconCalendar}${e.year}</span>` : ''}
+      ${duration ? `<span class="sd2-meta-item">${iconClock}${duration}</span>` : ''}
+    </div>
+    <div class="sd2-meta-row">
+      ${e.genres.length ? `<span class="sd2-meta-item">${iconTag}${esc(e.genres.join(', '))}</span>` : ''}
+      ${e.avg_rating ? `<span class="sd2-pill">&#9733; ${e.avg_rating} (${e.rating_count})</span>` : ''}
+    </div>`;
+
+  const overviewHtml = e.overview ? `<p class="sd2-synopsis">${esc(e.overview)}</p>` : '';
 
   const ratingBtns = Array.from({length:10}, (_,i) => {
     const n = i+1;
     const active = e.rating === n;
     return `<button type="button" onclick="selectWRating(${e.id},${n})"
-      id="wrbtn-${e.id}-${n}"
-      class="w-8 h-8 text-xs font-semibold transition-colors"
-      style="${active ? 'background:#C8A96E;color:#0D0D0F' : 'background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35'}">${n}</button>`;
+      id="wrbtn-${e.id}-${n}" class="sd2-ratebtn${active ? ' sd2-selected' : ''}">${n}</button>`;
   }).join('');
 
-  const metaItems = [];
-  if (e.year)          metaItems.push(['Año', e.year]);
-  if (e.genres.length) metaItems.push(['Género', e.genres.join(', ')]);
-  if (e.country)       metaItems.push(['País', e.country]);
-  if (e.director)      metaItems.push(['Director', e.director]);
-  if (e.media_type === 'tv' && e.season_count)  metaItems.push(['Temporadas', e.season_count]);
-  if (e.media_type === 'tv' && e.episode_count) metaItems.push(['Episodios', e.episode_count]);
-
-  const metaHtml = metaItems.length
-    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm" style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:0.75rem">
-         ${metaItems.map(([k,v]) => `
-           <div>
-             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
-             <p style="color:#B8B4BE">${esc(String(v))}</p>
-           </div>`).join('')}
-         ${e.cast.length ? `<div class="col-span-2">
-           <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
-           <p style="color:#B8B4BE">${esc(e.cast.join(' · '))}</p>
-         </div>` : ''}
-       </div>`
-    : '';
-
-  const opinionsHtml = `
-    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
-      <p class="text-xs uppercase tracking-wider mb-3" style="color:#7A7680">Opiniones</p>
-      <div class="space-y-3">
-        ${e.entries.length
-          ? e.entries.map(oe => `
-            <div style="background:#0D0D0F;border:1px solid #2A2A35;padding:0.75rem 1rem">
-              <div class="flex justify-between items-baseline gap-2 mb-1">
-                <span class="text-sm font-medium" style="color:#B8B4BE">${esc(oe.user)}</span>
-                <span class="text-xs font-semibold" style="color:#C8A96E">&#9733; ${oe.rating}/10</span>
-              </div>
-              ${oe.comment
-                ? `<p class="text-sm leading-relaxed whitespace-pre-wrap" style="color:#7A7680">${esc(oe.comment)}</p>`
-                : `<p class="text-xs italic" style="color:#5A5762">Sin comentario.</p>`}
-            </div>`).join('')
-          : `<p class="text-sm" style="color:#7A7680">Todavía nadie opinó.</p>`
-        }
-      </div>
+  const ratingSection = `
+    <div class="sd2-section">
+      <p class="sd2-section-label">
+        Marcar como vista
+        <span id="wrating-label-${e.id}" style="text-transform:none;color:#FFD180;margin-left:0.35rem">${e.rating ? e.rating + '/10' : ''}</span>
+      </p>
+      <div class="sd2-ratebar">${ratingBtns}</div>
+      <textarea id="wcomment-${e.id}" rows="2" placeholder="Tu comentario (opcional)..." class="sd2-textarea">${esc(e.comment)}</textarea>
+      <button id="wsave-btn-${e.id}" onclick="saveWRating(${e.id})" ${e.rating ? '' : 'disabled'}
+        title="${e.rating ? '' : 'Elegí una calificación antes de guardar'}" class="sd2-btn-primary">
+        Guardar y marcar vista
+      </button>
     </div>`;
 
-  const ratingSection = `
-    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
-      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">
-        Marcar como vista
-        <span id="wrating-label-${e.id}" class="font-semibold normal-case ml-1" style="color:#C8A96E">
-          ${e.rating ? e.rating + '/10' : ''}
-        </span>
-      </p>
-      <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
-      <textarea id="wcomment-${e.id}" rows="2" placeholder="Tu comentario (opcional)..."
-        class="pm-input" style="font-size:0.78rem;resize:none;margin-bottom:0.75rem">${esc(e.comment)}</textarea>
-      <div class="flex items-center gap-3">
-        <button id="wsave-btn-${e.id}" onclick="saveWRating(${e.id})" ${e.rating ? '' : 'disabled'}
-          title="${e.rating ? '' : 'Elegí una calificación antes de guardar'}"
-          class="pm-btn-primary" style="padding:0.55rem 1.1rem;font-size:0.82rem">
-          Guardar y marcar vista
-        </button>
+  const activityHtml = !e.entries.length ? '' : `
+    <div class="sd2-section">
+      <button type="button" class="sd2-activity-toggle" id="wdetail-activity-toggle" onclick="toggleWActivity()">
+        <span class="sd2-section-label" style="margin-bottom:0">Actividad del club</span>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+      </button>
+      <div id="wdetail-activity-list" class="sd2-activity-list hidden">
+        ${e.entries.map(oe => `
+          <div class="sd2-activity-row">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.3rem">
+              <span style="font-size:0.8rem;font-weight:600;color:#FFFCFC">${esc(oe.user)}</span>
+              <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${oe.rating}/10</span>
+            </div>
+            ${oe.comment
+              ? `<p style="font-size:0.78rem;line-height:1.5;color:#92929D">${esc(oe.comment)}</p>`
+              : `<p style="font-size:0.72rem;font-style:italic;color:#686868">Sin comentario.</p>`}
+          </div>`).join('')}
       </div>
     </div>`;
 
   return `
-    <div class="flex gap-5">
-      <div class="shrink-0">
+    ${heroHtml}
+    <div class="sd2-body">
+      <div class="sd2-overlap">
         ${posterUrl
-          ? `<img src="${posterUrl}" alt="${esc(e.title)}" class="w-28 object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
-          : `<div class="w-28 h-40 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-start justify-between gap-3 mb-2">
-          <div class="flex items-center gap-2 flex-wrap">
-            ${typeBadge}
-            ${e.status === 'watched' ? `<span class="text-xs" style="color:#86efac;border:1px solid #166534;padding:0.15rem 0.55rem">Vista</span>` : ''}
-            ${e.year ? `<span class="text-xs" style="color:#7A7680">${e.year}</span>` : ''}
-            ${e.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${e.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
-            ${e.avg_rating ? `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem" title="Promedio de ${e.rating_count} calificaci${e.rating_count === 1 ? 'ón' : 'ones'}">&#9733; ${e.avg_rating} (${e.rating_count}p)</span>` : ''}
-          </div>
-          <div class="text-right shrink-0">
-            <p class="text-sm font-semibold flex items-center justify-end gap-1.5" style="color:#F0EDE8" title="Recomendado por">
-              <svg class="w-3.5 h-3.5 shrink-0" style="color:#C8A96E" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
-              </svg>
-              ${esc(e.suggester_name)}
-            </p>
-          </div>
+          ? `<img src="${posterUrl}" alt="${esc(e.title)}" class="sd2-poster">`
+          : `<div class="sd2-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#4a4a55">🎬</div>`}
+        <div class="sd2-info">
+          ${directorHtml}
+          ${castHtml}
+          ${metaHtml}
+          <p class="sd2-suggested-by">Sugerido por ${esc(e.suggester_name)}</p>
         </div>
-        <h2 class="pm-title text-xl mb-2 leading-tight">${esc(e.title)}</h2>
-        ${e.overview ? `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(e.overview)}</p>` : ''}
       </div>
-    </div>
 
-    ${metaHtml}
+      ${overviewHtml}
 
-    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
-      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
-      <div class="flex flex-wrap gap-2">
-        ${e.providers && e.providers.length
-          ? e.providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
-          : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
-        }
+      <div class="sd2-section">
+        <p class="sd2-section-label">Disponible en</p>
+        <div class="sd2-providers">
+          ${e.providers && e.providers.length
+            ? e.providers.map(p => `<span class="sd2-provider-chip">${esc(p)}</span>`).join('')
+            : `<span class="sd2-provider-chip">Sin datos</span>`}
+        </div>
       </div>
-    </div>
 
-    ${opinionsHtml}
-
-    ${ratingSection}
-
-    <div class="flex justify-end items-center" style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid #2A2A35">
-      <button onclick="confirmRemoveFromWatchlist(${e.id}, '${e.status}')"
-        class="text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">
-        Quitar de watchlist
-      </button>
+      ${ratingSection}
+      ${activityHtml}
     </div>`;
+}
+
+function toggleWActivity() {
+  document.getElementById('wdetail-activity-list').classList.toggle('hidden');
+  document.getElementById('wdetail-activity-toggle').classList.toggle('sd2-open');
 }
 
 function selectWRating(id, n) {
@@ -812,139 +931,122 @@ function openReminderDetail(id) {
   if (!r) return;
   _rSelectedRating = null;
 
+  document.getElementById('reminder-detail-topbar-title').textContent = r.title;
+  document.getElementById('reminder-detail-discard-btn').onclick = () => discardReminder(id);
+
   const posterUrl = r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : null;
-  const typeBadge = r.media_type === 'movie'
-    ? `<span class="text-xs" style="color:#93c5fd;border:1px solid #1e3a8a;padding:0.15rem 0.55rem">Película</span>`
-    : `<span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Serie</span>`;
 
   const ratingBtns = Array.from({length:10}, (_,i) => {
     const n = i+1;
     return `<button type="button" onclick="selectReminderRating(${id},${n})"
-      id="rrbtn-${id}-${n}"
-      class="w-8 h-8 text-xs font-semibold transition-colors"
-      style="background:#0D0D0F;color:#7A7680;border:1px solid #2A2A35">${n}</button>`;
+      id="rrbtn-${id}-${n}" class="sd2-ratebtn">${n}</button>`;
   }).join('');
 
   const clubChecklist = USER_CLUBS.length > 1 ? `
-    <div style="margin-bottom:0.75rem">
+    <div class="sd2-club-checklist" style="margin-bottom:0.85rem">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
-        <p class="text-xs uppercase tracking-wider" style="color:#7A7680">¿A qué club(es) va?</p>
-        <button type="button" onclick="selectAllReminderClubs()" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#C8A96E">Todos mis clubes</button>
+        <p class="sd2-section-label" style="margin-bottom:0">¿A qué club(es) va?</p>
+        <button type="button" onclick="selectAllReminderClubs()" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#FFD180">Todos mis clubes</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:0.4rem">
-        ${USER_CLUBS.map(c => `
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
-            <input type="checkbox" class="rclub-ids-checkbox" value="${c.id}" ${c.id === ACTIVE_CLUB_ID ? 'checked' : ''}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
-            <span style="font-size:0.82rem;color:#B8B4BE">${esc(c.name)}</span>
-          </label>`).join('')}
-      </div>
+      ${USER_CLUBS.map(c => `
+        <label>
+          <input type="checkbox" class="rclub-ids-checkbox" value="${c.id}" ${c.id === ACTIVE_CLUB_ID ? 'checked' : ''}>
+          <span>${esc(c.name)}</span>
+        </label>`).join('')}
     </div>` : '';
 
+  const overviewHtml = r.overview ? `<p class="sd2-synopsis" style="margin-top:0">${esc(r.overview)}</p>` : '';
+
   document.getElementById('reminder-detail-content').innerHTML = `
-    <div class="flex gap-5">
-      <div class="shrink-0">
+    <div class="sd2-hero-wrap" id="reminder-hero-wrap"></div>
+    <div class="sd2-body">
+      <div class="sd2-overlap">
         ${posterUrl
-          ? `<img src="${posterUrl}" alt="${esc(r.title)}" class="w-28 object-cover" style="box-shadow:0 20px 40px rgba(0,0,0,0.4)">`
-          : `<div class="w-28 h-40 flex items-center justify-center text-3xl" style="background:#0D0D0F;color:#5A5762">🎬</div>`}
+          ? `<img src="${posterUrl}" alt="${esc(r.title)}" class="sd2-poster">`
+          : `<div class="sd2-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#4a4a55">🎬</div>`}
+        <div class="sd2-info" id="rmeta-${id}">Cargando información…</div>
       </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2 mb-2 flex-wrap">
-          ${typeBadge}
-          ${r.year ? `<span class="text-xs" style="color:#7A7680">${r.year}</span>` : ''}
-          ${r.tmdb_rating ? `<span class="text-xs" style="color:#7A7680">&#9733; ${r.tmdb_rating} <span style="color:#5A5762">TMDB</span></span>` : ''}
-          <span class="text-xs" style="color:#C8A96E;border:1px solid #8a6d2f;padding:0.15rem 0.55rem">Privado</span>
-        </div>
-        <h2 class="pm-title text-xl mb-2 leading-tight">${esc(r.title)}</h2>
-        ${r.overview ? `<p class="text-sm leading-relaxed" style="color:#7A7680">${esc(r.overview)}</p>` : ''}
-      </div>
-    </div>
 
-    <div id="rmeta-${id}" class="text-sm" style="color:#7A7680;border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">Cargando información…</div>
+      ${overviewHtml}
 
-    <div style="border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem">
-      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">
-        Calificar y publicar
-        <span id="rrating-label-${id}" class="font-semibold normal-case ml-1" style="color:#C8A96E"></span>
-      </p>
-      <div class="flex items-center gap-1 flex-wrap mb-3">${ratingBtns}</div>
-      <textarea id="rcomment-${id}" rows="2" placeholder="Tu comentario (opcional)..."
-        class="pm-input" style="font-size:0.82rem;resize:none;margin-bottom:0.75rem"></textarea>
-      ${clubChecklist}
-      <div class="flex items-center gap-3 flex-wrap">
-        <button id="rpromote-btn-${id}" onclick="promoteReminder(${id})" disabled
-          title="Elegí una calificación antes de publicar"
-          class="pm-btn-primary" style="padding:0.55rem 1.1rem;font-size:0.82rem">
+      <div class="sd2-section" id="rproviders-${id}"></div>
+
+      <div class="sd2-section">
+        <p class="sd2-section-label">
           Calificar y publicar
-        </button>
-        <button onclick="discardReminder(${id})" class="ml-auto text-xs transition-colors" style="color:#7f1d1d;background:none;border:none;cursor:pointer" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='#7f1d1d'">
-          Descartar
+          <span id="rrating-label-${id}" style="text-transform:none;color:#FFD180;margin-left:0.35rem"></span>
+        </p>
+        <div class="sd2-ratebar">${ratingBtns}</div>
+        <textarea id="rcomment-${id}" rows="2" placeholder="Tu comentario (opcional)..." class="sd2-textarea"></textarea>
+        ${clubChecklist}
+        <button id="rpromote-btn-${id}" onclick="promoteReminder(${id})" disabled
+          title="Elegí una calificación antes de publicar" class="sd2-btn-primary">
+          Calificar y publicar
         </button>
       </div>
     </div>`;
 
   document.getElementById('reminder-detail-backdrop').classList.remove('hidden');
-  document.getElementById('reminder-detail-backdrop').classList.add('flex');
+  document.body.style.overflow = 'hidden';
   pmOpenModal(closeReminderDetail);
 
   loadReminderMeta(id, r);
 }
 
 async function loadReminderMeta(id, r) {
-  const target = document.getElementById(`rmeta-${id}`);
+  const metaTarget = document.getElementById(`rmeta-${id}`);
+  const provTarget = document.getElementById(`rproviders-${id}`);
   let detail = null;
   try {
     const resp = await fetch(`/suggestions/tmdb-detail?tmdb_id=${r.tmdb_id}&media_type=${r.media_type}`);
     if (resp.ok) detail = await resp.json();
   } catch (e) {}
-  if (!target) return; // el usuario ya cerró el modal
+  if (!metaTarget) return; // el usuario ya cerró el modal
 
   const genres    = (detail && detail.genres)    ? detail.genres    : [];
-  const country   = (detail && detail.origin_country) ? detail.origin_country : '';
   const director  = (detail && detail.director)  ? detail.director  : '';
   const cast      = (detail && detail.cast)      ? detail.cast      : [];
   const providers = (detail && detail.providers) ? detail.providers : [];
-  const seasonCount  = (detail && detail.season_count)  ? detail.season_count  : null;
-  const episodeCount = (detail && detail.episode_count) ? detail.episode_count : null;
+  const backdropPath = detail && detail.backdrop_path;
+  const duration = formatSDuration(detail && detail.runtime_minutes);
 
-  const metaItems = [];
-  if (r.year)          metaItems.push(['Año', r.year]);
-  if (genres.length)   metaItems.push(['Género', genres.join(', ')]);
-  if (country)         metaItems.push(['País', country]);
-  if (director)         metaItems.push(['Director', director]);
-  if (r.media_type === 'tv' && seasonCount)  metaItems.push(['Temporadas', seasonCount]);
-  if (r.media_type === 'tv' && episodeCount) metaItems.push(['Episodios', episodeCount]);
+  const heroWrap = document.getElementById('reminder-hero-wrap');
+  if (heroWrap && backdropPath) {
+    heroWrap.innerHTML = `<img src="https://image.tmdb.org/t/p/w780${backdropPath}" alt=""><div class="sd2-hero-fade"></div>`;
+  } else if (heroWrap) {
+    heroWrap.remove();
+  }
 
-  const metaHtml = metaItems.length
-    ? `<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-         ${metaItems.map(([k,v]) => `
-           <div>
-             <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">${k}</p>
-             <p style="color:#B8B4BE">${esc(String(v))}</p>
-           </div>`).join('')}
-         ${cast.length ? `<div class="col-span-2">
-           <p class="text-xs uppercase tracking-wider mb-0.5" style="color:#7A7680">Reparto</p>
-           <p style="color:#B8B4BE">${esc(cast.join(' · '))}</p>
-         </div>` : ''}
-       </div>`
-    : '';
+  const iconCalendar = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>`;
+  const iconClock = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+  const iconTag = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg>`;
 
-  target.innerHTML = `
-    ${metaHtml}
-    <div style="${metaHtml ? 'border-top:1px solid #2A2A35;padding-top:1rem;margin-top:1rem' : ''}">
-      <p class="text-xs uppercase tracking-wider mb-2" style="color:#7A7680">Disponible en</p>
-      <div class="flex flex-wrap gap-2">
-        ${providers.length
-          ? providers.map(p => `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#B8B4BE;padding:0.25rem 0.7rem">${esc(p)}</span>`).join('')
-          : `<span class="text-xs" style="background:#0D0D0F;border:1px solid #2A2A35;color:#7A7680;padding:0.25rem 0.7rem">Sin datos</span>`
-        }
-      </div>
+  metaTarget.innerHTML = `
+    ${director ? `<div>Director: <span class="sd2-info-link">${esc(director)}</span></div>` : ''}
+    ${cast.length ? `<div>Elenco: ${cast.map(c => `<span class="sd2-info-link">${esc(c)}</span>`).join(', ')}</div>` : ''}
+    <div class="sd2-meta-row">
+      ${r.year ? `<span class="sd2-meta-item">${iconCalendar}${r.year}</span>` : ''}
+      ${duration ? `<span class="sd2-meta-item">${iconClock}${duration}</span>` : ''}
+    </div>
+    <div class="sd2-meta-row">
+      ${genres.length ? `<span class="sd2-meta-item">${iconTag}${esc(genres.join(', '))}</span>` : ''}
+      ${r.tmdb_rating ? `<span class="sd2-pill">&#9733; ${r.tmdb_rating}</span>` : ''}
     </div>`;
+
+  if (provTarget) {
+    provTarget.innerHTML = `
+      <p class="sd2-section-label">Disponible en</p>
+      <div class="sd2-providers">
+        ${providers.length
+          ? providers.map(p => `<span class="sd2-provider-chip">${esc(p)}</span>`).join('')
+          : `<span class="sd2-provider-chip">Sin datos</span>`}
+      </div>`;
+  }
 }
 
 function closeReminderDetail() {
   document.getElementById('reminder-detail-backdrop').classList.add('hidden');
-  document.getElementById('reminder-detail-backdrop').classList.remove('flex');
+  document.body.style.overflow = '';
 }
 
 function handleReminderDetailBackdrop(ev) {
@@ -956,9 +1058,7 @@ function selectReminderRating(id, n) {
   for (let i = 1; i <= 10; i++) {
     const btn = document.getElementById(`rrbtn-${id}-${i}`);
     if (!btn) continue;
-    btn.style.background = i === n ? '#C8A96E' : '#0D0D0F';
-    btn.style.color = i === n ? '#0D0D0F' : '#7A7680';
-    btn.style.border = i === n ? 'none' : '1px solid #2A2A35';
+    btn.classList.toggle('sd2-selected', i === n);
   }
   const label = document.getElementById(`rrating-label-${id}`);
   if (label) label.textContent = n + '/10';
