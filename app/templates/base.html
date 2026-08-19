@@ -245,8 +245,8 @@
     </div>
   </div>
 
-  {# ── Barra fija inferior (solo mobile): mismo formato que los modales (Montserrat uppercase,
-       ícono circular para Sugerir), con los colores propios de la app en vez del dorado ── #}
+  {# ── Barra fija inferior (solo mobile): mismo formato que los modales (Montserrat uppercase),
+       con los colores propios de la app en vez del dorado. Solo se resalta la función activa ── #}
   <style>
     .rnav-item {
       flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
@@ -255,11 +255,6 @@
     }
     .rnav-item svg { width: 1.3rem; height: 1.3rem; }
     .rnav-item.rnav-active { color: #7c3aed; }
-    .rnav-primary-icon {
-      width: 2.2rem; height: 2.2rem; border-radius: 999px; background: #7c3aed;
-      display: flex; align-items: center; justify-content: center; margin-bottom: 0.1rem;
-    }
-    .rnav-primary-icon svg { width: 1.3rem; height: 1.3rem; color: #fff; }
   </style>
   <div class="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-gray-900 border-t border-gray-800 flex items-stretch" style="padding-bottom:calc(env(safe-area-inset-bottom) + 0.6rem)">
     <a href="/feed" class="rnav-item {% if is_feed_active %}rnav-active{% endif %}">
@@ -269,11 +264,9 @@
       Feed
     </a>
     <a href="/suggestions/new" class="rnav-item {% if is_sugerir_active %}rnav-active{% endif %}">
-      <span class="rnav-primary-icon">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-      </span>
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
       Sugerir
     </a>
     <a href="/watchlist" class="rnav-item {% if is_watchlist_active %}rnav-active{% endif %}">
