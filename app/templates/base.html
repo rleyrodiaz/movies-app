@@ -90,7 +90,7 @@
       <div class="hidden md:flex items-center gap-6 text-sm">
         <a href="/feed" class="transition-colors {% if is_feed_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
         <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Watchlist</a>
-        <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">+ Sugerir</a>
+        <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Sugerir</a>
         <a href="/guia" class="transition-colors text-gray-400 hover:text-white">Guía</a>
 
         {% if is_club_admin %}
@@ -201,7 +201,7 @@
         <a href="/suggestions/new" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
                  {% if is_sugerir_active %}text-violet-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
-          + Sugerir
+          Sugerir
         </a>
         <a href="/guia" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-800">
@@ -245,25 +245,42 @@
     </div>
   </div>
 
-  {# ── Barra fija inferior (solo mobile): acceso directo a las 3 funciones principales ── #}
+  {# ── Barra fija inferior (solo mobile): mismo formato que los modales (Montserrat uppercase,
+       ícono circular para Sugerir), con los colores propios de la app en vez del dorado ── #}
+  <style>
+    .rnav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+      padding: 0.6rem 0 0.25rem; text-decoration: none; color: #9ca3af; font-family: 'Montserrat', sans-serif;
+      text-transform: uppercase; font-size: 0.6rem; font-weight: 600; letter-spacing: 0.03em;
+    }
+    .rnav-item svg { width: 1.3rem; height: 1.3rem; }
+    .rnav-item.rnav-active { color: #7c3aed; }
+    .rnav-primary-icon {
+      width: 2.2rem; height: 2.2rem; border-radius: 999px; background: #7c3aed;
+      display: flex; align-items: center; justify-content: center; margin-bottom: 0.1rem;
+    }
+    .rnav-primary-icon svg { width: 1.3rem; height: 1.3rem; color: #fff; }
+  </style>
   <div class="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-gray-900 border-t border-gray-800 flex items-stretch" style="padding-bottom:calc(env(safe-area-inset-bottom) + 0.6rem)">
-    <a href="/feed" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_feed_active %}text-violet-400{% else %}text-gray-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <a href="/feed" class="rnav-item {% if is_feed_active %}rnav-active{% endif %}">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
       </svg>
-      <span class="text-[0.65rem] {% if is_feed_active %}font-bold{% else %}font-medium{% endif %}">Feed</span>
+      Feed
     </a>
-    <a href="/watchlist" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_watchlist_active %}text-violet-400{% else %}text-gray-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <a href="/suggestions/new" class="rnav-item {% if is_sugerir_active %}rnav-active{% endif %}">
+      <span class="rnav-primary-icon">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+      </span>
+      Sugerir
+    </a>
+    <a href="/watchlist" class="rnav-item {% if is_watchlist_active %}rnav-active{% endif %}">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z" />
       </svg>
-      <span class="text-[0.65rem] {% if is_watchlist_active %}font-bold{% else %}font-medium{% endif %}">Watchlist</span>
-    </a>
-    <a href="/suggestions/new" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors {% if is_sugerir_active %}text-violet-400{% else %}text-gray-400{% endif %}">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-      </svg>
-      <span class="text-[0.65rem] {% if is_sugerir_active %}font-bold{% else %}font-medium{% endif %}">Sugerir</span>
+      Watchlist
     </a>
   </div>
 

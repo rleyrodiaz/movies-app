@@ -359,8 +359,11 @@
 }
 .sd2-navitem svg { width: 1.3rem; height: 1.3rem; }
 .sd2-navitem.sd2-active { color: #FFD180; }
-.sd2-navitem-primary svg { width: 1.65rem; height: 1.65rem; }
-.sd2-navitem-primary { color: #FFD180; }
+.sd2-navitem-primary-icon {
+  width: 2.2rem; height: 2.2rem; border-radius: 999px; background: #FFD180;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 0.1rem;
+}
+.sd2-navitem-primary-icon svg { width: 1.3rem; height: 1.3rem; color: #1F1D2B; }
 
 @media (min-width: 768px) {
   .sd2-root:not(.hidden) {
@@ -398,7 +401,9 @@
         Feed
       </a>
       <a href="/suggestions/new" class="sd2-navitem sd2-navitem-primary">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        <span class="sd2-navitem-primary-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        </span>
         Sugerir
       </a>
       <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
@@ -511,7 +516,9 @@
         Feed
       </a>
       <a href="/suggestions/new" class="sd2-navitem sd2-navitem-primary">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        <span class="sd2-navitem-primary-icon">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+        </span>
         Sugerir
       </a>
       <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
