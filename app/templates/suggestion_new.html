@@ -33,7 +33,7 @@
 
       {% if s.avg_rating %}
       <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full backdrop-blur-sm rating-badge-{{ s.id }}">
-        {{ s.avg_rating }} ({{ s.rating_count }}p)
+        {{ s.avg_rating }} ({{ s.rating_count }} <svg style="width:1em;height:1em;display:inline;vertical-align:-0.15em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)
       </div>
       {% endif %}
 
@@ -101,12 +101,12 @@
   color: #FFFCFC; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sd2-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.sd2-hero-wrap { position: sticky; top: 0; z-index: 0; width: 100%; height: 340px; background: #14131c; }
+.sd2-hero-wrap { position: relative; width: 100%; height: 340px; background: #14131c; }
 .sd2-hero-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sd2-hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(to bottom, rgba(31,29,43,0) 0%, #1F1D2B 100%); }
-.sd2-body { position: relative; z-index: 1; background: #1F1D2B; padding: 0 1.1rem 2.5rem; }
-.sd2-overlap { margin-top: -56px; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.sd2-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); background: #14131c; }
+.sd2-body { padding: 0 1.1rem 2.5rem; }
+.sd2-overlap { margin-top: -56px; position: relative; z-index: 1; display: grid; grid-template-columns: auto 1fr; gap: 1rem; }
+.sd2-poster { width: 100%; max-width: 8.5rem; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); background: #14131c; }
 .sd2-info { min-width: 0; padding-top: 0.4rem; font-size: 0.8rem; line-height: 1.55; color: #92929D; }
 .sd2-info-link { color: #92929D; text-decoration: none; }
 .sd2-info-link:hover { color: #a78bfa; text-decoration: underline; }
@@ -420,7 +420,7 @@ function openDetail(id) {
     </div>
     <div class="sd2-meta-row">
       ${s.genres.length ? `<span class="sd2-meta-item">${iconTag}${esc(s.genres.join(', '))}</span>` : ''}
-      ${s.avg_rating ? `<span class="sd2-pill">&#9733; ${s.avg_rating} (${s.rating_count})</span>` : ''}
+      ${s.avg_rating ? `<span class="sd2-pill">&#9733; ${s.avg_rating} (${s.rating_count} <svg style="width:1.05em;height:1.05em;display:inline;vertical-align:-0.18em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)</span>` : ''}
     </div>`;
 
   const overviewHtml = s.overview ? `<p class="sd2-synopsis">${esc(s.overview)}</p>` : '';

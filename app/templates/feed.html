@@ -2,7 +2,59 @@
 {% block title %}Feed{% endblock %}
 
 {% block content %}
- 
+
+{# ── Nuevo desde tu última visita ── #}
+{% if new_since_last_visit %}
+<div class="mb-6">
+  <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+    Nuevo desde tu última visita
+  </h2>
+  <div class="flex gap-3 overflow-x-auto pb-1" style="scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch">
+    {% for s in new_since_last_visit %}
+    <button type="button" onclick="openSuggestionDetail({{ s.id }})" class="shrink-0 text-left group" style="width:8rem;scroll-snap-align:start">
+      <div class="relative rounded-lg overflow-hidden bg-gray-800 aspect-[2/3]">
+        {% if s.poster_path %}
+        <img src="https://image.tmdb.org/t/p/w185{{ s.poster_path }}" alt="{{ s.title }}"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-600 text-2xl">🎬</div>
+        {% endif %}
+
+        {# Type badge — top left #}
+        <div class="absolute top-1.5 left-1.5">
+          {% if s.media_type.value == 'movie' %}
+          <span class="text-[10px] bg-blue-900/80 text-blue-300 px-1 py-0.5 rounded backdrop-blur-sm">Peli</span>
+          {% else %}
+          <span class="text-[10px] bg-violet-900/80 text-violet-300 px-1 py-0.5 rounded backdrop-blur-sm">Serie</span>
+          {% endif %}
+        </div>
+
+        {# Average user rating badge — top right #}
+        {% if s.avg_rating %}
+        <div class="absolute top-1.5 right-1.5 bg-black/70 text-yellow-400 text-[10px] font-bold px-1 py-0.5 rounded backdrop-blur-sm"
+             title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
+          {{ s.avg_rating }} ({{ s.rating_count }} <svg style="width:1.35em;height:1.35em;display:inline;vertical-align:-0.28em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)
+        </div>
+        {% endif %}
+      </div>
+
+      <p class="text-white text-xs font-medium truncate mt-1.5 leading-tight group-hover:text-violet-300 transition-colors">{{ s.title }}</p>
+      <div class="flex items-center gap-1 text-[10px] mt-0.5 flex-wrap">
+        {% if s.release_date %}<span class="text-gray-500">{{ s.release_date.year }}</span>{% endif %}
+        {% if s.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(s.tmdb_rating) }}</span>{% endif %}
+      </div>
+      {% if s.providers_list %}
+      <p class="text-[10px] text-gray-500 truncate">{{ s.providers_list[0] }}{% if s.providers_list|length > 1 %} +{{ s.providers_list|length - 1 }}{% endif %}</p>
+      {% endif %}
+      <p class="text-[10px] text-gray-600 truncate">{{ s.suggester.display_name }}</p>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Recomendaciones</h2>
+
 {# ── Header bar ── #}
 <div class="flex items-center gap-3 mb-5 flex-wrap">
   <button onclick="openFilterModal()"
@@ -89,7 +141,7 @@
       {% if s.avg_rating %}
       <div class="absolute top-2 right-2 bg-black/70 text-yellow-400 text-xs font-bold px-1.5 py-0.5 rounded backdrop-blur-sm"
            title="Promedio de {{ s.rating_count }} calificaci{{ 'ón' if s.rating_count == 1 else 'ones' }}">
-        {{ s.avg_rating }} ({{ s.rating_count }}p)
+        {{ s.avg_rating }} ({{ s.rating_count }} <svg style="width:1em;height:1em;display:inline;vertical-align:-0.15em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)
       </div>
       {% endif %}
 
@@ -286,12 +338,12 @@
   color: #FFFCFC; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sd2-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.sd2-hero-wrap { position: sticky; top: 0; z-index: 0; width: 100%; height: 340px; background: #14131c; }
+.sd2-hero-wrap { position: relative; width: 100%; height: 340px; background: #14131c; }
 .sd2-hero-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sd2-hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(to bottom, rgba(31,29,43,0) 0%, #1F1D2B 100%); }
-.sd2-body { position: relative; z-index: 1; background: #1F1D2B; padding: 0 1.1rem 2.5rem; }
-.sd2-overlap { margin-top: -56px; position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.sd2-poster { width: 100%; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); background: #14131c; }
+.sd2-body { padding: 0 1.1rem 2.5rem; }
+.sd2-overlap { margin-top: -56px; position: relative; z-index: 1; display: grid; grid-template-columns: auto 1fr; gap: 1rem; }
+.sd2-poster { width: 100%; max-width: 8.5rem; aspect-ratio: 2/3; object-fit: cover; border-radius: 5px; box-shadow: 0 10px 24px rgba(0,0,0,0.45); background: #14131c; }
 .sd2-info { min-width: 0; padding-top: 0.4rem; font-size: 0.8rem; line-height: 1.55; color: #92929D; }
 .sd2-info-link { color: #92929D; text-decoration: none; }
 .sd2-info-link:hover { color: #a78bfa; text-decoration: underline; }
@@ -353,7 +405,7 @@
       <h1 id="sdetail-topbar-title" class="sd2-topbar-title"></h1>
       <div style="position:relative">
         <button id="sdetail-heart-btn" class="sd2-iconbtn" onclick="toggleSWatchlistHeart(event)" aria-label="Agregar a watchlist">
-          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 21s-6.716-4.35-9.428-8.06C.354 9.646 1.5 5.5 5.1 4.5c2.03-.564 3.99.36 4.9 2.1.91-1.74 2.87-2.664 4.9-2.1 3.6 1 4.746 5.146 2.528 8.44C18.716 16.65 12 21 12 21z"/></svg>
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
         </button>
         <div id="sdetail-heart-tooltip" class="hidden"
           style="position:absolute;top:100%;right:0;margin-top:0.4rem;background:#151519;border:1px solid rgba(255,255,255,0.1);color:#FFFCFC;font-size:0.72rem;padding:0.35rem 0.6rem;white-space:nowrap;z-index:10;border-radius:6px">
@@ -535,7 +587,7 @@ function buildSDetailHTML(d) {
     </div>
     <div class="sd2-meta-row">
       ${d.genres.length ? `<span class="sd2-meta-item">${iconTag}${esc(d.genres.join(', '))}</span>` : ''}
-      ${d.avg_rating ? `<span class="sd2-pill">&#9733; ${d.avg_rating} (${d.rating_count})</span>` : ''}
+      ${d.avg_rating ? `<span class="sd2-pill">&#9733; ${d.avg_rating} (${d.rating_count} <svg style="width:1.05em;height:1.05em;display:inline;vertical-align:-0.18em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)</span>` : ''}
     </div>`;
 
   const SYNOPSIS_LIMIT = 160;

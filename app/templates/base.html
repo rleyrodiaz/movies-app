@@ -89,8 +89,8 @@
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-6 text-sm">
         <a href="/feed" class="transition-colors {% if is_feed_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Feed</a>
-        <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Watchlist</a>
         <a href="/suggestions/new" class="transition-colors {% if is_sugerir_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Sugerir</a>
+        <a href="/watchlist" class="transition-colors {% if is_watchlist_active %}text-violet-400 font-bold{% else %}text-gray-400 hover:text-white{% endif %}">Watchlist</a>
         <a href="/guia" class="transition-colors text-gray-400 hover:text-white">Guía</a>
 
         {% if is_club_admin %}
@@ -193,15 +193,15 @@
                  {% if is_feed_active %}text-violet-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Feed
         </a>
-        <a href="/watchlist" onclick="closeMobileNav()"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
-                 {% if is_watchlist_active %}text-violet-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
-          Watchlist
-        </a>
         <a href="/suggestions/new" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
                  {% if is_sugerir_active %}text-violet-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
           Sugerir
+        </a>
+        <a href="/watchlist" onclick="closeMobileNav()"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors
+                 {% if is_watchlist_active %}text-violet-400 bg-gray-800 font-bold{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">
+          Watchlist
         </a>
         <a href="/guia" onclick="closeMobileNav()"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-800">

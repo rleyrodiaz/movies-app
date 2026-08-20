@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.db import get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction
+from app.models.club_membership import ClubMembership
 from app.models.suggestion import MediaType, Suggestion
 from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
@@ -17,6 +19,7 @@ from app.services.activity_log import log_activity
 from app.services.auth import get_current_user, get_session_id, require_user
 from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher, list_own_clubs
 from app.services.suggestion_creation import create_suggestion
+from app.services.tz import to_local
 from app.services.version import APP_VERSION
 
 router = APIRouter()
@@ -60,6 +63,29 @@ def feed(
         .where(Suggestion.club_id == active_club.id)
         .order_by(Suggestion.created_at.desc())
     ).unique().all()
+
+    # "Nuevo desde tu última visita": va en la membresía (por club), no en el
+    # usuario — si no, visitar el Feed de un club marcaría como "visto" las
+    # novedades de todos tus otros clubes. La marca se "clava" en la
+    # medianoche local del día en que avanza (no en "ahora"), así queda fija
+    # durante todo ese día: el carrusel se mantiene estable en vez de
+    # desaparecer apenas volvés a entrar, y va sumando lo que se agregue más
+    # tarde ese mismo día. Recién al otro día vuelve a avanzar.
+    membership = db.scalar(
+        select(ClubMembership).where(
+            ClubMembership.user_id == current_user.id,
+            ClubMembership.club_id == active_club.id,
+        )
+    )
+    new_since_last_visit: list[Suggestion] = []
+    if membership is not None:
+        previous_seen = membership.last_seen_feed_at
+        now = datetime.now(timezone.utc)
+        if previous_seen:
+            new_since_last_visit = [s for s in all_suggestions if s.created_at > previous_seen]
+        if previous_seen is None or to_local(previous_seen).date() < to_local(now).date():
+            today_start_local = to_local(now).replace(hour=0, minute=0, second=0, microsecond=0)
+            membership.last_seen_feed_at = today_start_local.astimezone(timezone.utc)
 
     # Build filter option data
     all_genres: list[str] = sorted({g for s in all_suggestions for g in s.genres_list})
@@ -166,6 +192,7 @@ def feed(
             "filter_qs_no_status": filter_qs_no_status,
             "has_any_suggestions": bool(all_suggestions),
             "total_count": len(all_suggestions),
+            "new_since_last_visit": new_since_last_visit,
             "active_club": active_club,
             "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),

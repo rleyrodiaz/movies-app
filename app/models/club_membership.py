@@ -24,6 +24,7 @@ class ClubMembership(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    last_seen_feed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user: Mapped["User"] = relationship("User", back_populates="memberships")
     club: Mapped["Club"] = relationship("Club")
