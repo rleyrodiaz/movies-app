@@ -2,20 +2,23 @@
 {% block title %}Mis sugerencias{% endblock %}
 
 {% block content %}
+<div class="relative mb-2">
+  <input id="page-search-input" type="text" placeholder="Buscá un título para sugerir..." autocomplete="off" class="sd2-search-input" style="padding-right:2.75rem">
+  <svg id="page-search-icon" class="absolute right-3" style="top:0.9rem;width:1.15rem;height:1.15rem;color:#686868" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+  <div id="page-search-spinner" class="hidden absolute right-3" style="top:0.9rem">
+    <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.15);border-top-color:#a78bfa"></div>
+  </div>
+</div>
+<div id="page-search-results" class="hidden mb-6" style="background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden"></div>
+
 <div class="flex items-center gap-3 mb-5 flex-wrap">
-  <button onclick="openAddModal()" class="pm-btn-primary">
-    + Nueva sugerencia
-  </button>
   <span class="text-sm text-gray-600 ml-auto">{{ suggestions|length }} título{{ 's' if suggestions|length != 1 else '' }}</span>
 </div>
 
 {% if not suggestions %}
 <div class="text-center py-20 text-gray-600">
   <p class="text-lg text-gray-500">Todavía no sugeriste nada.</p>
-  <p class="text-sm mt-1">Cuando sugerís una película o serie aparece acá con tu calificación.</p>
-  <button onclick="openAddModal()" class="inline-block mt-4 text-violet-400 hover:text-violet-300 text-sm transition-colors">
-    Hacer tu primera sugerencia →
-  </button>
+  <p class="text-sm mt-1">Buscá un título arriba para hacer tu primera sugerencia.</p>
 </div>
 
 {% else %}
@@ -222,7 +225,7 @@
 </div>
 
 
-{# ── MODAL: NUEVA SUGERENCIA (buscar → mostrar título, dos pantallas) ── #}
+{# ── MODAL: NUEVA SUGERENCIA (calificar y publicar el título elegido) ── #}
 <div id="add-backdrop" class="sd2-root hidden" onclick="handleAddBackdrop(event)">
   <div id="add-box" class="sd2-screen">
 
@@ -235,32 +238,7 @@
     </div>
 
     <div class="sd2-scroll">
-      {# ── Pantalla 1: búsqueda ── #}
-      <div id="search-section" class="sd2-body sd2-search-flex" style="padding-top:1.25rem">
-        <div class="relative">
-          <input id="search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..."
-            autocomplete="off" class="sd2-search-input">
-          <div id="search-spinner" class="hidden absolute right-3 top-3.5">
-            <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.15);border-top-color:#a78bfa"></div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <select id="filter-genre" multiple size="4" class="sd2-filter-input" style="padding:0.35rem">
-            {% for g in genres %}
-            <option value="{{ g }}">{{ g }}</option>
-            {% endfor %}
-          </select>
-          <input id="filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín." class="sd2-filter-input">
-          <input id="filter-director" type="text" placeholder="Director" autocomplete="off" class="sd2-filter-input">
-          <input id="filter-actor" type="text" placeholder="Actor principal" autocomplete="off" class="sd2-filter-input">
-        </div>
-
-        <div id="search-results" style="background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.08);overflow:hidden" class="hidden"></div>
-      </div>
-
-      {# ── Pantalla 2: título elegido, calificar y publicar ── #}
-      <div id="confirm-section" class="hidden">
+      <div id="confirm-section">
         <div id="preview"></div>
 
         <div class="sd2-body" style="padding-top:0">
@@ -318,7 +296,7 @@
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
         Feed
       </a>
-      <button type="button" class="sd2-navitem sd2-active" onclick="if (document.getElementById('confirm-section').classList.contains('hidden')) pmCloseModal(); else backToSearch();">
+      <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
         Sugerir
       </button>
@@ -585,15 +563,6 @@ window.closeDetail = function() {
 
 
 /* ── ADD MODAL ── */
-window.openAddModal = function () {
-  document.getElementById('add-backdrop').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  document.getElementById('add-back-btn').onclick = () => pmCloseModal();
-  document.getElementById('add-topbar-title').textContent = 'Nueva sugerencia';
-  setTimeout(() => document.getElementById('search-input').focus(), 50);
-  pmOpenModal(closeAddModal);
-};
-
 window.closeAddModal = function () {
   document.getElementById('add-backdrop').classList.add('hidden');
   document.body.style.overflow = '';
@@ -605,65 +574,42 @@ window.handleAddBackdrop = function (e) {
 };
 
 (function () {
-  const searchSection  = document.getElementById('search-section');
-  const searchInput    = document.getElementById('search-input');
-  const resultsBox     = document.getElementById('search-results');
-  const spinner        = document.getElementById('search-spinner');
-  const confirmSection = document.getElementById('confirm-section');
+  const searchInput    = document.getElementById('page-search-input');
+  const resultsBox     = document.getElementById('page-search-results');
+  const spinner        = document.getElementById('page-search-spinner');
+  const searchIcon     = document.getElementById('page-search-icon');
   const preview        = document.getElementById('preview');
   const submitBtn      = document.getElementById('submit-btn');
   const ratingWarning  = document.getElementById('rating-warning');
   const ratingLabel    = document.getElementById('rating-label');
-  const filterGenre    = document.getElementById('filter-genre');
-  const filterMinRating = document.getElementById('filter-min-rating');
-  const filterDirector = document.getElementById('filter-director');
-  const filterActor    = document.getElementById('filter-actor');
 
   let debounceTimer = null;
   let cachedResults = [];
   let selectedRating = 0;
 
-  function getFilters() {
-    return {
-      genre: Array.from(filterGenre.selectedOptions).map(o => o.value),
-      min_rating: filterMinRating.value.trim(),
-      director: filterDirector.value.trim(),
-      actor: filterActor.value.trim(),
-    };
-  }
-
-  function hasActiveFilters(f) {
-    return !!(f.genre.length || f.min_rating || f.director || f.actor);
-  }
-
   function triggerSearch() {
     clearTimeout(debounceTimer);
     const q = searchInput.value.trim();
-    const filters = getFilters();
-    if (q.length < 2 && !hasActiveFilters(filters)) { hideResults(); return; }
-    debounceTimer = setTimeout(() => doSearch(q, filters), 400);
+    if (q.length < 2) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q), 400);
   }
 
   searchInput.addEventListener('input', triggerSearch);
-  filterGenre.addEventListener('change', triggerSearch);
-  filterMinRating.addEventListener('input', triggerSearch);
-  filterDirector.addEventListener('input', triggerSearch);
-  filterActor.addEventListener('input', triggerSearch);
 
-  async function doSearch(q, filters) {
+  async function doSearch(q) {
     spinner.classList.remove('hidden');
+    searchIcon.classList.add('hidden');
     try {
       const params = new URLSearchParams({ q });
-      filters.genre.forEach(g => params.append('genre', g));
-      if (filters.min_rating) params.set('min_rating', filters.min_rating);
-      if (filters.director)   params.set('director', filters.director);
-      if (filters.actor)      params.set('actor', filters.actor);
       const resp = await fetch('/suggestions/search?' + params.toString());
       if (resp.status === 401) { window.location = '/'; return; }
       cachedResults = await resp.json();
       renderResults(cachedResults);
     } catch { hideResults(); }
-    finally { spinner.classList.add('hidden'); }
+    finally {
+      spinner.classList.add('hidden');
+      searchIcon.classList.remove('hidden');
+    }
   }
 
   function renderResults(items) {
@@ -713,10 +659,10 @@ window.handleAddBackdrop = function (e) {
     document.getElementById('f_overview').value     = item.overview || '';
     document.getElementById('f_release_date').value = item.release_date || '';
 
-    searchSection.classList.add('hidden');
-    confirmSection.classList.remove('hidden');
+    document.getElementById('add-backdrop').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
     document.getElementById('add-topbar-title').textContent = item.title;
-    document.getElementById('add-back-btn').onclick = () => backToSearch();
+    pmOpenModal(closeAddModal);
     preview.innerHTML = `<div class="sd2-hero-wrap"></div><div class="sd2-body" style="padding-top:1.4rem"><div class="text-center py-6 text-sm" style="color:#686868">Cargando información…</div></div>`;
 
     let detail = null;
@@ -791,18 +737,6 @@ window.handleAddBackdrop = function (e) {
       </div>`;
   }
 
-  window.backToSearch = function () {
-    confirmSection.classList.add('hidden');
-    preview.innerHTML = '';
-    document.getElementById('f_tmdb_id').value = '';
-    resetRating();
-    searchSection.classList.remove('hidden');
-    document.getElementById('add-topbar-title').textContent = 'Nueva sugerencia';
-    document.getElementById('add-back-btn').onclick = () => pmCloseModal();
-    searchInput.value = '';
-    searchInput.focus();
-  };
-
   window.setAddRating = function (n) {
     selectedRating = n;
     document.getElementById('f_rating').value = n;
@@ -824,15 +758,7 @@ window.handleAddBackdrop = function (e) {
 
   window.resetAddForm = function () {
     searchInput.value = '';
-    filterGenre.value = '';
-    filterMinRating.value = '';
-    filterDirector.value = '';
-    filterActor.value = '';
     hideResults();
-    searchSection.classList.remove('hidden');
-    confirmSection.classList.add('hidden');
-    document.getElementById('add-topbar-title').textContent = 'Nueva sugerencia';
-    document.getElementById('add-back-btn').onclick = () => pmCloseModal();
     preview.innerHTML = '';
     document.getElementById('comment-input').value = '';
     document.getElementById('f_tmdb_id').value = '';
