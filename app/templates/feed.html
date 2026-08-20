@@ -273,6 +273,13 @@
 }
 .sd2-iconbtn svg { width: 1.15rem; height: 1.15rem; }
 .sd2-iconbtn.sd2-active { color: #a78bfa; }
+@keyframes sd2-heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.sd2-heart-pop svg { animation: sd2-heart-pop 0.35s ease; }
 .sd2-topbar-title {
   flex: 1; min-width: 0; text-align: center; font-family: 'Montserrat', sans-serif;
   font-weight: 600; text-transform: uppercase; font-size: 0.92rem; letter-spacing: 0.02em;
@@ -457,16 +464,28 @@ function handleSDetailBackdrop(ev) {
 
 function updateSHeartState() {
   const btn = document.getElementById('sdetail-heart-btn');
-  btn.classList.toggle('sd2-active', _sCurrentIsOwner || _sCurrentWatchlistStatus === 'pending');
+  btn.classList.toggle('sd2-active', _sCurrentWatchlistStatus === 'pending');
   btn.setAttribute('aria-label', _sCurrentIsOwner ? 'Sugerida por vos' : 'Agregar a watchlist');
 }
 
+function popSHeart() {
+  const btn = document.getElementById('sdetail-heart-btn');
+  btn.classList.remove('sd2-heart-pop');
+  void btn.offsetWidth;
+  btn.classList.add('sd2-heart-pop');
+}
+
 function toggleSWatchlistHeart(e) {
+  popSHeart();
   if (_sCurrentIsOwner) {
     if (e) e.stopPropagation();
     document.getElementById('sdetail-heart-tooltip').classList.toggle('hidden');
     return;
   }
+  // Optimista: el toggle es predecible (pendiente <-> nada), así que se pinta
+  // al toque y el guardado real viaja en el fondo, sin que se note la red.
+  _sCurrentWatchlistStatus = _sCurrentWatchlistStatus === 'pending' ? null : 'pending';
+  updateSHeartState();
   addOrRemoveSWatchlist();
 }
 
@@ -476,12 +495,6 @@ async function addOrRemoveSWatchlist() {
   fd.append('status', 'pending');
   try {
     await fetch(`/watchlist/${_sCurrentId}`, { method: 'POST', body: fd });
-    const resp = await fetch(`/suggestions/${_sCurrentId}/json`);
-    if (resp.ok) {
-      const d = await resp.json();
-      _sCurrentWatchlistStatus = d.watchlist_status;
-      updateSHeartState();
-    }
   } catch (e) {}
 }
 
