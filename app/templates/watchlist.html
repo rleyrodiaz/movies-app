@@ -423,29 +423,16 @@
         nadie más lo ve hasta que lo califiques.
       </p>
       <div class="relative">
-        <input id="reminder-search-input" type="text" placeholder="Buscá por título (opcional si usás filtros)..." autocomplete="off"
-          class="pm-input">
-        <div id="reminder-search-spinner" class="hidden absolute right-3 top-3.5">
+        <input id="reminder-search-input" type="text" placeholder="Buscá un título..." autocomplete="off"
+          class="pm-input" style="padding-right:2.75rem">
+        <svg id="reminder-search-icon" class="absolute right-3" style="top:0.9rem;width:1.15rem;height:1.15rem;color:#7A7680"
+          fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
+        </svg>
+        <div id="reminder-search-spinner" class="hidden absolute right-3" style="top:0.9rem">
           <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid #2A2A35;border-top-color:#C8A96E"></div>
         </div>
       </div>
-
-      <div class="grid grid-cols-2 gap-2">
-        <select id="reminder-filter-genre" class="pm-input" style="padding:0.55rem 0.7rem">
-          <option value="">Todos los géneros</option>
-          {% for g in tmdb_genres %}
-          <option value="{{ g }}">{{ g }}</option>
-          {% endfor %}
-        </select>
-        <input id="reminder-filter-min-rating" type="number" min="0" max="10" step="0.1" placeholder="Nota TMDB mín."
-          class="pm-input" style="padding:0.55rem 0.7rem">
-        <input id="reminder-filter-director" type="text" placeholder="Director" autocomplete="off"
-          class="pm-input" style="padding:0.55rem 0.7rem">
-        <input id="reminder-filter-actor" type="text" placeholder="Actor principal" autocomplete="off"
-          class="pm-input" style="padding:0.55rem 0.7rem">
-      </div>
-
-      <div id="reminder-notice" class="hidden" style="background:rgba(200,169,110,0.08);border:1px solid rgba(200,169,110,0.3);color:#C8A96E;font-size:0.8rem;padding:0.65rem 0.9rem"></div>
 
       <div id="reminder-search-results" style="background:#0D0D0F;border:1px solid #2A2A35;overflow:hidden" class="hidden"></div>
     </div>
@@ -785,16 +772,9 @@ window.closeReminderAddModal = function () {
   document.getElementById('reminder-add-backdrop').classList.remove('flex');
   const input = document.getElementById('reminder-search-input');
   input.value = '';
-  document.getElementById('reminder-filter-genre').value = '';
-  document.getElementById('reminder-filter-min-rating').value = '';
-  document.getElementById('reminder-filter-director').value = '';
-  document.getElementById('reminder-filter-actor').value = '';
   const box = document.getElementById('reminder-search-results');
   box.classList.add('hidden');
   box.innerHTML = '';
-  const notice = document.getElementById('reminder-notice');
-  notice.classList.add('hidden');
-  notice.textContent = '';
 };
 
 window.handleReminderAddBackdrop = function (e) {
@@ -802,57 +782,36 @@ window.handleReminderAddBackdrop = function (e) {
 };
 
 (function () {
-  const searchInput    = document.getElementById('reminder-search-input');
-  const resultsBox     = document.getElementById('reminder-search-results');
-  const spinner        = document.getElementById('reminder-search-spinner');
-  const filterGenre     = document.getElementById('reminder-filter-genre');
-  const filterMinRating = document.getElementById('reminder-filter-min-rating');
-  const filterDirector  = document.getElementById('reminder-filter-director');
-  const filterActor     = document.getElementById('reminder-filter-actor');
+  const searchInput = document.getElementById('reminder-search-input');
+  const resultsBox  = document.getElementById('reminder-search-results');
+  const spinner     = document.getElementById('reminder-search-spinner');
+  const searchIcon  = document.getElementById('reminder-search-icon');
   let debounceTimer = null;
   let cachedResults = [];
-
-  function getFilters() {
-    return {
-      genre: filterGenre.value.trim(),
-      min_rating: filterMinRating.value.trim(),
-      director: filterDirector.value.trim(),
-      actor: filterActor.value.trim(),
-    };
-  }
-
-  function hasActiveFilters(f) {
-    return !!(f.genre || f.min_rating || f.director || f.actor);
-  }
 
   function triggerSearch() {
     clearTimeout(debounceTimer);
     const q = searchInput.value.trim();
-    const filters = getFilters();
-    if (q.length < 2 && !hasActiveFilters(filters)) { hideResults(); return; }
-    debounceTimer = setTimeout(() => doSearch(q, filters), 400);
+    if (q.length < 2) { hideResults(); return; }
+    debounceTimer = setTimeout(() => doSearch(q), 400);
   }
 
   searchInput.addEventListener('input', triggerSearch);
-  filterGenre.addEventListener('change', triggerSearch);
-  filterMinRating.addEventListener('input', triggerSearch);
-  filterDirector.addEventListener('input', triggerSearch);
-  filterActor.addEventListener('input', triggerSearch);
 
-  async function doSearch(q, filters) {
+  async function doSearch(q) {
     spinner.classList.remove('hidden');
+    searchIcon.classList.add('hidden');
     try {
       const params = new URLSearchParams({ q });
-      if (filters.genre)      params.set('genre', filters.genre);
-      if (filters.min_rating) params.set('min_rating', filters.min_rating);
-      if (filters.director)   params.set('director', filters.director);
-      if (filters.actor)      params.set('actor', filters.actor);
       const resp = await fetch('/suggestions/search?' + params.toString());
       if (resp.status === 401) { window.location = '/'; return; }
       cachedResults = await resp.json();
       renderResults(cachedResults);
     } catch { hideResults(); }
-    finally { spinner.classList.add('hidden'); }
+    finally {
+      spinner.classList.add('hidden');
+      searchIcon.classList.remove('hidden');
+    }
   }
 
   function renderResults(items) {
@@ -877,7 +836,11 @@ window.handleReminderAddBackdrop = function (e) {
     resultsBox.classList.remove('hidden');
 
     resultsBox.querySelectorAll('.reminder-result-item').forEach(btn => {
-      btn.addEventListener('click', () => submitReminder(cachedResults[parseInt(btn.dataset.idx)]));
+      btn.addEventListener('click', () => {
+        const item = cachedResults[parseInt(btn.dataset.idx)];
+        closeReminderAddModal();
+        submitReminder(item);
+      });
     });
   }
 
@@ -896,11 +859,9 @@ window.handleReminderAddBackdrop = function (e) {
     } catch (e) {}
 
     if (result && result.status === 'duplicate') {
-      const notice = document.getElementById('reminder-notice');
-      notice.textContent = result.club_name
+      alert(result.club_name
         ? `Ya tenés esto como recordatorio — lo agregaste desde ${result.club_name}.`
-        : 'Ya tenés esto como recordatorio.';
-      notice.classList.remove('hidden');
+        : 'Ya tenés esto como recordatorio.');
       return;
     }
     location.reload();
