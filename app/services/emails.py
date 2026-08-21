@@ -43,7 +43,7 @@ def send_visit_notification(
 
     html = f"""
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
-        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">movieLeyro</p>
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">What We Watch</p>
         <h2 style="margin:0 0 16px;font-size:1.2rem">Nueva visita al sitio</h2>
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
           <tr><td style="padding:4px 8px 4px 0;color:#666">Hora</td><td style="padding:4px 0">{hora}</td></tr>
@@ -56,7 +56,7 @@ def send_visit_notification(
         </table>
       </div>
     """
-    return _send(to, f"movieLeyro — Nueva visita desde {geo}", html)
+    return _send(to, f"What We Watch — Nueva visita desde {geo}", html)
 
 
 def send_registration_notification(
@@ -75,7 +75,7 @@ def send_registration_notification(
 
     html = f"""
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
-        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">movieLeyro</p>
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">What We Watch</p>
         <h2 style="margin:0 0 16px;font-size:1.2rem">Nuevo usuario registrado</h2>
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
           <tr><td style="padding:4px 8px 4px 0;color:#666">Nombre</td><td style="padding:4px 0">{name}</td></tr>
@@ -86,7 +86,7 @@ def send_registration_notification(
         </table>
       </div>
     """
-    return _send(to, f"movieLeyro — Nuevo usuario: {display_name}", html)
+    return _send(to, f"What We Watch — Nuevo usuario: {display_name}", html)
 
 
 def send_login_notification(
@@ -108,7 +108,7 @@ def send_login_notification(
 
     html = f"""
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
-        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">movieLeyro</p>
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">What We Watch</p>
         <h2 style="margin:0 0 16px;font-size:1.2rem">Nuevo login</h2>
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
           <tr><td style="padding:4px 8px 4px 0;color:#666">Usuario</td><td style="padding:4px 0">{escape(display_name)}</td></tr>
@@ -120,4 +120,4 @@ def send_login_notification(
         </table>
       </div>
     """
-    return _send(to, f"movieLeyro — Login de {display_name}", html)
+    return _send(to, f"What We Watch — Login de {display_name}", html)

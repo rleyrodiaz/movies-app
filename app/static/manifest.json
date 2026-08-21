@@ -1,6 +1,6 @@
 {
-  "name": "movieLeyro",
-  "short_name": "movieLeyro",
+  "name": "What We Watch",
+  "short_name": "What We Watch",
   "description": "Sugerí y calificá películas y series con tu grupo privado.",
   "start_url": "/feed",
   "scope": "/",
