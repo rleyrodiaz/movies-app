@@ -115,7 +115,7 @@ def invitations_page(
         is_expired = expires_at < now
         link = f"{base_url}/register/{inv.token}"
         msg = (
-            f"Te invito a mi club privado de pelis y series en What We Watch: *{active_club.name}*.\n\n"
+            f"Te invito a mi club privado de pelis y series: *{active_club.name}* en What We Watch.\n\n"
             "Armé la app para sugerirnos títulos entre nosotros, sin el eterno \"¿qué vemos hoy?\".\n\n"
             f"Esta invitación es de un solo uso, para registrarte entrá al siguiente link: {link}\n\n"
             "Una vez que entrás al club, en el menú vas a encontrar la opción \"Guía\" — ahí te "
