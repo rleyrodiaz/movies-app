@@ -18,7 +18,11 @@
   </div>
 
   {# ── Filtros ── #}
-  <form method="get" action="/admin/activity-log" class="pm-card" style="margin-bottom:1.75rem;display:flex;flex-wrap:wrap;align-items:end;gap:1rem">
+  <style>
+    #activity-log-filters .pm-input:focus { border-color: #a78bfa; }
+    #activity-log-filters .pm-btn-primary { background: #a78bfa; }
+  </style>
+  <form id="activity-log-filters" method="get" action="/admin/activity-log" class="pm-card" style="margin-bottom:1.75rem;display:flex;flex-wrap:wrap;align-items:end;gap:1rem">
     <div>
       <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Desde</label>
       <input type="date" name="date_from" value="{{ f_date_from }}" class="pm-input" style="padding:0.5rem 0.7rem">
@@ -98,7 +102,7 @@
             <td style="padding:0.85rem 1rem;white-space:nowrap">
               {% if entry.session_id %}
               <a href="/admin/activity-log?session_id={{ entry.session_id }}" title="{{ entry.session_id }}"
-                 style="font-family:monospace;font-size:0.78rem;color:#C8A96E;text-decoration:none">
+                 style="font-family:monospace;font-size:0.78rem;color:#a78bfa;text-decoration:none">
                 {{ entry.session_id[:8] }}…
               </a>
               {% else %}
@@ -122,7 +126,7 @@
               {% if entry.action.value in ['db_reset'] %}
               <span class="pm-badge" style="color:#f87171;border-color:#7f1d1d">{{ label }}</span>
               {% elif entry.action.value in ['db_initialized'] %}
-              <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">{{ label }}</span>
+              <span class="pm-badge" style="color:#a78bfa;border-color:#5b21b6">{{ label }}</span>
               {% elif entry.action.value in ['user_registered', 'invitation_used'] %}
               <span class="pm-badge" style="color:#86efac;border-color:#166534">{{ label }}</span>
               {% else %}
@@ -154,7 +158,7 @@
   <div style="display:flex;align-items:center;gap:0.5rem;margin-top:1rem;flex-wrap:wrap">
     {% for p in range(1, total_pages + 1) %}
     <a href="?action={{ f_action }}&target_type={{ f_target_type }}&session_id={{ f_session_id }}&user_id={{ f_user_id or '' }}&date_from={{ f_date_from }}&date_to={{ f_date_to }}&page={{ p }}"
-       style="font-size:0.78rem;padding:0.4rem 0.75rem;text-decoration:none;border:1px solid {% if p == page %}#C8A96E{% else %}#2A2A35{% endif %};color:{% if p == page %}#C8A96E{% else %}#7A7680{% endif %}">
+       style="font-size:0.78rem;padding:0.4rem 0.75rem;text-decoration:none;border:1px solid {% if p == page %}#a78bfa{% else %}#2A2A35{% endif %};color:{% if p == page %}#a78bfa{% else %}#7A7680{% endif %}">
       {{ p }}
     </a>
     {% endfor %}

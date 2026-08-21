@@ -2,7 +2,11 @@
 {% block title %}Clubes — Admin{% endblock %}
 
 {% block content %}
-<div class="pm-panel" style="max-width:48rem;margin:0 auto">
+<style>
+  #clubs-page .pm-input:focus { border-color: #a78bfa; }
+  #clubs-page .pm-btn-primary { background: #a78bfa; }
+</style>
+<div id="clubs-page" class="pm-panel" style="max-width:48rem;margin:0 auto">
 
   <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.75rem">
     <div>
@@ -24,13 +28,13 @@
   <div style="display:flex;flex-direction:column;gap:0.75rem">
     {% for d in clubs_data %}
     {% set is_active = active_club and d.club.id == active_club.id %}
-    <div class="pm-card" style="{% if is_active %}border-color:#C8A96E{% endif %}">
+    <div class="pm-card" style="{% if is_active %}border-color:#a78bfa{% endif %}">
 
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;flex-wrap:wrap">
             {% if is_active %}
-            <span class="pm-badge" style="color:#C8A96E;border-color:#C8A96E">Activo</span>
+            <span class="pm-badge" style="color:#a78bfa;border-color:#a78bfa">Activo</span>
             {% endif %}
             <span style="color:#F0EDE8;font-weight:500">{{ d.club.name }}</span>
             <span style="font-size:0.78rem;color:#7A7680">{{ d.member_count }} miembro{{ 's' if d.member_count != 1 else '' }}</span>
@@ -58,7 +62,7 @@
             <div style="display:flex;align-items:center;gap:0.6rem">
               <span style="color:#B8B4BE;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.user.display_name }}</span>
               {% if m.user.is_superadmin %}
-              <span class="pm-badge" style="color:#C8A96E;border-color:#8a6d2f">superadmin</span>
+              <span class="pm-badge" style="color:#a78bfa;border-color:#5b21b6">superadmin</span>
               {% elif m.role.value == 'admin' %}
               <span class="pm-badge" style="color:#93c5fd;border-color:#1e3a8a">admin</span>
               {% else %}

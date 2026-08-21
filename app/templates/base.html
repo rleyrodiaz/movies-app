@@ -156,7 +156,7 @@
 
         <div class="flex items-center gap-3 border-l border-gray-700 pl-6">
           <button id="profile-icon-desktop" onclick="openProfileModal()" title="{{ user.display_name }}"
-            class="profile-icon-btn p-1.5 text-yellow-400 transition-colors rounded-full hover:bg-gray-800">
+            class="profile-icon-btn p-1.5 text-violet-400 transition-colors rounded-full hover:bg-gray-800">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
@@ -234,7 +234,7 @@
         <div class="border-t border-gray-800 pt-2 mt-1 pb-1 flex items-center justify-between px-3">
           <button onclick="closeMobileNav(); openProfileModal();"
             class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors">
-            <svg id="profile-icon-mobile" class="profile-icon-btn w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg id="profile-icon-mobile" class="profile-icon-btn w-5 h-5 text-violet-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
             {{ user.display_name }}

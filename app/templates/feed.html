@@ -194,7 +194,7 @@
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="status_filter" value="{{ val }}"
                    {% if f_status == val %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
@@ -209,7 +209,7 @@
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="media" value="{{ val }}"
                    {% if f_media == val %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
@@ -224,7 +224,7 @@
           {% for g in all_genres %}
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="checkbox" name="genre" value="{{ g }}" {% if g in f_genre %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ g }}</span>
           </label>
           {% endfor %}
@@ -240,14 +240,14 @@
           {% if user.platforms_list %}
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="checkbox" name="platform" value="__mine__" {% if '__mine__' in f_platform %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">Las que tengo</span>
           </label>
           {% endif %}
           {% for p in all_platforms %}
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="checkbox" name="platform" value="{{ p }}" {% if p in f_platform %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ p }}</span>
           </label>
           {% endfor %}
@@ -259,13 +259,13 @@
       <div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
           <p class="pm-label">Calificación de usuarios</p>
-          <span id="min-rating-label" style="font-size:0.85rem;color:#C8A96E;font-weight:500">
+          <span id="min-rating-label" style="font-size:0.85rem;color:#a78bfa;font-weight:500">
             {{ 'Todas' if not f_min_rating else f_min_rating ~ '★ o más' }}
           </span>
         </div>
         <input type="range" name="min_rating" min="0" max="10" step="1" value="{{ f_min_rating }}"
           oninput="document.getElementById('min-rating-label').textContent = this.value == 0 ? 'Todas' : this.value + '★ o más'"
-          style="width:100%;accent-color:#C8A96E">
+          style="width:100%;accent-color:#a78bfa">
       </div>
 
       {# Recomendado por #}
@@ -276,7 +276,7 @@
           {% for uid, u in suggesters.items() %}
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="checkbox" name="by" value="{{ uid }}" {% if uid in f_by %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ u.display_name }}</span>
           </label>
           {% endfor %}
@@ -292,7 +292,7 @@
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="radio" name="sort" value="{{ val }}"
                    {% if f_sort == val %}checked{% endif %}
-                   style="accent-color:#C8A96E;width:1rem;height:1rem">
+                   style="accent-color:#a78bfa;width:1rem;height:1rem">
             <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
           </label>
           {% endfor %}
@@ -378,6 +378,8 @@
 }
 .sd2-navitem svg { width: 1.3rem; height: 1.3rem; }
 .sd2-navitem.sd2-active { color: #a78bfa; }
+#filter-backdrop .pm-btn-primary { background: #a78bfa; }
+#filter-backdrop .pm-label { color: #a78bfa; }
 
 /* Este rediseño (colores, tipografías, estructura) es para mobile. En
    desktop se mantiene el mismo diseño pero contenido en una caja
