@@ -437,20 +437,6 @@
   </div>
 </div>
 
-{# ── MODAL: CONFIRMAR BORRADO DE SUGERENCIA ── #}
-<div id="confirm-sdelete-backdrop"
-     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
-     style="background:rgba(0,0,0,0.6)">
-  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
-    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar sugerencia?</h3>
-    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
-    <div class="flex gap-3 justify-end">
-      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
-      <button id="confirm-sdelete-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 function openFilterModal() {
   const el = document.getElementById('filter-backdrop');
@@ -621,13 +607,6 @@ function buildSDetailHTML(d) {
       </div>
     </div>`;
 
-  const deleteHtml = !d.is_owner ? '' : `
-    <div class="sd2-section" style="text-align:center">
-      ${d.can_delete
-        ? `<button type="button" onclick="confirmDeleteSSuggestion()" style="background:none;border:none;cursor:pointer;color:#686868;font-size:0.75rem">Borrar sugerencia</button>`
-        : `<span style="color:#4a4a55;font-size:0.75rem;cursor:not-allowed" title="Alguien la tiene en su watchlist">Borrar sugerencia</span>`}
-    </div>`;
-
   return `
     ${heroHtml}
     <div class="sd2-body">
@@ -658,31 +637,12 @@ function buildSDetailHTML(d) {
       </div>
 
       ${activityHtml}
-      ${deleteHtml}
     </div>`;
 }
 
 function toggleSynopsis() {
   document.getElementById('sdetail-overview-short').classList.toggle('hidden');
   document.getElementById('sdetail-overview-full').classList.toggle('hidden');
-}
-
-function confirmDeleteSSuggestion() {
-  const backdrop = document.getElementById('confirm-sdelete-backdrop');
-  backdrop.classList.remove('hidden');
-  backdrop.classList.add('flex');
-  pmOpenModal(closeConfirmSDelete);
-  const btn = document.getElementById('confirm-sdelete-btn');
-  btn.onclick = async () => {
-    try { await fetch(`/suggestions/${_sCurrentId}/delete`, { method: 'POST', body: new FormData() }); } catch (e) {}
-    location.reload();
-  };
-}
-
-function closeConfirmSDelete() {
-  const backdrop = document.getElementById('confirm-sdelete-backdrop');
-  backdrop.classList.add('hidden');
-  backdrop.classList.remove('flex');
 }
 </script>
 

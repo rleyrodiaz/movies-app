@@ -367,11 +367,14 @@ function openDetail(id) {
   document.getElementById('detail-topbar-title').textContent = s.title;
   const deleteBtn = document.getElementById('detail-delete-btn');
   if (s.can_delete) {
-    deleteBtn.classList.remove('sd2-spacer');
+    deleteBtn.classList.add('sd2-active');
+    deleteBtn.style.cursor = 'pointer';
     deleteBtn.title = 'Borrar sugerencia';
     deleteBtn.onclick = () => deleteDetail(s.id);
   } else {
-    deleteBtn.classList.add('sd2-spacer');
+    deleteBtn.classList.remove('sd2-active');
+    deleteBtn.style.cursor = 'default';
+    deleteBtn.title = 'No se puede borrar: alguien más la tiene en su watchlist';
     deleteBtn.onclick = null;
   }
 
