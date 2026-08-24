@@ -521,6 +521,7 @@ def suggestion_detail_json(
                 "rating": e.rating,
                 "comment": e.comment or "",
                 "watched_on": e.watched_on.isoformat() if e.watched_on else "",
+                "is_mine": e.user_id == current_user.id,
             }
             for e in watched_entries
         ],

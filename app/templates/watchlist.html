@@ -340,7 +340,7 @@
   background: #a78bfa; color: #1F1D2B; border: none; border-radius: 999px; font-weight: 600;
   padding: 0.65rem 1.3rem; font-size: 0.85rem; cursor: pointer;
 }
-.sd2-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.sd2-btn-primary:disabled { background: rgba(255,255,255,0.06); color: #5A5762; cursor: not-allowed; }
 .sd2-club-checklist label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; color: #B8B4BE; margin-bottom: 0.4rem; }
 .sd2-club-checklist input { accent-color: #a78bfa; width: 1rem; height: 1rem; }
 .sd2-bottombar {
@@ -594,7 +594,7 @@ function openWDetail(id) {
   if (!e) return;
   _wSelectedRating = e.rating;
   document.getElementById('wdetail-topbar-title').textContent = e.title;
-  document.getElementById('wdetail-remove-btn').onclick = () => confirmRemoveFromWatchlist(e.id, e.status);
+  document.getElementById('wdetail-remove-btn').onclick = () => confirmRemoveFromWatchlist(e.id);
   document.getElementById('wdetail-content').innerHTML = buildWDetailHTML(e);
   document.getElementById('wdetail-backdrop').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -716,9 +716,7 @@ function selectWRating(id, n) {
   for (let i = 1; i <= 10; i++) {
     const btn = document.getElementById(`wrbtn-${id}-${i}`);
     if (!btn) continue;
-    btn.style.background = i === n ? '#C8A96E' : '#0D0D0F';
-    btn.style.color = i === n ? '#0D0D0F' : '#7A7680';
-    btn.style.border = i === n ? 'none' : '1px solid #2A2A35';
+    btn.classList.toggle('sd2-selected', i === n);
   }
   const label = document.getElementById(`wrating-label-${id}`);
   if (label) label.textContent = n + '/10';
@@ -739,7 +737,7 @@ async function saveWRating(id) {
   location.reload();
 }
 
-function confirmRemoveFromWatchlist(id, status) {
+function confirmRemoveFromWatchlist(id) {
   const backdrop = document.getElementById('confirm-remove-backdrop');
   backdrop.classList.remove('hidden');
   backdrop.classList.add('flex');
@@ -747,10 +745,8 @@ function confirmRemoveFromWatchlist(id, status) {
 
   const btn = document.getElementById('confirm-remove-btn');
   btn.onclick = async () => {
-    const fd = new FormData();
-    fd.append('status', status);
     try {
-      await fetch(`/watchlist/${id}`, { method: 'POST', body: fd });
+      await fetch(`/watchlist/${id}/remove`, { method: 'POST' });
     } catch(e) {}
     location.reload();
   };

@@ -143,7 +143,7 @@
   background: #a78bfa; color: #1F1D2B; border: none; border-radius: 999px; font-weight: 600;
   padding: 0.65rem 1.3rem; font-size: 0.85rem; cursor: pointer;
 }
-.sd2-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.sd2-btn-primary:disabled { background: rgba(255,255,255,0.06); color: #5A5762; cursor: not-allowed; }
 .sd2-club-checklist label { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.82rem; color: #B8B4BE; margin-bottom: 0.4rem; }
 .sd2-club-checklist input { accent-color: #a78bfa; width: 1rem; height: 1rem; }
 .sd2-bottombar {
@@ -374,7 +374,7 @@ function openDetail(id) {
   } else {
     deleteBtn.classList.remove('sd2-active');
     deleteBtn.style.cursor = 'default';
-    deleteBtn.title = 'No se puede borrar: alguien más la tiene en su watchlist';
+    deleteBtn.title = 'No se puede borrar porque otro miembro lo tiene en su WatchList o ya la calificó';
     deleteBtn.onclick = null;
   }
 

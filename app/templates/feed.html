@@ -437,6 +437,20 @@
   </div>
 </div>
 
+{# ── MODAL: CONFIRMAR BORRADO DE MI CALIFICACIÓN ── #}
+<div id="confirm-myrating-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar tu calificación?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-myrating-btn" class="pm-btn-danger" style="background:#7f1d1d;color:#fecaca;border-color:#7f1d1d">Borrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 function openFilterModal() {
   const el = document.getElementById('filter-backdrop');
@@ -466,9 +480,12 @@ function esc(s) {
 let _sCurrentId = null;
 let _sCurrentWatchlistStatus = null;
 let _sCurrentIsOwner = false;
+let _sHeartTooltipTimer = null;
+let _sNeedsReload = false;
 
 async function openSuggestionDetail(id) {
   _sCurrentId = id;
+  _sNeedsReload = false;
   document.getElementById('sdetail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">Cargando…</p>';
   document.getElementById('sdetail-topbar-title').textContent = '';
   document.getElementById('sdetail-heart-tooltip').classList.add('hidden');
@@ -476,7 +493,7 @@ async function openSuggestionDetail(id) {
   document.body.style.overflow = 'hidden';
   pmOpenModal(closeSDetail);
   try {
-    const resp = await fetch(`/suggestions/${id}/json`);
+    const resp = await fetch(`/suggestions/${id}/json`, { cache: 'no-store' });
     if (!resp.ok) { document.getElementById('sdetail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">No se pudo cargar.</p>'; return; }
     const d = await resp.json();
     document.getElementById('sdetail-topbar-title').textContent = d.title;
@@ -492,6 +509,43 @@ async function openSuggestionDetail(id) {
 function closeSDetail() {
   document.getElementById('sdetail-backdrop').classList.add('hidden');
   document.body.style.overflow = '';
+  // El promedio y la cantidad de calificaciones que se ven en el mosaico se
+  // recalculan en el servidor; si cambiaron, se refrescan al recargar.
+  if (_sNeedsReload) location.reload();
+}
+
+async function refreshSDetail() {
+  if (!_sCurrentId) return;
+  try {
+    const resp = await fetch(`/suggestions/${_sCurrentId}/json`, { cache: 'no-store' });
+    if (!resp.ok) return;
+    const d = await resp.json();
+    _sCurrentWatchlistStatus = d.watchlist_status;
+    _sCurrentIsOwner = d.is_owner;
+    updateSHeartState();
+    document.getElementById('sdetail-content').innerHTML = buildSDetailHTML(d);
+  } catch (e) {}
+}
+
+function deleteMyRating() {
+  const backdrop = document.getElementById('confirm-myrating-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmMyRating);
+  const btn = document.getElementById('confirm-myrating-btn');
+  btn.onclick = async () => {
+    if (!_sCurrentId) return;
+    try { await fetch(`/watchlist/${_sCurrentId}/remove`, { method: 'POST' }); } catch (e) {}
+    _sNeedsReload = true;
+    await refreshSDetail();
+    pmCloseModal();
+  };
+}
+
+function closeConfirmMyRating() {
+  const backdrop = document.getElementById('confirm-myrating-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
 }
 
 function handleSDetailBackdrop(ev) {
@@ -501,7 +555,7 @@ function handleSDetailBackdrop(ev) {
 function updateSHeartState() {
   const btn = document.getElementById('sdetail-heart-btn');
   btn.classList.toggle('sd2-active', _sCurrentWatchlistStatus === 'pending');
-  btn.setAttribute('aria-label', _sCurrentIsOwner ? 'Sugerida por vos' : 'Agregar a watchlist');
+  btn.setAttribute('aria-label', _sCurrentIsOwner ? 'Sugerida por vos' : (_sCurrentWatchlistStatus === 'watched' ? 'Ya la calificaste' : 'Agregar a watchlist'));
 }
 
 function popSHeart() {
@@ -513,9 +567,17 @@ function popSHeart() {
 
 function toggleSWatchlistHeart(e) {
   popSHeart();
+  if (e) e.stopPropagation();
+  const tooltip = document.getElementById('sdetail-heart-tooltip');
+  clearTimeout(_sHeartTooltipTimer);
   if (_sCurrentIsOwner) {
-    if (e) e.stopPropagation();
-    document.getElementById('sdetail-heart-tooltip').classList.toggle('hidden');
+    tooltip.textContent = 'Sugerida por vos';
+    tooltip.classList.toggle('hidden');
+    return;
+  }
+  if (_sCurrentWatchlistStatus === 'watched') {
+    tooltip.textContent = 'Ya la calificaste';
+    tooltip.classList.toggle('hidden');
     return;
   }
   // Optimista: el toggle es predecible (pendiente <-> nada), así que se pinta
@@ -523,6 +585,9 @@ function toggleSWatchlistHeart(e) {
   _sCurrentWatchlistStatus = _sCurrentWatchlistStatus === 'pending' ? null : 'pending';
   updateSHeartState();
   addOrRemoveSWatchlist();
+  tooltip.textContent = _sCurrentWatchlistStatus === 'pending' ? 'Agregado a watchlist' : 'Quitado de watchlist';
+  tooltip.classList.remove('hidden');
+  _sHeartTooltipTimer = setTimeout(() => tooltip.classList.add('hidden'), 1600);
 }
 
 async function addOrRemoveSWatchlist() {
@@ -598,7 +663,12 @@ function buildSDetailHTML(d) {
           <div class="sd2-activity-row">
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.3rem">
               <span style="font-size:0.8rem;font-weight:600;color:#FFFCFC">${esc(e.user)}</span>
-              <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${e.rating}/10</span>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${e.rating}/10</span>
+                ${e.is_mine ? `<button type="button" onclick="deleteMyRating()" aria-label="Borrar mi calificación" title="Borrar mi calificación" style="background:none;border:none;cursor:pointer;padding:0.15rem;color:#686868;display:flex;align-items:center">
+                  <svg style="width:0.9rem;height:0.9rem" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                </button>` : ''}
+              </div>
             </div>
             ${e.comment
               ? `<p style="font-size:0.78rem;line-height:1.5;color:#92929D">${esc(e.comment)}</p>`

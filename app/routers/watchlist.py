@@ -279,6 +279,13 @@ def watchlist_update(
         )
     )
 
+    # Si ya tiene una calificación guardada, este endpoint (el toggle simple
+    # de "pendiente") no la toca — evita que un tap accidental en el corazón
+    # pise el status de una entrada ya calificada. Editar o borrar una
+    # calificación hecha se hace por /rate o /remove.
+    if entry and entry.hidden_from_watchlist:
+        return RedirectResponse(f"/suggestions/{suggestion_id}", status_code=303)
+
     if entry and entry.status == WatchlistStatus(status) and not entry.hidden_from_watchlist:
         db.delete(entry)
         action = ActivityAction.watchlist_removed
@@ -367,6 +374,39 @@ def watchlist_rate(
             session_id=get_session_id(request),
         )
     return RedirectResponse("/watchlist", status_code=303)
+
+
+@router.post("/watchlist/{suggestion_id}/remove", response_class=JSONResponse)
+def watchlist_remove(
+    request: Request,
+    suggestion_id: int,
+    current_user: User = Depends(require_user),
+    db: Session = Depends(get_db_dep),
+):
+    """Borra por completo la entrada de watchlist del usuario para esta
+    sugerencia (pendiente o ya calificada) — a diferencia de POST
+    /watchlist/{suggestion_id}, que solo saca de pendientes."""
+    entry = db.scalar(
+        select(WatchlistEntry).where(
+            WatchlistEntry.user_id == current_user.id,
+            WatchlistEntry.suggestion_id == suggestion_id,
+        )
+    )
+    if entry is None:
+        return JSONResponse({"status": "not_found"}, status_code=404)
+
+    suggestion = entry.suggestion
+    db.delete(entry)
+    log_activity(
+        db, ActivityAction.watchlist_removed,
+        user_id=current_user.id,
+        club_id=suggestion.club_id,
+        target_type="suggestion",
+        target_id=suggestion_id,
+        detail={"title": suggestion.title, "media_type": suggestion.media_type.value},
+        session_id=get_session_id(request),
+    )
+    return JSONResponse({"status": "removed"})
 
 
 @router.post("/watchlist/reminders/{reminder_id}/rate")
