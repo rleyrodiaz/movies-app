@@ -283,15 +283,6 @@
   <style>
     .pm-panel { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
     .pm-display { font-family: 'Playfair Display', Georgia, serif; }
-    .pm-nav-item {
-      display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
-      font-family: inherit; font-size: 0.85rem; font-weight: 500; letter-spacing: 0.02em;
-      color: #7A7680; padding: 0.75rem 1.25rem; border-left: 2px solid transparent;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .pm-nav-item:hover { color: #F0EDE8; background: rgba(200,169,110,0.06); }
-    .pm-nav-item.pm-active { color: #C8A96E; border-left-color: #C8A96E; background: rgba(200,169,110,0.08); }
-    .pm-nav-item.pm-danger:hover { color: #f87171; }
     .pm-input {
       width: 100%; background: #0D0D0F; border: 1px solid #2A2A35; color: #F0EDE8;
       font-size: 0.9rem; padding: 0.7rem 0.85rem; outline: none; transition: border-color 0.15s;
@@ -327,66 +318,118 @@
       display: inline-block; font-size: 0.68rem; letter-spacing: 0.02em; padding: 0.2rem 0.6rem; border: 1px solid;
       font-family: inherit;
     }
-    .pm-platform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 0.75rem; }
-    @media (max-width: 480px) {
-      .pm-nav { width: 108px !important; padding: 1.25rem 0 0.75rem !important; }
-      .pm-nav-title { font-size: 0.85rem !important; padding: 0 0.75rem 0.75rem !important; }
-      .pm-nav-item { padding: 0.65rem 0.75rem !important; font-size: 0.78rem !important; }
-      .pm-platform-grid { grid-template-columns: 1fr; }
-    }
   </style>
-  <div id="profile-backdrop" onclick="handleProfileBackdrop(event)"
-    class="fixed inset-0 z-50 hidden items-center justify-center p-4"
-    style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)">
 
-    <div class="pm-panel" style="position:relative;width:100%;max-width:480px;max-height:90vh;background:#15151A;border:1px solid #2A2A35;display:flex;flex-direction:column;overflow:hidden">
+  {# ── Sistema visual sd2 (mismo del feed / sugerir / watchlist) ── #}
+  <style>
+  .sd2-root { font-family: 'Inter', system-ui, sans-serif; }
+  .sd2-screen { position: fixed; inset: 0; z-index: 50; background: #1F1D2B; display: flex; flex-direction: column; }
+  .sd2-topbar {
+    flex-shrink: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; padding: 0.65rem 0.85rem; padding-top: calc(0.65rem + env(safe-area-inset-top));
+    background: #151519;
+  }
+  .sd2-iconbtn {
+    width: 2.25rem; height: 2.25rem; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.06); border: none; cursor: pointer;
+    color: #686868; transition: color 0.15s;
+  }
+  .sd2-iconbtn svg { width: 1.15rem; height: 1.15rem; }
+  .sd2-iconbtn.sd2-spacer { visibility: hidden; }
+  .sd2-topbar-title {
+    flex: 1; min-width: 0; text-align: center; font-family: 'Montserrat', sans-serif;
+    font-weight: 600; text-transform: uppercase; font-size: 0.92rem; letter-spacing: 0.02em;
+    color: #FFFCFC; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sd2-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .sd2-body { padding: 1.5rem 1.1rem 2.5rem; }
+  .sd2-section { margin-top: 1.9rem; }
+  .sd2-section:first-child { margin-top: 0; }
+  .sd2-section-label {
+    font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-weight: 600;
+    font-size: 0.68rem; letter-spacing: 0.05em; color: #92929D; margin-bottom: 0.85rem;
+  }
+  .sd2-input {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; color: #FFFCFC; font-family: inherit; font-size: 0.9rem;
+    padding: 0.7rem 0.9rem; outline: none; transition: border-color 0.15s;
+  }
+  .sd2-input::placeholder { color: #686868; }
+  .sd2-input:focus { border-color: #a78bfa; }
+  .sd2-btn-primary {
+    display: block; width: 100%; background: #a78bfa; color: #1F1D2B; border: none;
+    border-radius: 999px; font-weight: 600; padding: 0.8rem 1.3rem; font-size: 0.88rem;
+    cursor: pointer; margin-top: 1.2rem; font-family: inherit;
+  }
+  .sd2-logout-btn {
+    display: block; width: 100%; background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 999px; color: #92929D; font-weight: 500; padding: 0.75rem 1.3rem;
+    font-size: 0.85rem; cursor: pointer; font-family: inherit; transition: color 0.15s, border-color 0.15s;
+  }
+  .sd2-logout-btn:hover { color: #f87171; border-color: rgba(248,113,113,0.4); }
 
-      <button onclick="pmCloseModal()" aria-label="Cerrar"
-        style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:#7A7680;font-size:1.2rem;line-height:1;z-index:2;transition:color 0.15s"
-        onmouseover="this.style.color='#F0EDE8'" onmouseout="this.style.color='#7A7680'">&times;</button>
+  @media (min-width: 768px) {
+    .sd2-root:not(.hidden) {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: center; padding: 2rem;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(6px);
+    }
+    .sd2-screen {
+      position: relative; inset: auto; width: 100%; max-width: 28rem; max-height: 90vh;
+      border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,0.55);
+    }
+  }
+  </style>
 
-      <div class="pm-body" style="display:flex;flex:1;min-height:0">
+  <div id="profile-backdrop" class="sd2-root hidden" onclick="handleProfileBackdrop(event)">
+    <div id="profile-box" class="sd2-screen">
 
-        {# Sidebar #}
-        <div class="pm-nav" style="width:160px;flex-shrink:0;border-right:1px solid #2A2A35;padding:1.75rem 0 1rem;display:flex;flex-direction:column">
-          <p class="pm-nav-title pm-display" style="font-size:1rem;font-weight:700;color:#F0EDE8;padding:0 1.25rem 1rem;margin-bottom:0.5rem;border-bottom:1px solid #2A2A35;line-height:1.3">{{ user.display_name }}</p>
-          <button id="profile-tab-btn-platforms" class="pm-nav-item" onclick="switchProfileTab('platforms')">Plataformas</button>
-          <button id="profile-tab-btn-password" class="pm-nav-item" onclick="switchProfileTab('password')">Cambio de contraseña</button>
-          <form method="post" action="/logout" style="margin:0">
-            <button type="submit" class="pm-nav-item pm-danger">Cerrar sesión</button>
-          </form>
-        </div>
+      <div class="sd2-topbar">
+        <button class="sd2-iconbtn" onclick="pmCloseModal()" aria-label="Cerrar">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+        </button>
+        <h1 class="sd2-topbar-title">{{ user.display_name }}</h1>
+        <span class="sd2-iconbtn sd2-spacer"></span>
+      </div>
 
-        {# Content #}
-        <div style="flex:1;min-width:0;padding:1.75rem;overflow-y:auto">
+      <div class="sd2-scroll">
+        <div class="sd2-body">
 
           {# Mis plataformas #}
-          <div id="profile-tab-platforms">
-            <p style="font-size:0.68rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#C8A96E;margin-bottom:1rem">Mis plataformas</p>
-            <div class="pm-platform-grid">
+          <div class="sd2-section">
+            <p class="sd2-section-label">Mis plataformas</p>
+            <div class="grid grid-cols-2 gap-x-3 gap-y-2">
               {% for value, label in platform_choices %}
               <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
                 <input type="checkbox" name="profile_platforms" value="{{ value }}"
                        {% if value in user.platforms_list %}checked{% endif %}
-                       style="accent-color:#C8A96E;width:1rem;height:1rem">
+                       style="accent-color:#a78bfa;width:1rem;height:1rem">
                 <span style="font-size:0.85rem;color:#B8B4BE">{{ label }}</span>
               </label>
               {% endfor %}
             </div>
-            <button onclick="savePlatforms()" class="pm-btn-primary" style="margin-top:1.5rem;width:100%">Guardar plataformas</button>
+            <button onclick="savePlatforms()" class="sd2-btn-primary">Guardar plataformas</button>
             <p id="platforms-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
           </div>
 
           {# Cambiar contraseña #}
-          <div id="profile-tab-password" class="hidden">
-            <p style="font-size:0.68rem;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:#C8A96E;margin-bottom:1rem">Cambio de contraseña</p>
-            <div style="display:flex;flex-direction:column;gap:0.85rem">
-              <input id="pw-current" type="password" placeholder="Contraseña actual" autocomplete="current-password" class="pm-input">
-              <input id="pw-new" type="password" placeholder="Nueva contraseña" autocomplete="new-password" class="pm-input">
-              <input id="pw-confirm" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password" class="pm-input">
+          <div class="sd2-section">
+            <p class="sd2-section-label">Cambio de contraseña</p>
+            <div style="display:flex;flex-direction:column;gap:0.7rem">
+              <input id="pw-current" type="password" placeholder="Contraseña actual" autocomplete="current-password" class="sd2-input">
+              <input id="pw-new" type="password" placeholder="Nueva contraseña" autocomplete="new-password" class="sd2-input">
+              <input id="pw-confirm" type="password" placeholder="Confirmar nueva contraseña" autocomplete="new-password" class="sd2-input">
             </div>
-            <button onclick="changePassword()" class="pm-btn-primary" style="margin-top:1.25rem;width:100%">Actualizar contraseña</button>
+            <button onclick="changePassword()" class="sd2-btn-primary">Actualizar contraseña</button>
             <p id="password-msg" class="hidden" style="font-size:0.78rem;margin-top:0.6rem"></p>
+          </div>
+
+          {# Cerrar sesión #}
+          <div class="sd2-section">
+            <form method="post" action="/logout" style="margin:0">
+              <button type="submit" class="sd2-logout-btn">Cerrar sesión</button>
+            </form>
           </div>
 
         </div>
@@ -430,24 +473,16 @@
   </script>
 
   <script>
-  function switchProfileTab(tab) {
-    const tabs = ['platforms', 'password'];
-    tabs.forEach(function (t) {
-      document.getElementById('profile-tab-' + t).classList.toggle('hidden', t !== tab);
-      document.getElementById('profile-tab-btn-' + t).classList.toggle('pm-active', t === tab);
-    });
-  }
   function openProfileModal() {
     const el = document.getElementById('profile-backdrop');
     el.classList.remove('hidden');
-    el.classList.add('flex');
-    switchProfileTab('platforms');
+    document.body.style.overflow = 'hidden';
     pmOpenModal(closeProfileModal);
   }
   function closeProfileModal() {
     const el = document.getElementById('profile-backdrop');
     el.classList.add('hidden');
-    el.classList.remove('flex');
+    document.body.style.overflow = '';
   }
   function handleProfileBackdrop(e) {
     if (e.target === document.getElementById('profile-backdrop')) pmCloseModal();
