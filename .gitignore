@@ -15,6 +15,7 @@ env/
 # Temporary Excel files
 ~$*
 *.tmp
+*.docx
 
 # Databases
 *.db
