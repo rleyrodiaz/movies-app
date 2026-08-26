@@ -24,7 +24,9 @@ PLATFORM_CHOICES: list[tuple[str, str]] = [
     ("Mercado Play", "Mercado Play"),
     ("Crunchyroll", "Crunchyroll"),
     ("Pluto TV", "Pluto TV"),
+    ("MUBI", "MUBI"),
 ]
+
 
 
 def poster_url(path: str | None, size: str = "w500") -> str | None:
