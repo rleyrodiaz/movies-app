@@ -41,24 +41,20 @@ def create_session_cookie(user_id: int, session_id: str) -> str:
     return _serializer().dumps({"uid": user_id, "sid": session_id})
 
 
-def decode_session_cookie(value: str) -> dict | None:
-    max_age = get_settings().session_max_age_days * 86400
-    try:
-        data = _serializer().loads(value, max_age=max_age)
-        return {"uid": int(data["uid"]), "sid": data.get("sid")}
-    except (BadSignature, SignatureExpired, KeyError, ValueError):
-        return None
-
-
 def get_current_user(request: Request, db: Session = Depends(get_db_dep)) -> User | None:
     cookie = request.cookies.get(COOKIE_NAME)
     if not cookie:
         return None
-    data = decode_session_cookie(cookie)
-    if not data:
+    max_age = get_settings().session_max_age_hours * 3600
+    try:
+        data = _serializer().loads(cookie, max_age=max_age)
+    except SignatureExpired:
+        request.state.session_expired = True
+        return None
+    except (BadSignature, KeyError, ValueError):
         return None
     request.state.session_id = data.get("sid")
-    return db.get(User, data["uid"])
+    return db.get(User, int(data["uid"]))
 
 
 def get_session_id(request: Request) -> str | None:
@@ -99,7 +95,7 @@ def set_session(response, user_id: int) -> str:
     response.set_cookie(
         COOKIE_NAME,
         create_session_cookie(user_id, session_id),
-        max_age=settings.session_max_age_days * 86400,
+        max_age=settings.session_max_age_hours * 3600,
         httponly=True,
         samesite="lax",
     )

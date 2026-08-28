@@ -1,3 +1,5 @@
+from urllib.parse import quote
+
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from app.exceptions import AccessDenied, NeedsLogin
 from app.models.user import User
 from app.routers import admin, auth, suggestions, tracking, watchlist
-from app.services.auth import get_current_user
+from app.services.auth import clear_session, get_current_user
 from app.services.version import APP_VERSION
 
 app = FastAPI(title="Movies & Series")
@@ -45,6 +47,11 @@ def guia(request: Request, current_user: User | None = Depends(get_current_user)
 
 @app.exception_handler(NeedsLogin)
 async def needs_login_handler(request: Request, exc: NeedsLogin):
+    if getattr(request.state, "session_expired", False):
+        message = quote("Tu sesión expiró por inactividad. Iniciá sesión de nuevo.")
+        response = RedirectResponse(f"/?login_error={message}", status_code=303)
+        clear_session(response)
+        return response
     return RedirectResponse("/", status_code=303)
 
 
