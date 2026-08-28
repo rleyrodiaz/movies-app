@@ -127,6 +127,8 @@ def watchlist_page(
     if platform_set:
         reminders = [r for r in reminders if platform_set & set(r.providers_list)]
 
+    pending_count = sum(1 for e in all_entries if e.status == WatchlistStatus.pending)
+
     return templates.TemplateResponse(
         "watchlist.html",
         {
@@ -135,6 +137,8 @@ def watchlist_page(
             "entries": entries,
             "total": len(all_entries),
             "reminders": reminders,
+            "pending_count": pending_count,
+            "reminders_count": len(all_reminders),
             "all_genres": all_genres,
             "all_platforms": all_platforms,
             "tmdb_genres": tmdb.get_all_genre_names(),
@@ -251,38 +255,6 @@ def reminder_create(
         session_id=get_session_id(request),
     )
     return JSONResponse({"status": "created"})
-
-
-@router.get("/watchlist/reminders/json", response_class=JSONResponse)
-def reminders_json(
-    current_user: User = Depends(require_user),
-    db: Session = Depends(get_db_dep),
-):
-    """Lista de recordatorios del usuario, para refrescar la pantalla de
-    Recordatorios en el lugar (sin recargar toda la página) tras agregar uno."""
-    active_club = get_active_club(current_user, db)
-    if not any(m.club_id == active_club.id for m in current_user.memberships):
-        return JSONResponse([])
-
-    reminders = db.scalars(
-        select(PersonalReminder)
-        .where(PersonalReminder.user_id == current_user.id)
-        .order_by(PersonalReminder.created_at.desc())
-    ).all()
-    return JSONResponse([
-        {
-            "id": r.id,
-            "tmdb_id": r.tmdb_id,
-            "title": r.title,
-            "poster_path": r.poster_path or "",
-            "media_type": r.media_type.value,
-            "year": r.release_date.year if r.release_date else None,
-            "overview": r.overview or "",
-            "tmdb_rating": r.tmdb_rating,
-            "providers_list": r.providers_list,
-        }
-        for r in reminders
-    ])
 
 
 @router.post("/watchlist/{suggestion_id}")

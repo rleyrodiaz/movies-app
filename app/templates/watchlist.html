@@ -17,29 +17,17 @@
     {% endif %}
   </button>
 
-  <button onclick="openRemindersScreen()"
-    class="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors">
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-    </svg>
-    Recordatorios
-  </button>
-
   {% if active_filters or f_sort %}
   <a href="/watchlist" class="text-xs text-gray-500 hover:text-gray-300 transition-colors">Limpiar</a>
   {% endif %}
 
   <span class="text-sm text-gray-600 ml-auto">
-    {% if entries|length != total %}
-      {{ entries|length }} de {{ total }} título{{ 's' if total != 1 else '' }}
-    {% else %}
-      {{ total }} título{{ 's' if total != 1 else '' }}
-    {% endif %}
+    {{ pending_count }} por ver &middot; {{ reminders_count }} recordatorio{{ 's' if reminders_count != 1 else '' }}
   </span>
 </div>
 
 {# ── Mosaic ── #}
-{% if not entries %}
+{% if not entries and not reminders %}
   <div class="text-center py-24 text-gray-600">
     {% if active_filters %}
     <p class="text-lg text-gray-500">No hay resultados para esos filtros.</p>
@@ -51,6 +39,8 @@
   </div>
 
 {% else %}
+
+{% if entries %}
 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
   {% for e in entries %}
   <button type="button" onclick="openWDetail({{ e.suggestion.id }})" class="group block text-left">
@@ -103,6 +93,46 @@
   </button>
   {% endfor %}
 </div>
+{% endif %}
+
+{% if reminders %}
+<div class="{{ 'mt-8' if entries else '' }}">
+  <p class="text-sm font-semibold text-gray-400 mb-3">Recordatorios</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+    {% for r in reminders %}
+    <button type="button" onclick="openReminderDetail({{ r.id }})" class="group block text-left">
+      <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
+        {% if r.poster_path %}
+        <img src="https://image.tmdb.org/t/p/w342{{ r.poster_path }}" alt="{{ r.title }}"
+             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
+        {% endif %}
+        <div class="absolute top-2 left-2">
+          {% if r.media_type.value == 'movie' %}
+          <span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>
+          {% else %}
+          <span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>
+          {% endif %}
+        </div>
+        <div class="absolute top-2 right-2 bg-amber-900/80 text-amber-300 text-xs font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm">
+          Privado
+        </div>
+      </div>
+      <div class="mt-2 px-0.5">
+        <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ r.title }}</p>
+        <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
+          {% if r.release_date %}<span class="text-gray-500">{{ r.release_date.year }}</span>{% endif %}
+          {% if r.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(r.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
+          {% if r.providers_list %}<span class="text-gray-500">· {{ r.providers_list[0] }}{% if r.providers_list|length > 1 %} +{{ r.providers_list|length - 1 }}{% endif %}</span>{% endif %}
+        </p>
+      </div>
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 {% endif %}
 
 
@@ -278,11 +308,6 @@
   font-family: 'Montserrat', sans-serif; text-transform: uppercase; font-weight: 600;
   font-size: 0.68rem; letter-spacing: 0.05em; color: #92929D; margin-bottom: 0.65rem;
 }
-.sd2-search-input {
-  width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
-  color: #FFFCFC; font-family: inherit; font-size: 0.85rem; padding: 0.7rem 0.9rem;
-}
-.sd2-search-input::placeholder { color: #686868; }
 .sd2-providers { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .sd2-provider-chip { font-size: 0.72rem; color: #92929D; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.65rem; border-radius: 999px; }
 .sd2-activity-list { max-height: 15rem; overflow-y: auto; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
@@ -313,7 +338,6 @@
 }
 .sd2-navitem svg { width: 1.3rem; height: 1.3rem; }
 .sd2-navitem.sd2-active { color: #a78bfa; }
-#reminder-search-input:focus { border-color: #a78bfa; }
 #filter-backdrop .pm-btn-primary { background: #a78bfa; }
 #filter-backdrop .pm-label { color: #a78bfa; }
 
@@ -327,7 +351,6 @@
     position: relative; inset: auto; width: 100%; max-width: 30rem; max-height: 90vh;
     border-radius: 14px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,0.55);
   }
-  #reminders-backdrop .sd2-bottombar { display: none; }
 }
 </style>
 
@@ -361,115 +384,6 @@
         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3a2 2 0 00-2 2v16l9-6 9 6V5a2 2 0 00-2-2H5z"/></svg>
         Watchlist
       </button>
-    </div>
-  </div>
-</div>
-
-
-{# ── PANTALLA: RECORDATORIOS (buscar + agregar, y los que ya tenés cargados) ── #}
-<div id="reminders-backdrop" class="sd2-root hidden" onclick="handleRemindersBackdrop(event)">
-  <div id="reminders-box" class="sd2-screen">
-
-    <div class="sd2-topbar">
-      <button class="sd2-iconbtn" onclick="pmCloseModal()" aria-label="Volver a Watchlist">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-      </button>
-      <h1 class="sd2-topbar-title">Recordatorios</h1>
-      <span class="sd2-iconbtn sd2-spacer"></span>
-    </div>
-
-    <div class="sd2-scroll">
-      <div class="sd2-body" style="padding-top:1.25rem">
-        <p class="text-xs" style="color:#686868;margin-bottom:1rem">
-          Buscá algo que todavía no viste — queda como recordatorio privado, nadie más
-          lo ve hasta que lo califiques.
-        </p>
-
-        <div class="relative" style="margin-bottom:0.75rem">
-          <input id="reminder-search-input" type="text" placeholder="Buscá un título..." autocomplete="off"
-            class="sd2-search-input" style="padding-right:2.75rem">
-          <svg id="reminder-search-icon" class="absolute right-3" style="top:0.9rem;width:1.15rem;height:1.15rem;color:#686868"
-            fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/>
-          </svg>
-          <div id="reminder-search-spinner" class="hidden absolute right-3" style="top:0.9rem">
-            <div class="w-5 h-5 rounded-full animate-spin" style="border:2px solid rgba(255,255,255,0.15);border-top-color:#a78bfa"></div>
-          </div>
-        </div>
-
-        <div id="reminder-search-results" style="background:rgba(0,0,0,0.15);border:1px solid rgba(255,255,255,0.08);overflow:hidden;border-radius:8px" class="hidden mb-6"></div>
-
-        {# ── Recordatorios ya cargados ── #}
-        <div id="reminders-list-container">
-          {% if reminders %}
-          <p class="sd2-section-label">Tus recordatorios</p>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-            {% for r in reminders %}
-            <button type="button" onclick="openReminderDetail({{ r.id }})" class="group block text-left">
-              <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
-                {% if r.poster_path %}
-                <img src="https://image.tmdb.org/t/p/w342{{ r.poster_path }}" alt="{{ r.title }}"
-                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                {% else %}
-                <div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>
-                {% endif %}
-                <div class="absolute top-2 left-2">
-                  {% if r.media_type.value == 'movie' %}
-                  <span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>
-                  {% else %}
-                  <span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>
-                  {% endif %}
-                </div>
-                <div class="absolute top-2 right-2 bg-amber-900/80 text-amber-300 text-xs font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm">
-                  Privado
-                </div>
-              </div>
-              <div class="mt-2 px-0.5">
-                <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">{{ r.title }}</p>
-                <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
-                  {% if r.release_date %}<span class="text-gray-500">{{ r.release_date.year }}</span>{% endif %}
-                  {% if r.tmdb_rating %}<span class="text-amber-500">· ★ {{ "%.1f"|format(r.tmdb_rating) }} <span class="text-gray-700">TMDB</span></span>{% endif %}
-                  {% if r.providers_list %}<span class="text-gray-500">· {{ r.providers_list[0] }}{% if r.providers_list|length > 1 %} +{{ r.providers_list|length - 1 }}{% endif %}</span>{% endif %}
-                </p>
-              </div>
-            </button>
-            {% endfor %}
-          </div>
-          {% else %}
-          <p class="text-xs text-center" style="color:#5A5762;padding:1.5rem 0">Todavía no tenés recordatorios.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="sd2-bottombar">
-      <a href="/feed" class="sd2-navitem">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
-        Feed
-      </a>
-      <a href="/suggestions/new" class="sd2-navitem">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
-        Sugerir
-      </a>
-      <button type="button" class="sd2-navitem sd2-active" onclick="pmCloseModal()">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3a2 2 0 00-2 2v16l9-6 9 6V5a2 2 0 00-2-2H5z"/></svg>
-        Watchlist
-      </button>
-    </div>
-  </div>
-</div>
-
-
-{# ── MODAL: CONFIRMAR AGREGAR RECORDATORIO ── #}
-<div id="confirm-add-reminder-backdrop"
-     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
-     style="background:rgba(0,0,0,0.6)">
-  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
-    <h3 id="confirm-add-reminder-title" class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Agregar a Recordatorios?</h3>
-    <p id="confirm-add-reminder-sub" style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem"></p>
-    <div class="flex gap-3 justify-end">
-      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
-      <button id="confirm-add-reminder-btn" class="pm-btn-primary" style="background:#a78bfa;color:#1F1D2B">Agregar</button>
     </div>
   </div>
 </div>
@@ -795,203 +709,6 @@ function closeConfirmRemove() {
   backdrop.classList.remove('flex');
 }
 
-/* ── Pantalla de recordatorios ── */
-window.openRemindersScreen = function () {
-  document.getElementById('reminders-backdrop').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  setTimeout(() => document.getElementById('reminder-search-input').focus(), 50);
-  pmOpenModal(closeRemindersScreen);
-};
-
-window.closeRemindersScreen = function () {
-  document.getElementById('reminders-backdrop').classList.add('hidden');
-  document.body.style.overflow = '';
-  const input = document.getElementById('reminder-search-input');
-  input.value = '';
-  const box = document.getElementById('reminder-search-results');
-  box.classList.add('hidden');
-  box.innerHTML = '';
-};
-
-window.handleRemindersBackdrop = function (e) {
-  if (e.target === document.getElementById('reminders-backdrop')) pmCloseModal();
-};
-
-(function () {
-  const searchInput = document.getElementById('reminder-search-input');
-  const resultsBox  = document.getElementById('reminder-search-results');
-  const spinner     = document.getElementById('reminder-search-spinner');
-  const searchIcon  = document.getElementById('reminder-search-icon');
-  let debounceTimer = null;
-  let cachedResults = [];
-
-  function triggerSearch() {
-    clearTimeout(debounceTimer);
-    const q = searchInput.value.trim();
-    if (q.length < 2) { hideResults(); return; }
-    debounceTimer = setTimeout(() => doSearch(q), 400);
-  }
-
-  searchInput.addEventListener('input', triggerSearch);
-
-  async function doSearch(q) {
-    spinner.classList.remove('hidden');
-    searchIcon.classList.add('hidden');
-    try {
-      const params = new URLSearchParams({ q });
-      const resp = await fetch('/suggestions/search?' + params.toString());
-      if (resp.status === 401) { window.location = '/'; return; }
-      cachedResults = await resp.json();
-      renderResults(cachedResults);
-    } catch { hideResults(); }
-    finally {
-      spinner.classList.add('hidden');
-      searchIcon.classList.remove('hidden');
-    }
-  }
-
-  function renderResults(items) {
-    if (!items.length) {
-      resultsBox.innerHTML = '<p class="text-sm text-center py-4" style="color:#7A7680">Sin resultados.</p>';
-      resultsBox.classList.remove('hidden');
-      return;
-    }
-    resultsBox.innerHTML = items.map((item, i) => `
-      <button type="button" data-idx="${i}"
-        class="reminder-result-item flex items-center gap-3 w-full text-left px-4 py-3 transition-colors"
-        style="border-bottom:1px solid #2A2A35" onmouseover="this.style.background='#15151A'" onmouseout="this.style.background='none'">
-        ${item.poster_url_sm
-          ? `<img src="${esc(item.poster_url_sm)}" alt="" class="w-9 shrink-0 object-cover" style="height:52px">`
-          : `<div class="w-9 shrink-0 flex items-center justify-center" style="height:52px;color:#5A5762">🎬</div>`}
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium truncate" style="color:#F0EDE8">${esc(item.title)}</p>
-          <span class="text-xs" style="color:#7A7680">${item.media_type === 'movie' ? 'Película' : 'Serie'}${item.release_date ? ' · ' + esc(item.release_date.slice(0,4)) : ''}</span>
-          ${item.already_suggested ? `<span class="text-xs font-medium ml-1" style="color:#a78bfa">Ya sugerida — se agrega directo</span>` : ''}
-        </div>
-      </button>`).join('');
-    resultsBox.classList.remove('hidden');
-
-    resultsBox.querySelectorAll('.reminder-result-item').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = cachedResults[parseInt(btn.dataset.idx)];
-        hideResults();
-        searchInput.value = '';
-        confirmAddReminder(item);
-      });
-    });
-  }
-
-  let _pendingReminderItem = null;
-
-  function confirmAddReminder(item) {
-    _pendingReminderItem = item;
-    document.getElementById('confirm-add-reminder-title').textContent =
-      item.already_suggested ? '¿Agregar a tu Watchlist?' : '¿Agregar a Recordatorios?';
-    document.getElementById('confirm-add-reminder-sub').textContent = item.title;
-    const backdrop = document.getElementById('confirm-add-reminder-backdrop');
-    backdrop.classList.remove('hidden');
-    backdrop.classList.add('flex');
-    pmOpenModal(closeConfirmAddReminder);
-    document.getElementById('confirm-add-reminder-btn').onclick = () => {
-      if (_pendingReminderItem) submitReminder(_pendingReminderItem);
-    };
-  }
-
-  function closeConfirmAddReminder() {
-    const backdrop = document.getElementById('confirm-add-reminder-backdrop');
-    backdrop.classList.add('hidden');
-    backdrop.classList.remove('flex');
-    _pendingReminderItem = null;
-  }
-
-  async function submitReminder(item) {
-    const fd = new FormData();
-    fd.append('tmdb_id', item.tmdb_id);
-    fd.append('media_type', item.media_type);
-    fd.append('title', item.title);
-    fd.append('poster_path', item.poster_path || '');
-    fd.append('overview', item.overview || '');
-    fd.append('release_date', item.release_date || '');
-    let result = null;
-    try {
-      const resp = await fetch('/watchlist/reminders', { method: 'POST', body: fd });
-      result = await resp.json();
-    } catch (e) {}
-
-    if (result && result.status === 'duplicate') {
-      alert(result.club_name
-        ? `Ya tenés esto como recordatorio — lo agregaste desde ${result.club_name}.`
-        : 'Ya tenés esto como recordatorio.');
-      pmCloseModal();
-      return;
-    }
-    if (result && result.status === 'created') {
-      await refreshRemindersList();
-      pmCloseModal();
-      return;
-    }
-    // Ya era una sugerencia pública del club: se agregó directo a la Watchlist normal.
-    location.reload();
-  }
-
-  async function refreshRemindersList() {
-    try {
-      const resp = await fetch('/watchlist/reminders/json', { cache: 'no-store' });
-      if (!resp.ok) return;
-      const list = await resp.json();
-      renderRemindersList(list);
-    } catch (e) {}
-  }
-  window.refreshRemindersList = refreshRemindersList;
-
-  function renderRemindersList(list) {
-    list.forEach(r => {
-      REMINDERS[r.id] = {
-        id: r.id, tmdb_id: r.tmdb_id, title: r.title, poster_path: r.poster_path || '',
-        media_type: r.media_type, year: r.year, overview: r.overview || '', tmdb_rating: r.tmdb_rating,
-      };
-    });
-
-    const container = document.getElementById('reminders-list-container');
-    if (!container) return;
-    if (!list.length) {
-      container.innerHTML = '<p class="text-xs text-center" style="color:#5A5762;padding:1.5rem 0">Todavía no tenés recordatorios.</p>';
-      return;
-    }
-    container.innerHTML = `
-      <p class="sd2-section-label">Tus recordatorios</p>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-        ${list.map(r => `
-          <button type="button" onclick="openReminderDetail(${r.id})" class="group block text-left">
-            <div class="relative rounded-xl overflow-hidden bg-gray-800 aspect-[2/3]">
-              ${r.poster_path
-                ? `<img src="https://image.tmdb.org/t/p/w342${r.poster_path}" alt="${esc(r.title)}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`
-                : `<div class="w-full h-full flex items-center justify-center text-gray-600 text-4xl">🎬</div>`}
-              <div class="absolute top-2 left-2">
-                ${r.media_type === 'movie'
-                  ? `<span class="text-xs bg-blue-900/80 text-blue-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Peli</span>`
-                  : `<span class="text-xs bg-violet-900/80 text-violet-300 px-1.5 py-0.5 rounded backdrop-blur-sm">Serie</span>`}
-              </div>
-              <div class="absolute top-2 right-2 bg-amber-900/80 text-amber-300 text-xs font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm">Privado</div>
-            </div>
-            <div class="mt-2 px-0.5">
-              <p class="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors leading-tight">${esc(r.title)}</p>
-              <p class="text-xs mt-0.5 flex items-center gap-1 flex-wrap">
-                ${r.year ? `<span class="text-gray-500">${r.year}</span>` : ''}
-                ${r.tmdb_rating ? `<span class="text-amber-500">· ★ ${(+r.tmdb_rating).toFixed(1)} <span class="text-gray-700">TMDB</span></span>` : ''}
-                ${r.providers_list && r.providers_list.length ? `<span class="text-gray-500">· ${esc(r.providers_list[0])}${r.providers_list.length > 1 ? ' +' + (r.providers_list.length - 1) : ''}</span>` : ''}
-              </p>
-            </div>
-          </button>`).join('')}
-      </div>`;
-  }
-
-  function hideResults() {
-    resultsBox.classList.add('hidden');
-    resultsBox.innerHTML = '';
-  }
-})();
-
 /* ── Reminder detail modal ── */
 let _rSelectedRating = null;
 
@@ -1168,9 +885,7 @@ function discardReminder(id) {
     try {
       await fetch(`/watchlist/reminders/${id}/discard`, { method: 'POST', body: new FormData() });
     } catch(e) {}
-    await window.refreshRemindersList();
-    pmCloseModal(); // cierra el confirm de descarte
-    pmCloseModal(); // cierra el detalle del recordatorio, vuelve a Recordatorios
+    location.reload();
   };
 }
 

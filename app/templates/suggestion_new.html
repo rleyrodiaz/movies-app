@@ -135,6 +135,8 @@
 .sd2-ratebar { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
 .sd2-ratebtn { width: 2rem; height: 2rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #92929D; cursor: pointer; }
 .sd2-ratebtn.sd2-selected { background: #a78bfa; color: #1F1D2B; border-color: #a78bfa; }
+.sd2-toggle-btn { width: auto; height: auto; border-radius: 999px; padding: 0.5rem 1.1rem; font-size: 0.8rem; }
+#rating-comment-block.sd2-disabled-block { opacity: 0.4; pointer-events: none; }
 .sd2-textarea {
   width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
   color: #FFFCFC; font-family: inherit; font-size: 0.8rem; padding: 0.6rem 0.75rem; resize: none; margin-bottom: 0.85rem;
@@ -243,32 +245,34 @@
 
         <div class="sd2-body" style="padding-top:0">
           <div class="sd2-section" style="margin-top:1.4rem">
-            <p class="sd2-section-label">
-              Tu calificación <span style="color:#f87171">*</span>
-              <span id="rating-label" style="text-transform:none;color:#a78bfa;margin-left:0.35rem"></span>
-            </p>
-            <div class="sd2-ratebar">
-              {% for i in range(1, 11) %}
-              <button type="button" data-val="{{ i }}" onclick="setAddRating({{ i }})" class="add-rating-btn sd2-ratebtn">{{ i }}</button>
-              {% endfor %}
-            </div>
-            <textarea id="comment-input" rows="2" placeholder="¿Por qué la recomendás? (opcional)..." class="sd2-textarea"></textarea>
-
-            {% if user_clubs|length > 1 %}
-            <div class="sd2-club-checklist" style="margin-bottom:0.85rem">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
-                <p class="sd2-section-label" style="margin-bottom:0">¿A qué club(es) va?</p>
-                <button type="button" onclick="selectAllClubs()" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#a78bfa">Todos mis clubes</button>
+            <div id="rating-comment-block">
+              <p class="sd2-section-label">
+                Tu calificación <span style="color:#f87171">*</span>
+                <span id="rating-label" style="text-transform:none;color:#a78bfa;margin-left:0.35rem"></span>
+              </p>
+              <div class="sd2-ratebar">
+                {% for i in range(1, 11) %}
+                <button type="button" data-val="{{ i }}" onclick="setAddRating({{ i }})" class="add-rating-btn sd2-ratebtn">{{ i }}</button>
+                {% endfor %}
               </div>
-              {% for c in user_clubs %}
-              <label>
-                <input type="checkbox" name="club_ids" value="{{ c.id }}" class="club-ids-checkbox" form="suggest-form"
-                       {% if c.id == active_club.id %}checked{% endif %}>
-                <span>{{ c.name }}</span>
-              </label>
-              {% endfor %}
+              <textarea id="comment-input" rows="2" placeholder="¿Por qué la recomendás? (opcional)..." class="sd2-textarea"></textarea>
+
+              {% if user_clubs|length > 1 %}
+              <div class="sd2-club-checklist" style="margin-bottom:0.85rem">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem">
+                  <p class="sd2-section-label" style="margin-bottom:0">¿A qué club(es) va?</p>
+                  <button type="button" onclick="selectAllClubs()" style="background:none;border:none;cursor:pointer;font-size:0.72rem;color:#a78bfa">Todos mis clubes</button>
+                </div>
+                {% for c in user_clubs %}
+                <label>
+                  <input type="checkbox" name="club_ids" value="{{ c.id }}" class="club-ids-checkbox" form="suggest-form"
+                         {% if c.id == active_club.id %}checked{% endif %}>
+                  <span>{{ c.name }}</span>
+                </label>
+                {% endfor %}
+              </div>
+              {% endif %}
             </div>
-            {% endif %}
 
             <form id="suggest-form" method="post" action="/suggestions">
               <input type="hidden" id="f_tmdb_id"      name="tmdb_id">
@@ -594,6 +598,8 @@ window.handleAddBackdrop = function (e) {
   let debounceTimer = null;
   let cachedResults = [];
   let selectedRating = 0;
+  let watched = true;
+  let currentItem = null;
 
   function triggerSearch() {
     clearTimeout(debounceTimer);
@@ -660,6 +666,7 @@ window.handleAddBackdrop = function (e) {
   async function selectItem(item) {
     hideResults();
     resetRating();
+    currentItem = item;
     document.getElementById('f_tmdb_id').value      = item.tmdb_id;
     document.getElementById('f_media_type').value   = item.media_type;
     document.getElementById('f_title').value        = item.title;
@@ -746,8 +753,38 @@ window.handleAddBackdrop = function (e) {
               : `<span class="sd2-provider-chip">Sin datos</span>`}
           </div>
         </div>
+
+        <div class="sd2-section">
+          <p class="sd2-section-label">¿Ya la viste?</p>
+          <div style="display:flex;gap:0.6rem">
+            <button type="button" id="watched-yes-btn" onclick="setWatchedState(true)" class="sd2-ratebtn sd2-toggle-btn sd2-selected">Sí, ya la vi</button>
+            <button type="button" id="watched-no-btn" onclick="setWatchedState(false)" class="sd2-ratebtn sd2-toggle-btn">No, todavía no</button>
+          </div>
+        </div>
       </div>`;
+
+    setWatchedState(true);
   }
+
+  window.setWatchedState = function (isWatched) {
+    watched = isWatched;
+    const yesBtn = document.getElementById('watched-yes-btn');
+    const noBtn  = document.getElementById('watched-no-btn');
+    if (yesBtn) yesBtn.classList.toggle('sd2-selected', isWatched);
+    if (noBtn)  noBtn.classList.toggle('sd2-selected', !isWatched);
+
+    const block = document.getElementById('rating-comment-block');
+    if (block) block.classList.toggle('sd2-disabled-block', !isWatched);
+
+    ratingWarning.classList.add('hidden');
+    if (isWatched) {
+      submitBtn.textContent = 'Sugerir';
+      submitBtn.disabled = selectedRating < 1;
+    } else {
+      submitBtn.textContent = 'Agregar a Recordatorios';
+      submitBtn.disabled = false;
+    }
+  };
 
   window.setAddRating = function (n) {
     selectedRating = n;
@@ -775,6 +812,8 @@ window.handleAddBackdrop = function (e) {
     document.getElementById('comment-input').value = '';
     document.getElementById('f_tmdb_id').value = '';
     resetRating();
+    watched = true;
+    currentItem = null;
     document.querySelectorAll('.club-ids-checkbox').forEach(cb => {
       cb.checked = cb.value === String(ACTIVE_CLUB_ID);
     });
@@ -785,12 +824,50 @@ window.handleAddBackdrop = function (e) {
   };
 
   document.getElementById('suggest-form').addEventListener('submit', function (e) {
+    if (!watched) {
+      e.preventDefault();
+      if (currentItem) submitAsReminder(currentItem);
+      return;
+    }
     document.getElementById('f_comment').value = document.getElementById('comment-input').value;
     if (selectedRating < 1) {
       e.preventDefault();
       ratingWarning.classList.remove('hidden');
     }
   });
+
+  async function submitAsReminder(item) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Agregando…';
+
+    const fd = new FormData();
+    fd.append('tmdb_id', item.tmdb_id);
+    fd.append('media_type', item.media_type);
+    fd.append('title', item.title);
+    fd.append('poster_path', item.poster_path || '');
+    fd.append('overview', item.overview || '');
+    fd.append('release_date', item.release_date || '');
+    let result = null;
+    try {
+      const resp = await fetch('/watchlist/reminders', { method: 'POST', body: fd });
+      result = await resp.json();
+    } catch (e) {}
+
+    if (result && result.status === 'duplicate') {
+      alert(result.club_name
+        ? `Ya tenés esto como recordatorio — lo agregaste desde ${result.club_name}.`
+        : 'Ya tenés esto como recordatorio.');
+      pmCloseModal();
+      return;
+    }
+    if (result && result.status === 'created') {
+      submitBtn.textContent = 'Agregado ✓';
+      setTimeout(() => pmCloseModal(), 500);
+      return;
+    }
+    // Caso raro: se convirtió en sugerencia pública del club entre medio. Recargamos.
+    location.reload();
+  }
 
   function hideResults() {
     resultsBox.classList.add('hidden');
