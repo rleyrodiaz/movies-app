@@ -2,7 +2,7 @@ import enum
 import json
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -15,6 +15,9 @@ class MediaType(str, enum.Enum):
 
 class Suggestion(Base):
     __tablename__ = "suggestions"
+    __table_args__ = (
+        UniqueConstraint("tmdb_id", "media_type", "club_id", name="uq_suggestion_tmdb_media_club"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     tmdb_id: Mapped[int] = mapped_column(Integer, nullable=False)

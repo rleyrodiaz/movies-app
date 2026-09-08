@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.db import get_db_dep
@@ -367,16 +368,31 @@ def suggestion_create(
         if existing:
             result_id, was_existing = existing.id, True
         else:
-            new_suggestion = create_suggestion(
-                db, current_user.id, club_id, tmdb_id, media_type, title,
-                poster_path=poster_path,
-                overview=overview,
-                release_date=release_date,
-                rating=rating,
-                comment=comment_body,
-                session_id=get_session_id(request),
-            )
-            result_id, was_existing = new_suggestion.id, False
+            try:
+                with db.begin_nested():
+                    new_suggestion = create_suggestion(
+                        db, current_user.id, club_id, tmdb_id, media_type, title,
+                        poster_path=poster_path,
+                        overview=overview,
+                        release_date=release_date,
+                        rating=rating,
+                        comment=comment_body,
+                        session_id=get_session_id(request),
+                    )
+                result_id, was_existing = new_suggestion.id, False
+            except IntegrityError:
+                # Doble submit casi simultáneo: la otra petición ganó la carrera
+                # y ya insertó la misma sugerencia — la tratamos como existente.
+                existing = db.scalar(
+                    select(Suggestion).where(
+                        Suggestion.tmdb_id == tmdb_id,
+                        Suggestion.media_type == MediaType(media_type),
+                        Suggestion.club_id == club_id,
+                    )
+                )
+                if existing is None:
+                    raise
+                result_id, was_existing = existing.id, True
 
         if club_id == active_club.id:
             active_result_id, active_was_existing = result_id, was_existing

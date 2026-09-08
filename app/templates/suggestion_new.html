@@ -833,7 +833,11 @@ window.handleAddBackdrop = function (e) {
     if (selectedRating < 1) {
       e.preventDefault();
       ratingWarning.classList.remove('hidden');
+      return;
     }
+    // Evita un doble submit (doble clic) mientras el navegador procesa la
+    // navegación del <form> real.
+    submitBtn.disabled = true;
   });
 
   async function submitAsReminder(item) {
