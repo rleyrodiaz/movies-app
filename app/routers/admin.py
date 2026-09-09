@@ -477,6 +477,7 @@ def clubs_page(
         {"club": club, "member_count": count, "members": members_by_club.get(club.id, [])}
         for club, count in rows
     ]
+    clubs_data.sort(key=lambda d: (d["club"].id != active_club.id, d["club"].name))
 
     return templates.TemplateResponse(
         "admin_clubs.html",
