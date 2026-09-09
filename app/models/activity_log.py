@@ -27,6 +27,8 @@ class ActivityAction(str, enum.Enum):
     club_renamed = "club_renamed"
     club_switched = "club_switched"
     club_joined = "club_joined"
+    password_reset_requested = "password_reset_requested"
+    password_reset_completed = "password_reset_completed"
 
 
 class ActivityLog(Base):

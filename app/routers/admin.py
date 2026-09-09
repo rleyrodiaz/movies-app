@@ -15,6 +15,7 @@ from app.models.activity_log import ActivityAction, ActivityLog
 from app.models.club import Club
 from app.models.club_membership import ClubMembership
 from app.models.invitation import Invitation
+from app.models.password_reset_token import PasswordResetToken
 from app.models.reminder import PersonalReminder
 from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
@@ -193,6 +194,8 @@ ACTION_LABELS = {
     "role_changed": "Rol cambiado",
     "db_initialized": "DB inicializada",
     "db_reset": "DB reseteada",
+    "password_reset_requested": "Restablecer contraseña (link generado)",
+    "password_reset_completed": "Contraseña restablecida",
 }
 
 
@@ -426,8 +429,35 @@ def clubs_page(
     request: Request,
     current_user: User = Depends(require_superadmin),
     db: Session = Depends(get_db_dep),
+    reset_token: str = Query(default=""),
 ):
     active_club = get_active_club(current_user, db)
+
+    reset_flash = None
+    if reset_token:
+        rt = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token == reset_token))
+        now = datetime.now(timezone.utc)
+        if rt and rt.used_at is None and rt.expires_at.replace(tzinfo=timezone.utc) > now:
+            member = db.get(User, rt.user_id)
+            base_url = str(request.base_url).rstrip("/")
+            link = f"{base_url}/reset-password/{rt.token}"
+            msg = (
+                f"Hola {member.display_name}! Te paso un link para restablecer tu contraseña de "
+                "What We Watch. Es de un solo uso y vence en 1 hora:\n\n"
+                f"{link}\n\n"
+                "Entrás, elegís una contraseña nueva, y ya podés volver a loguearte con esa."
+            )
+            reset_flash = {
+                "member_name": member.display_name,
+                "link": link,
+                "msg": msg,
+                "wa_url": f"https://wa.me/?text={quote_plus(msg)}",
+                "mailto_url": (
+                    f"mailto:?subject={quote('Restablecer tu contraseña de What We Watch')}"
+                    f"&body={quote(msg)}"
+                ),
+            }
+
     rows = db.execute(
         select(Club, func.count(ClubMembership.id))
         .outerjoin(ClubMembership, ClubMembership.club_id == Club.id)
@@ -456,6 +486,7 @@ def clubs_page(
             "active_club": active_club,
             "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
+            "reset_flash": reset_flash,
         },
     )
 
@@ -580,3 +611,42 @@ def toggle_member_role(
         session_id=get_session_id(request),
     )
     return RedirectResponse("/admin/clubs", status_code=303)
+
+
+@router.post("/clubs/{club_id}/members/{user_id}/reset-password")
+def reset_member_password(
+    request: Request,
+    club_id: int,
+    user_id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+):
+    membership = db.scalar(
+        select(ClubMembership).where(
+            ClubMembership.club_id == club_id, ClubMembership.user_id == user_id
+        )
+    )
+    member = db.get(User, user_id)
+    if membership is None or member is None or member.is_superadmin:
+        return RedirectResponse("/admin/clubs", status_code=303)
+
+    token = secrets.token_urlsafe(32)
+    reset = PasswordResetToken(
+        token=token,
+        user_id=member.id,
+        club_id=club_id,
+        created_by=current_user.id,
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
+    )
+    db.add(reset)
+
+    log_activity(
+        db, ActivityAction.password_reset_requested,
+        user_id=member.id,
+        club_id=club_id,
+        target_type="user",
+        target_id=member.id,
+        detail={"requested_by": current_user.display_name},
+        session_id=get_session_id(request),
+    )
+    return RedirectResponse(f"/admin/clubs?reset_token={token}", status_code=303)

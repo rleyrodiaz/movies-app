@@ -6,6 +6,7 @@ from app.models.suggestion import Suggestion, MediaType
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.models.reminder import PersonalReminder
 from app.models.activity_log import ActivityLog, ActivityAction
+from app.models.password_reset_token import PasswordResetToken
 
 __all__ = [
     "Club",
@@ -20,4 +21,5 @@ __all__ = [
     "PersonalReminder",
     "ActivityLog",
     "ActivityAction",
+    "PasswordResetToken",
 ]

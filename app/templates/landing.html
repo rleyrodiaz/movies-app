@@ -503,7 +503,7 @@
 
 <!-- LOGIN MODAL -->
 <div id="login-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"
-     data-autoopen="{{ '1' if login_error else '0' }}"
+     data-autoopen="{{ '1' if (login_error or login_notice) else '0' }}"
      style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:1.5rem">
   <!-- Backdrop -->
   <div onclick="closeLoginModal()"
@@ -523,6 +523,12 @@
     </div>
     {% else %}
     <div id="modal-error-banner" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem"></div>
+    {% endif %}
+
+    {% if login_notice %}
+    <div style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#86efac;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem">
+      {{ login_notice }}
+    </div>
     {% endif %}
 
     <form method="post" action="/login" style="display:flex;flex-direction:column;gap:1rem">
@@ -627,6 +633,69 @@
   </div>
 </div>
 
+<!-- RESET PASSWORD MODAL -->
+<div id="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-modal-title"
+     data-autoopen="{{ '1' if reset_open else '0' }}"
+     style="display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:1.5rem">
+  <!-- Backdrop -->
+  <div onclick="closeResetModal()"
+       style="position:absolute;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)"></div>
+  <!-- Panel -->
+  <div style="position:relative;z-index:1;width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);padding:2.25rem 2rem">
+    <button onclick="closeResetModal()" aria-label="Cerrar"
+            style="position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--muted);font-size:1.2rem;line-height:1;transition:color 0.15s"
+            onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">&times;</button>
+
+    <p class="eyebrow" id="reset-modal-title" style="margin-bottom:1.25rem">Contraseña</p>
+    <h2 class="display" style="font-size:1.5rem;font-weight:700;color:var(--text);margin-bottom:1.75rem">Elegí una nueva contraseña</h2>
+
+    {% if reset_invalid %}
+    <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.85rem;padding:0.9rem 1rem;line-height:1.5">
+      <p style="font-weight:600;margin-bottom:0.35rem">Link inválido o expirado</p>
+      <p>Este link de restablecer contraseña ya fue usado o venció. Pedile uno nuevo al administrador del club.</p>
+    </div>
+
+    {% else %}
+
+    {% if errors %}
+    <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:0.82rem;padding:0.65rem 0.9rem;margin-bottom:1.25rem">
+      {% for e in errors %}
+      <p{% if not loop.first %} style="margin-top:0.3rem"{% endif %}>• {{ e }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/reset-password/{{ token }}" style="display:flex;flex-direction:column;gap:1rem">
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Nueva contraseña</label>
+        <div style="position:relative">
+          <input type="password" name="new_password" id="reset-pw" required minlength="8" autocomplete="new-password" autofocus
+                 style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 2.5rem 0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+                 placeholder="Mínimo 8 caracteres"
+                 onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <button type="button" onclick="toggleRegPw('reset-pw','reset-pw-toggle')" tabindex="-1" id="reset-pw-toggle"
+                  style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.75rem;padding:0">Ver</button>
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.75rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.45rem">Repetir contraseña</label>
+        <div style="position:relative">
+          <input type="password" name="confirm_password" id="reset-pw2" required minlength="8" autocomplete="new-password"
+                 style="width:100%;background:#0D0D0F;border:1px solid var(--border);color:var(--text);font-size:0.9rem;padding:0.7rem 2.5rem 0.7rem 0.85rem;outline:none;transition:border-color 0.15s;font-family:inherit"
+                 placeholder="••••••••"
+                 onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+          <button type="button" onclick="toggleRegPw('reset-pw2','reset-pw2-toggle')" tabindex="-1" id="reset-pw2-toggle"
+                  style="position:absolute;right:0.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.75rem;padding:0">Ver</button>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" style="margin-top:0.25rem;text-align:center;cursor:pointer;border:none;width:100%">
+        Guardar contraseña
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
 <script>
 function openLoginModal() {
   const m = document.getElementById('login-modal');
@@ -660,12 +729,23 @@ function toggleRegPw(inputId, btnId) {
   if (pw.type === 'password') { pw.type = 'text'; btn.textContent = 'Ocultar'; }
   else { pw.type = 'password'; btn.textContent = 'Ver'; }
 }
+function openResetModal() {
+  const m = document.getElementById('reset-modal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => { const el = m.querySelector('input[name=new_password]'); if(el) el.focus(); }, 50);
+}
+function closeResetModal() {
+  document.getElementById('reset-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeLoginModal(); closeRegisterModal(); }
+  if (e.key === 'Escape') { closeLoginModal(); closeRegisterModal(); closeResetModal(); }
 });
 window.addEventListener('DOMContentLoaded', function() {
   if (document.getElementById('login-modal').dataset.autoopen === '1') openLoginModal();
   if (document.getElementById('register-modal').dataset.autoopen === '1') openRegisterModal();
+  if (document.getElementById('reset-modal').dataset.autoopen === '1') openResetModal();
 });
 </script>
 

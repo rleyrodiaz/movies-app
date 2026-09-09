@@ -14,6 +14,7 @@ from app.models.activity_log import ActivityAction
 from app.models.club import Club
 from app.models.club_membership import ClubMembership
 from app.models.invitation import Invitation
+from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User, UserRole
 from app.services import tmdb
 from app.services.activity_log import log_activity
@@ -295,6 +296,97 @@ def _get_valid_invitation(token: str, db: Session) -> Invitation | None:
     if invitation.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         return None
     return invitation
+
+
+def _get_valid_reset_token(token: str, db: Session) -> PasswordResetToken | None:
+    reset = db.scalar(select(PasswordResetToken).where(PasswordResetToken.token == token))
+    if reset is None or reset.used_at is not None:
+        return None
+    if reset.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        return None
+    return reset
+
+
+@router.get("/reset-password/{token}", response_class=HTMLResponse)
+def reset_password_page(
+    token: str,
+    request: Request,
+    user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db_dep),
+):
+    reset = _get_valid_reset_token(token, db)
+    return templates.TemplateResponse(
+        "landing.html",
+        {
+            "request": request,
+            "user": user,
+            "login_error": "",
+            "reset_open": True,
+            "token": token,
+            "reset_invalid": reset is None,
+        },
+    )
+
+
+@router.post("/reset-password/{token}")
+def reset_password_submit(
+    token: str,
+    request: Request,
+    new_password: str = Form(...),
+    confirm_password: str = Form(...),
+    user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db_dep),
+):
+    reset = _get_valid_reset_token(token, db)
+    if reset is None:
+        return templates.TemplateResponse(
+            "landing.html",
+            {
+                "request": request,
+                "user": user,
+                "login_error": "",
+                "reset_open": True,
+                "token": token,
+                "reset_invalid": True,
+            },
+        )
+
+    errors: list[str] = []
+    if len(new_password) < 8:
+        errors.append("La contraseña debe tener al menos 8 caracteres.")
+    if new_password != confirm_password:
+        errors.append("Las contraseñas no coinciden.")
+    if errors:
+        return templates.TemplateResponse(
+            "landing.html",
+            {
+                "request": request,
+                "user": user,
+                "login_error": "",
+                "reset_open": True,
+                "token": token,
+                "reset_invalid": False,
+                "errors": errors,
+            },
+        )
+
+    member = db.get(User, reset.user_id)
+    member.password_hash = hash_password(new_password)
+    reset.used_at = datetime.now(timezone.utc)
+
+    log_activity(
+        db, ActivityAction.password_reset_completed,
+        user_id=member.id,
+        club_id=reset.club_id,
+        target_type="user",
+        target_id=member.id,
+        session_id=None,
+    )
+
+    return RedirectResponse(
+        f"/?login_notice={quote('Contraseña actualizada. Iniciá sesión con tu nueva contraseña.')}",
+        status_code=303,
+    )
 
 
 @router.post("/profile/platforms")
