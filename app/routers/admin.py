@@ -439,11 +439,12 @@ def clubs_page(
         now = datetime.now(timezone.utc)
         if rt and rt.used_at is None and rt.expires_at.replace(tzinfo=timezone.utc) > now:
             member = db.get(User, rt.user_id)
+            reset_club = db.get(Club, rt.club_id)
             base_url = str(request.base_url).rstrip("/")
             link = f"{base_url}/reset-password/{rt.token}"
             msg = (
-                f"Hola {member.display_name}! Te paso un link para restablecer tu contraseña de "
-                "What We Watch. Es de un solo uso y vence en 1 hora:\n\n"
+                f"Hola {member.display_name}! Te paso un link para restablecer tu contraseña del "
+                f"club *{reset_club.name}* en What We Watch. Es de un solo uso y vence en 1 hora:\n\n"
                 f"{link}\n\n"
                 "Entrás, elegís una contraseña nueva, y ya podés volver a loguearte con esa."
             )
