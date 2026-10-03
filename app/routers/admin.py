@@ -188,14 +188,14 @@ def announcements_page(
         titles_str = ", ".join(highlight_titles)
         icon_blurb = (
             "\n\nAparte, si se les ocurre alguna idea o crítica sobre la app en sí, van a ver un ícono de "
-            "mensaje (💬) arriba de todo — tóquenlo y escriban ahí, nos llega directo."
+            "mensaje arriba de todo — tóquenlo y escriban ahí, nos llega directo."
         )
         msg = (
-            f"¡Hola, {active_club.name}! 👋 Tenemos {len(under_rated)} sugerencias recientes con poca o "
+            f"¡Hola, {active_club.name}! Tenemos {len(under_rated)} sugerencias recientes con poca o "
             f"ninguna opinión todavía: {titles_str}. Démosle una vuelta a la Cartelera y sumemos nuestra "
             "calificación a lo que ya vimos — cuantos más opinamos, mejor elegimos entre todos."
         ) if under_rated else (
-            f"¡Hola, {active_club.name}! 👋 Por ahora todas las sugerencias recientes ya tienen opiniones "
+            f"¡Hola, {active_club.name}! Por ahora todas las sugerencias recientes ya tienen opiniones "
             "de varios — ¡sigamos así!"
         )
         msg += f"\n\nEntrá acá: {base_url}"
