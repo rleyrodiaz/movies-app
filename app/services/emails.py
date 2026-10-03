@@ -89,6 +89,25 @@ def send_registration_notification(
     return _send(to, f"What We Watch — Nuevo usuario: {display_name}", html)
 
 
+def send_feedback_notification(display_name: str, text: str) -> bool:
+    settings = get_settings()
+    to = settings.visit_notify_to
+    if not to:
+        return False
+
+    hora = to_local(datetime.now(timezone.utc)).strftime("%d/%m/%Y %H:%M")
+
+    html = f"""
+      <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
+        <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">What We Watch</p>
+        <h2 style="margin:0 0 16px;font-size:1.2rem">Nueva sugerencia sobre la app</h2>
+        <p style="font-size:0.85rem;color:#666;margin:0 0 12px">{escape(display_name)} · {hora}</p>
+        <p style="font-size:0.95rem;white-space:pre-wrap;line-height:1.5">{escape(text)}</p>
+      </div>
+    """
+    return _send(to, f"What We Watch — Feedback de {display_name}", html)
+
+
 def send_login_notification(
     display_name: str,
     email: str,

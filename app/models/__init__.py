@@ -7,6 +7,7 @@ from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.models.reminder import PersonalReminder
 from app.models.activity_log import ActivityLog, ActivityAction
 from app.models.password_reset_token import PasswordResetToken
+from app.models.app_feedback import AppFeedback
 
 __all__ = [
     "Club",
@@ -22,4 +23,5 @@ __all__ = [
     "ActivityLog",
     "ActivityAction",
     "PasswordResetToken",
+    "AppFeedback",
 ]

@@ -39,17 +39,41 @@
     'Watchlist' if is_watchlist_active else
     'Sugerir' if is_sugerir_active else
     'Invitaciones' if path == '/admin/invitations' else
+    'Anuncios' if path == '/admin/announcements' else
     'Activity log' if path == '/admin/activity-log' else
     'Clubes' if path == '/admin/clubs' else
     'Settings' if path == '/admin/settings' else
+    'Feedback' if path == '/admin/feedback' else
     ''
   %}
 
   <div class="sticky top-0 z-10">
     <nav class="bg-gray-900 border-b border-gray-800 px-4 md:px-6 py-3 flex items-center justify-between">
-      <a href="/feed" class="shrink-0 inline-flex items-center leading-none">
-        <img src="/static/img/www_logoapp.png" alt="what we watch" class="h-10 w-auto block">
-      </a>
+      <div class="flex items-center shrink-0">
+        <a href="/feed" class="shrink-0 inline-flex items-center leading-none">
+          <img src="/static/img/www_logoapp.png" alt="what we watch" class="h-10 w-auto block">
+        </a>
+
+        {# ── Sugerencias/críticas sobre la app: prueba, solo visible para el superadmin ── #}
+        {% if user.is_superadmin %}
+        <style>
+          @keyframes feedback-flash { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.25; transform: scale(1.35); } }
+          .feedback-flash { animation: feedback-flash 0.6s ease-in-out 3; }
+        </style>
+        <div class="hidden md:block relative ml-3">
+          <button type="button" id="feedback-trigger-desktop" onclick="openFeedbackWidget('desktop')" title="Sugerencias/críticas sobre la app"
+            class="text-base text-gray-500 hover:text-violet-400 transition-colors leading-none">💬</button>
+          <div id="feedback-panel-desktop" class="hidden absolute left-0 top-full mt-2 z-30 w-72">
+            <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-3">
+              <p class="text-xs text-gray-400 mb-2">¿Idea o crítica sobre la app? (prueba — solo vos la ves por ahora)</p>
+              <textarea id="feedback-textarea-desktop" onblur="saveFeedbackWidget('desktop')" rows="4"
+                placeholder="Escribí acá..."
+                class="w-full bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-100 p-2 outline-none focus:border-violet-400"></textarea>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
 
       {# ── Club activo (mobile): fuera de la hamburguesa, siempre visible ── #}
       {% if active_club %}
@@ -104,11 +128,19 @@
           <div class="absolute right-0 top-full pt-1 hidden group-hover:block z-20">
             <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-44 py-1 overflow-hidden">
               <a href="/admin/invitations" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Invitaciones</a>
+              <a href="/admin/announcements" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Anuncios</a>
               <a href="/admin/activity-log" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Activity log</a>
               {% if user.is_superadmin %}
               <div class="border-t border-gray-700 mt-1 pt-1">
                 <a href="/admin/clubs" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Clubes</a>
                 <a href="/admin/settings" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Settings</a>
+                <a href="/admin/feedback" class="flex items-center justify-between px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">
+                  Feedback
+                  {% set fb_count = pending_feedback_count() %}
+                  {% if fb_count %}
+                  <span class="bg-violet-600 text-white text-xs font-bold rounded-full px-1.5 leading-tight">{{ fb_count }}</span>
+                  {% endif %}
+                </a>
               </div>
               {% endif %}
             </div>
@@ -180,10 +212,26 @@
     </nav>
 
     {% if mobile_page_label %}
-    <div class="md:hidden bg-gray-900/70 border-b border-gray-800 px-4 py-1.5">
-      <span class="text-xs font-medium text-violet-400 uppercase tracking-wide">{{ mobile_page_label }}</span>
-      <span class="text-xs font-medium text-gray-600 uppercase tracking-wide mx-1">·</span>
-      <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">What We Watch</span>
+    <div class="md:hidden bg-gray-900/70 border-b border-gray-800 px-4 py-1.5 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-medium text-violet-400 uppercase tracking-wide">{{ mobile_page_label }}</span>
+        <span class="text-xs font-medium text-gray-600 uppercase tracking-wide mx-1">·</span>
+        <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">What We Watch</span>
+      </div>
+      {% if user.is_superadmin %}
+      <div class="relative">
+        <button type="button" id="feedback-trigger-mobile" onclick="openFeedbackWidget('mobile')" title="Sugerencias/críticas sobre la app"
+          class="text-sm text-gray-500 hover:text-violet-400 transition-colors leading-none">💬</button>
+        <div id="feedback-panel-mobile" class="hidden absolute right-0 top-full mt-2 z-30 w-64">
+          <div class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl p-3">
+            <p class="text-xs text-gray-400 mb-2">¿Idea o crítica sobre la app? (prueba — solo vos la ves por ahora)</p>
+            <textarea id="feedback-textarea-mobile" onblur="saveFeedbackWidget('mobile')" rows="4"
+              placeholder="Escribí acá..."
+              class="w-full bg-gray-900 border border-gray-700 rounded-lg text-sm text-gray-100 p-2 outline-none focus:border-violet-400"></textarea>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
     {% endif %}
 
@@ -215,6 +263,10 @@
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Invitaciones
           </a>
+          <a href="/admin/announcements" onclick="closeMobileNav()"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            Anuncios
+          </a>
           <a href="/admin/activity-log" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Activity log
@@ -223,6 +275,14 @@
           <a href="/admin/clubs" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
             Clubes
+          </a>
+          <a href="/admin/feedback" onclick="closeMobileNav()"
+            class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            Feedback
+            {% set fb_count_m = pending_feedback_count() %}
+            {% if fb_count_m %}
+            <span class="bg-violet-600 text-white text-xs font-bold rounded-full px-1.5 leading-tight">{{ fb_count_m }}</span>
+            {% endif %}
           </a>
           <a href="/admin/settings" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
@@ -470,6 +530,45 @@
       panel.classList.add('hidden');
     }
   });
+
+  /* Prueba: cuadro de sugerencias/críticas sobre la app, solo para superadmin. */
+  async function openFeedbackWidget(prefix) {
+    const panel = document.getElementById('feedback-panel-' + prefix);
+    const textarea = document.getElementById('feedback-textarea-' + prefix);
+    if (!panel || !textarea) return;
+    panel.classList.remove('hidden');
+    if (!textarea.dataset.loaded) {
+      try {
+        const resp = await fetch('/feedback/mine');
+        const data = await resp.json();
+        textarea.value = data.text || '';
+      } catch (e) {}
+      textarea.dataset.loaded = '1';
+    }
+    textarea.focus();
+  }
+  async function saveFeedbackWidget(prefix) {
+    const panel = document.getElementById('feedback-panel-' + prefix);
+    const textarea = document.getElementById('feedback-textarea-' + prefix);
+    if (!panel || !textarea) return;
+    panel.classList.add('hidden');
+    textarea.dataset.loaded = '';
+    const fd = new FormData();
+    fd.append('text', textarea.value);
+    try {
+      await fetch('/feedback', { method: 'POST', body: fd });
+    } catch (e) {}
+  }
+  {% if trigger_feedback_flash %}
+  (function () {
+    ['feedback-trigger-desktop', 'feedback-trigger-mobile'].forEach(function (id) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.classList.add('feedback-flash');
+      btn.addEventListener('animationend', function () { btn.classList.remove('feedback-flash'); }, { once: true });
+    });
+  })();
+  {% endif %}
   </script>
 
   <script>

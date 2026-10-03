@@ -7,7 +7,8 @@ from fastapi.templating import Jinja2Templates
 
 from app.exceptions import AccessDenied, NeedsLogin
 from app.models.user import User
-from app.routers import admin, auth, suggestions, tracking, watchlist
+from app.routers import admin, auth, feedback, suggestions, tracking, watchlist
+from app.services.app_feedback import pending_feedback_count
 from app.services.auth import clear_session, get_current_user
 from app.services.version import APP_VERSION
 
@@ -16,12 +17,14 @@ app = FastAPI(title="Movies & Series")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["pending_feedback_count"] = pending_feedback_count
 
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(suggestions.router)
 app.include_router(watchlist.router)
 app.include_router(tracking.router)
+app.include_router(feedback.router)
 
 
 @app.get("/sw.js")

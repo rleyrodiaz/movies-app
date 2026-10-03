@@ -17,6 +17,7 @@ from app.models.user import User
 from app.models.watchlist import WatchlistEntry, WatchlistStatus
 from app.services import tmdb
 from app.services.activity_log import log_activity
+from app.services.app_feedback import pending_feedback_count
 from app.services.auth import get_current_user, get_session_id, require_user
 from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher, list_own_clubs
 from app.services.suggestion_creation import create_suggestion
@@ -27,6 +28,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["pending_feedback_count"] = pending_feedback_count
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -56,6 +58,7 @@ def feed(
     sort: str = Query(default=""),
     status_filter: str = Query(default=""),
     min_rating: str = Query(default="0"),
+    welcome: str = Query(default=""),
 ):
     active_club = get_active_club(current_user, db)
 
@@ -195,6 +198,7 @@ def feed(
             "has_any_suggestions": bool(all_suggestions),
             "total_count": len(all_suggestions),
             "new_since_last_visit": new_since_last_visit,
+            "trigger_feedback_flash": bool(welcome),
             "active_club": active_club,
             "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),

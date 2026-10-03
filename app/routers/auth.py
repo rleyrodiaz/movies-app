@@ -18,6 +18,7 @@ from app.models.password_reset_token import PasswordResetToken
 from app.models.user import User, UserRole
 from app.services import tmdb
 from app.services.activity_log import log_activity
+from app.services.app_feedback import pending_feedback_count
 from app.services.auth import (
     clear_session,
     get_current_user,
@@ -35,6 +36,7 @@ from app.services.visit import get_client_ip, parse_device
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["pending_feedback_count"] = pending_feedback_count
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 
 
@@ -67,7 +69,7 @@ def login_submit(
             status_code=303,
         )
     active_club = get_active_club(user, db)
-    response = RedirectResponse("/feed", status_code=303)
+    response = RedirectResponse("/feed?welcome=1", status_code=303)
     session_id = set_session(response, user.id)
     user.last_login_at = datetime.now(timezone.utc)
     log_activity(

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Feedback — Admin{% endblock %}
+
+{% block content %}
+<style>
+  #feedback-page .pm-btn-primary { background: #a78bfa; }
+</style>
+<div id="feedback-page" class="pm-panel" style="max-width:40rem;margin:0 auto">
+
+  <div style="margin-bottom:1.75rem">
+    <h1 class="pm-title" style="font-size:1.5rem">Feedback de la app</h1>
+    <p style="font-size:0.85rem;color:#7A7680;margin-top:0.25rem">
+      Sugerencias y críticas que los miembros escribieron sobre la app (no sobre títulos). Al marcar una como revisada, desaparece de acá y de la pantalla del miembro.
+    </p>
+  </div>
+
+  {% if not entries %}
+  <div style="text-align:center;padding:4rem 0;color:#7A7680">
+    <p style="font-size:1.05rem">No hay feedback pendiente de revisar.</p>
+  </div>
+
+  {% else %}
+  <div style="display:flex;flex-direction:column;gap:0.75rem">
+    {% for e in entries %}
+    <div class="pm-panel" style="background:#15151A;border:1px solid #2A2A35;padding:1.1rem 1.25rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:0.6rem">
+        <div>
+          <span style="color:#F0EDE8;font-weight:500">{{ e.user.display_name }}</span>
+          <span style="font-size:0.72rem;color:#5A5762;margin-left:0.5rem">{{ (e.updated_at|local_time).strftime('%d/%m/%Y %H:%M') }}</span>
+        </div>
+        <form method="post" action="/admin/feedback/{{ e.id }}/check" style="flex-shrink:0">
+          <button type="submit" class="pm-btn-primary" style="padding:0.35rem 0.85rem;font-size:0.72rem;white-space:nowrap">
+            Marcar revisado
+          </button>
+        </form>
+      </div>
+      <p style="font-size:0.88rem;color:#B8B4BE;white-space:pre-wrap;line-height:1.5">{{ e.text }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

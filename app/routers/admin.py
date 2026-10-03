@@ -3,15 +3,16 @@ from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import delete, func, select, text
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.config import get_settings
 from app.db import Base, engine, get_db_dep
 from app.exceptions import AccessDenied
 from app.models.activity_log import ActivityAction, ActivityLog
+from app.models.app_feedback import AppFeedback
 from app.models.club import Club
 from app.models.club_membership import ClubMembership
 from app.models.invitation import Invitation
@@ -21,6 +22,7 @@ from app.models.suggestion import Suggestion
 from app.models.user import User, UserRole
 from app.models.watchlist import WatchlistEntry
 from app.services.activity_log import log_activity
+from app.services.app_feedback import pending_feedback_count
 from app.services.auth import (
     clear_session,
     get_session_id,
@@ -38,6 +40,7 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.filters["local_time"] = to_local
 templates.env.globals["platform_choices"] = tmdb.PLATFORM_CHOICES
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["pending_feedback_count"] = pending_feedback_count
 
 # Tablas que se pueden regenerar selectivamente desde Settings — siempre acotado
 # al club activo (ver _club_scope_filter). El orden de borrado (hijos antes que
@@ -149,6 +152,85 @@ def invitations_page(
             "all_clubs": list_clubs_for_switcher(current_user, db),
         },
     )
+
+
+@router.get("/announcements", response_class=HTMLResponse)
+def announcements_page(
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db_dep),
+    regenerate: str = Query(default=""),
+):
+    active_club = get_active_club(current_user, db)
+
+    member_count = db.scalar(
+        select(func.count(ClubMembership.id)).where(ClubMembership.club_id == active_club.id)
+    ) or 0
+
+    all_suggestions = db.scalars(
+        select(Suggestion)
+        .options(selectinload(Suggestion.watchlist_entries))
+        .where(Suggestion.club_id == active_club.id)
+        .order_by(Suggestion.created_at.desc())
+    ).all()
+
+    # "Falta opinar": sugerencias donde, como mucho, solo opinó quien la sugirió.
+    under_rated = [s for s in all_suggestions if s.rating_count <= 1]
+    highlight_titles = [s.title for s in under_rated[:5]]
+
+    if active_club.announcement_draft and not regenerate:
+        # Se respeta lo que el admin ya venía editando — los links de WA se
+        # mandan de a uno, y no queremos perder la edición entre un envío y el
+        # siguiente. "Regenerar" lo descarta a propósito.
+        msg = active_club.announcement_draft
+    else:
+        base_url = str(request.base_url).rstrip("/")
+        titles_str = ", ".join(highlight_titles)
+        icon_blurb = (
+            "\n\nAparte, si se les ocurre alguna idea o crítica sobre la app en sí, van a ver un ícono de "
+            "mensaje (💬) arriba de todo — tóquenlo y escriban ahí, nos llega directo."
+        )
+        msg = (
+            f"¡Hola, {active_club.name}! 👋 Tenemos {len(under_rated)} sugerencias recientes con poca o "
+            f"ninguna opinión todavía: {titles_str}. Démosle una vuelta a la Cartelera y sumemos nuestra "
+            "calificación a lo que ya vimos — cuantos más opinamos, mejor elegimos entre todos."
+        ) if under_rated else (
+            f"¡Hola, {active_club.name}! 👋 Por ahora todas las sugerencias recientes ya tienen opiniones "
+            "de varios — ¡sigamos así!"
+        )
+        msg += f"\n\nEntrá acá: {base_url}"
+        msg += icon_blurb
+        active_club.announcement_draft = msg
+
+    announcement = {
+        "under_rated_count": len(under_rated),
+        "highlight_titles": highlight_titles,
+        "member_count": member_count,
+        "msg": msg,
+    }
+
+    return templates.TemplateResponse(
+        "admin_announcements.html",
+        {
+            "request": request,
+            "user": current_user,
+            "announcement": announcement,
+            "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
+            "all_clubs": list_clubs_for_switcher(current_user, db),
+        },
+    )
+
+
+@router.post("/announcements/save")
+def save_announcement_draft(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db_dep),
+    text: str = Form(""),
+):
+    active_club = get_active_club(current_user, db)
+    active_club.announcement_draft = text
+    return JSONResponse({"ok": True})
 
 
 @router.post("/invitations")
@@ -652,3 +734,42 @@ def reset_member_password(
         session_id=get_session_id(request),
     )
     return RedirectResponse(f"/admin/clubs?reset_token={token}", status_code=303)
+
+
+@router.get("/feedback", response_class=HTMLResponse)
+def feedback_page(
+    request: Request,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+):
+    active_club = get_active_club(current_user, db)
+    entries = db.scalars(
+        select(AppFeedback)
+        .options(joinedload(AppFeedback.user))
+        .where(AppFeedback.checked.is_(False))
+        .order_by(AppFeedback.updated_at.desc())
+    ).all()
+    return templates.TemplateResponse(
+        "admin_feedback.html",
+        {
+            "request": request,
+            "user": current_user,
+            "entries": entries,
+            "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
+            "all_clubs": list_clubs_for_switcher(current_user, db),
+        },
+    )
+
+
+@router.post("/feedback/{feedback_id}/check")
+def check_feedback(
+    feedback_id: int,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+):
+    entry = db.get(AppFeedback, feedback_id)
+    if entry is not None:
+        entry.checked = True
+        entry.checked_at = datetime.now(timezone.utc)
+    return RedirectResponse("/admin/feedback", status_code=303)

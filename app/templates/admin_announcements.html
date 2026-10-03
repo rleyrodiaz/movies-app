@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Anuncios — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="flex items-start justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Anuncios — {{ active_club.name }}</h1>
+      <p class="text-gray-500 text-sm mt-0.5">
+        Lo que edites se guarda solo, así no se pierde entre un envío y el siguiente (los de WhatsApp hay que mandarlos de a uno).
+      </p>
+    </div>
+    <a href="/admin/announcements?regenerate=1"
+      class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap"
+    >↻ Regenerar con datos de ahora</a>
+  </div>
+
+  <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 mb-4">
+    <p class="text-sm text-gray-400">
+      {{ announcement.under_rated_count }} sugerencia{{ 's' if announcement.under_rated_count != 1 else '' }}
+      con poca o ninguna opinión todavía
+      {% if announcement.highlight_titles %}
+      ({{ announcement.highlight_titles|join(', ') }})
+      {% endif %}
+      · {{ announcement.member_count }} miembro{{ 's' if announcement.member_count != 1 else '' }} en el club
+    </p>
+  </div>
+
+  <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Mensaje para compartir (lo podés editar antes de mandarlo)</p>
+    <textarea id="announcement-textarea" rows="6" onblur="saveAnnouncementDraft()"
+      class="w-full bg-gray-950 border border-gray-700 rounded-lg text-sm text-gray-200 p-3 outline-none focus:border-violet-400 mb-4 whitespace-pre-wrap leading-relaxed"
+    >{{ announcement.msg }}</textarea>
+    <p id="announcement-save-status" class="text-xs text-gray-600 -mt-3 mb-3 h-4"></p>
+
+    <div class="flex gap-2 flex-wrap">
+      <button
+        onclick="navigator.clipboard.writeText(document.getElementById('announcement-textarea').value); this.textContent='Copiado!'; setTimeout(()=>this.textContent='Copiar',2000)"
+        class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors"
+      >Copiar</button>
+      <button
+        onclick="window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('announcement-textarea').value), '_blank', 'noopener')"
+        class="text-xs bg-green-900/40 hover:bg-green-900/60 text-green-400 border border-green-900 px-3 py-1.5 rounded-md transition-colors"
+      >WhatsApp</button>
+      <a href="/static/img/www_logoapp.png" download
+        class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-1.5 rounded-md transition-colors"
+      >⬇ Descargar logo</a>
+      <button
+        onclick="window.location.href = 'mailto:?subject=' + encodeURIComponent('Novedades en {{ active_club.name }}') + '&body=' + encodeURIComponent(document.getElementById('announcement-textarea').value)"
+        class="text-xs bg-blue-900/40 hover:bg-blue-900/60 text-blue-400 border border-blue-900 px-3 py-1.5 rounded-md transition-colors"
+      >Email</button>
+    </div>
+    <p class="text-xs text-gray-600 mt-2">
+      El mensaje incluye el link de la app — WhatsApp le va a mostrar el logo solo, como en las invitaciones.
+      El email no genera esa vista previa; si querés sumarle el logo ahí, descargalo y adjuntalo a mano.
+    </p>
+  </div>
+
+</div>
+
+<script>
+async function saveAnnouncementDraft() {
+  const status = document.getElementById('announcement-save-status');
+  const fd = new FormData();
+  fd.append('text', document.getElementById('announcement-textarea').value);
+  try {
+    await fetch('/admin/announcements/save', { method: 'POST', body: fd });
+    if (status) {
+      status.textContent = 'Guardado ✓';
+      setTimeout(() => { status.textContent = ''; }, 1500);
+    }
+  } catch (e) {}
+}
+</script>
+{% endblock %}
