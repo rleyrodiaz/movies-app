@@ -29,10 +29,11 @@
 
   <div class="bg-gray-900 border border-gray-700 rounded-xl p-4">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-2">Mensaje para compartir (lo podés editar antes de mandarlo)</p>
+    <input type="hidden" id="announcement-club-id" value="{{ active_club.id }}">
     <textarea id="announcement-textarea" rows="6" onblur="saveAnnouncementDraft()"
       class="w-full bg-gray-950 border border-gray-700 rounded-lg text-sm text-gray-200 p-3 outline-none focus:border-violet-400 mb-4 whitespace-pre-wrap leading-relaxed"
     >{{ announcement.msg }}</textarea>
-    <p id="announcement-save-status" class="text-xs text-gray-600 -mt-3 mb-3 h-4"></p>
+    <p id="announcement-save-status" class="text-xs text-gray-600 -mt-3 mb-3" style="min-height:1rem"></p>
 
     <div class="flex gap-2 flex-wrap">
       <button
@@ -64,11 +65,18 @@ async function saveAnnouncementDraft() {
   const status = document.getElementById('announcement-save-status');
   const fd = new FormData();
   fd.append('text', document.getElementById('announcement-textarea').value);
+  fd.append('club_id', document.getElementById('announcement-club-id').value);
   try {
-    await fetch('/admin/announcements/save', { method: 'POST', body: fd });
+    const resp = await fetch('/admin/announcements/save', { method: 'POST', body: fd });
+    const data = await resp.json();
     if (status) {
-      status.textContent = 'Guardado ✓';
-      setTimeout(() => { status.textContent = ''; }, 1500);
+      if (data.ok) {
+        status.textContent = 'Guardado ✓';
+      } else if (data.error === 'club_mismatch') {
+        status.textContent = '⚠ Cambiaste de club — recargá la página antes de seguir editando.';
+        status.style.color = '#fca5a5';
+      }
+      setTimeout(() => { status.textContent = ''; status.style.color = ''; }, data.ok ? 1500 : 6000);
     }
   } catch (e) {}
 }

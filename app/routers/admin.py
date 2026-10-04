@@ -184,7 +184,13 @@ def announcements_page(
         # siguiente. "Regenerar" lo descarta a propósito.
         msg = active_club.announcement_draft
     else:
-        base_url = str(request.base_url).rstrip("/")
+        # El "?v=" cambia en cada regeneración para que WhatsApp/Facebook no
+        # reutilicen una vista previa vieja cacheada para esta URL (si alguna
+        # vez la cargaron antes de tener la imagen bien configurada, quedan
+        # mostrando "sin vista previa" por un buen rato si no se las fuerza
+        # con una URL que no hayan visto todavía).
+        cache_bust = int(datetime.now(timezone.utc).timestamp())
+        base_url = f"{str(request.base_url).rstrip('/')}/?v={cache_bust}"
         titles_str = ", ".join(highlight_titles)
         icon_blurb = (
             "\n\nAparte, si se les ocurre alguna idea o crítica sobre la app en sí, van a ver un ícono de "
@@ -227,8 +233,14 @@ def save_announcement_draft(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db_dep),
     text: str = Form(""),
+    club_id: int = Form(...),
 ):
     active_club = get_active_club(current_user, db)
+    # Si cambió de club (switcher del nav) sin recargar esta pantalla, el
+    # texto que tiene en pantalla sigue siendo el del club viejo — no lo
+    # guardamos sobre el club nuevo para no mezclar mensajes entre clubes.
+    if club_id != active_club.id:
+        return JSONResponse({"ok": False, "error": "club_mismatch"})
     active_club.announcement_draft = text
     return JSONResponse({"ok": True})
 
