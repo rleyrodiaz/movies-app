@@ -184,13 +184,12 @@ def announcements_page(
         # siguiente. "Regenerar" lo descarta a propósito.
         msg = active_club.announcement_draft
     else:
-        # El "?v=" cambia en cada regeneración para que WhatsApp/Facebook no
-        # reutilicen una vista previa vieja cacheada para esta URL (si alguna
-        # vez la cargaron antes de tener la imagen bien configurada, quedan
-        # mostrando "sin vista previa" por un buen rato si no se las fuerza
-        # con una URL que no hayan visto todavía).
-        cache_bust = int(datetime.now(timezone.utc).timestamp())
-        base_url = f"{str(request.base_url).rstrip('/')}/?v={cache_bust}"
+        # Un link fijo, pero distinto a la raíz ("/") que ya se compartió muchas
+        # veces por WhatsApp antes de tener la imagen bien configurada — con
+        # la raíz, WhatsApp puede seguir mostrando esa vista previa vieja
+        # cacheada. "/app" nunca se compartió, así que no arrastra ese problema,
+        # y al ser siempre la misma URL, se puede reusar sin que se vea fea.
+        base_url = f"{str(request.base_url).rstrip('/')}/app"
         titles_str = ", ".join(highlight_titles)
         icon_blurb = (
             "\n\nAparte, si se les ocurre alguna idea o crítica sobre la app en sí, van a ver un ícono de "

@@ -32,6 +32,7 @@ templates.env.globals["pending_feedback_count"] = pending_feedback_count
 
 
 @router.get("/", response_class=HTMLResponse)
+@router.get("/app", response_class=HTMLResponse)
 def landing(
     request: Request,
     current_user: User | None = Depends(get_current_user),
