@@ -203,7 +203,7 @@ def announcements_page(
             f"¡Hola, {active_club.name}! Por ahora todas las sugerencias recientes ya tienen opiniones "
             "de varios — ¡sigamos así!"
         )
-        msg += f"\n\nEntrá acá: {base_url}"
+        msg += f"\n\n{base_url}"
         msg += icon_blurb
         active_club.announcement_draft = msg
 
