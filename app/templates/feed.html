@@ -366,6 +366,18 @@
 .sd2-provider-chip { font-size: 0.72rem; color: #92929D; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.65rem; border-radius: 999px; }
 .sd2-activity-list { max-height: 15rem; overflow-y: auto; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
 .sd2-activity-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 0.65rem 0.85rem; }
+.sd2-ratebar { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.sd2-ratebtn { width: 2rem; height: 2rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #92929D; cursor: pointer; }
+.sd2-ratebtn.sd2-selected { background: #a78bfa; color: #1F1D2B; border-color: #a78bfa; }
+.sd2-textarea {
+  width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+  color: #FFFCFC; font-family: inherit; font-size: 0.8rem; padding: 0.6rem 0.75rem; resize: none; margin-bottom: 0.85rem;
+}
+.sd2-btn-primary {
+  background: #a78bfa; color: #1F1D2B; border: none; border-radius: 999px; font-weight: 600;
+  padding: 0.65rem 1.3rem; font-size: 0.85rem; cursor: pointer;
+}
+.sd2-btn-primary:disabled { background: rgba(255,255,255,0.06); color: #5A5762; cursor: not-allowed; }
 .sd2-bottombar {
   flex-shrink: 0; z-index: 2; display: flex; background: #151519;
   border-top: 1px solid rgba(255,255,255,0.06); padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
@@ -482,9 +494,11 @@ let _sCurrentWatchlistStatus = null;
 let _sCurrentIsOwner = false;
 let _sHeartTooltipTimer = null;
 let _sNeedsReload = false;
+let _sSelectedRating = null;
 
 async function openSuggestionDetail(id) {
   _sCurrentId = id;
+  _sSelectedRating = null;
   _sNeedsReload = false;
   document.getElementById('sdetail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">Cargando…</p>';
   document.getElementById('sdetail-topbar-title').textContent = '';
@@ -522,6 +536,7 @@ async function refreshSDetail() {
     const d = await resp.json();
     _sCurrentWatchlistStatus = d.watchlist_status;
     _sCurrentIsOwner = d.is_owner;
+    _sSelectedRating = null;
     updateSHeartState();
     document.getElementById('sdetail-content').innerHTML = buildSDetailHTML(d);
   } catch (e) {}
@@ -550,6 +565,32 @@ function closeConfirmMyRating() {
 
 function handleSDetailBackdrop(ev) {
   if (ev.target === document.getElementById('sdetail-backdrop')) pmCloseModal();
+}
+
+function selectSRating(n) {
+  _sSelectedRating = n;
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`sdrbtn-${i}`);
+    if (btn) btn.classList.toggle('sd2-selected', i === n);
+  }
+  const label = document.getElementById('sdetail-rating-label');
+  if (label) label.textContent = n + '/10';
+  const saveBtn = document.getElementById('sdetail-save-rating-btn');
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+async function saveSRating(suggestionId) {
+  const n = _sSelectedRating;
+  if (!n) return;
+  const comment = document.getElementById('sdetail-comment-input')?.value || '';
+  const fd = new FormData();
+  fd.append('rating', n);
+  fd.append('comment', comment);
+  try {
+    await fetch(`/watchlist/${suggestionId}/rate`, { method: 'POST', body: fd });
+  } catch (e) {}
+  _sNeedsReload = true;
+  await refreshSDetail();
 }
 
 function updateSHeartState() {
@@ -660,6 +701,24 @@ function buildSDetailHTML(d) {
     }
   }
 
+  const ratingSection = (!d.is_owner && d.watchlist_status !== 'watched') ? `
+    <div class="sd2-section">
+      <p class="sd2-section-label">
+        Calificar
+        <span id="sdetail-rating-label" style="text-transform:none;color:#a78bfa;margin-left:0.35rem"></span>
+      </p>
+      <div class="sd2-ratebar">
+        ${Array.from({length:10}, (_,i) => {
+          const n = i+1;
+          return `<button type="button" onclick="selectSRating(${n})" id="sdrbtn-${n}" class="sd2-ratebtn">${n}</button>`;
+        }).join('')}
+      </div>
+      <textarea id="sdetail-comment-input" rows="2" placeholder="Tu comentario (opcional)..." class="sd2-textarea"></textarea>
+      <button id="sdetail-save-rating-btn" onclick="saveSRating(${d.id})" disabled class="sd2-btn-primary">
+        Guardar calificación
+      </button>
+    </div>` : '';
+
   const activityHtml = !d.watched_entries.length ? '' : `
     <div class="sd2-section">
       <p class="sd2-section-label">Actividad del club</p>
@@ -711,6 +770,7 @@ function buildSDetailHTML(d) {
         </div>
       </div>
 
+      ${ratingSection}
       ${activityHtml}
     </div>`;
 }
