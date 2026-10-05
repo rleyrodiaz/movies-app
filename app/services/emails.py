@@ -30,6 +30,7 @@ def send_visit_notification(
     referrer: str = "",
     entry_page: str = "",
     session_id: str = "",
+    display_name: str = "",
 ) -> bool:
     settings = get_settings()
     to = settings.visit_notify_to
@@ -40,12 +41,14 @@ def send_visit_notification(
     geo = ", ".join(filter(None, [city, country])) or "—"
     disp = " · ".join(filter(None, [device, browser, os])) or "—"
     ref = referrer or "directo"
+    usuario = escape(display_name) if display_name else "Anónimo (sin sesión activa)"
 
     html = f"""
       <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
         <p style="font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;margin:0 0 8px">What We Watch</p>
         <h2 style="margin:0 0 16px;font-size:1.2rem">Nueva visita al sitio</h2>
         <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+          <tr><td style="padding:4px 8px 4px 0;color:#666">Usuario</td><td style="padding:4px 0">{usuario}</td></tr>
           <tr><td style="padding:4px 8px 4px 0;color:#666">Hora</td><td style="padding:4px 0">{hora}</td></tr>
           <tr><td style="padding:4px 8px 4px 0;color:#666">Ubicación</td><td style="padding:4px 0">{geo}</td></tr>
           <tr><td style="padding:4px 8px 4px 0;color:#666">IP</td><td style="padding:4px 0">{ip or '—'}</td></tr>

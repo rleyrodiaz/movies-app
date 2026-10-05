@@ -1,9 +1,12 @@
+import calendar
+import io
 import secrets
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 
+import openpyxl
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -289,7 +292,156 @@ ACTION_LABELS = {
     "db_reset": "DB reseteada",
     "password_reset_requested": "Restablecer contraseña (link generado)",
     "password_reset_completed": "Contraseña restablecida",
+    "club_created": "Club creado",
+    "club_renamed": "Club renombrado",
+    "club_switched": "Cambio de club",
+    "club_joined": "Se unió a un club",
 }
+
+
+REPORT_DEFAULT_ACTIONS = ["suggestion_created", "watchlist_rated", "watchlist_added", "user_login", "reminder_created"]
+REPORT_MAX_PERIODS = 24
+MESES_ES = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+
+def _period_bucket(local_dt: datetime, granularity: str) -> tuple[str, str, date, date]:
+    """(clave, etiqueta, fecha_desde, fecha_hasta) del período al que pertenece
+    local_dt, ya en hora local."""
+    if granularity == "year":
+        y = local_dt.year
+        return (str(y), str(y), date(y, 1, 1), date(y, 12, 31))
+    if granularity == "week":
+        iso_year, iso_week, _ = local_dt.isocalendar()
+        start = date.fromisocalendar(iso_year, iso_week, 1)
+        end = start + timedelta(days=6)
+        return (f"{iso_year}-S{iso_week:02d}", f"Sem {iso_week} '{str(iso_year)[2:]}", start, end)
+    y, m = local_dt.year, local_dt.month
+    start = date(y, m, 1)
+    end = date(y, m, calendar.monthrange(y, m)[1])
+    return (f"{y}-{m:02d}", f"{MESES_ES[m]} {y}", start, end)
+
+
+def _build_report(db: Session, club_id: int, granularity: str, actions: list[str]) -> dict:
+    valid_action_values = {a.value for a in ActivityAction}
+    selected_actions = [a for a in dict.fromkeys(actions) if a in valid_action_values]
+    if not selected_actions:
+        selected_actions = list(REPORT_DEFAULT_ACTIONS)
+
+    rows = db.scalars(
+        select(ActivityLog).where(
+            ActivityLog.club_id == club_id,
+            ActivityLog.action.in_([ActivityAction(a) for a in selected_actions]),
+        )
+    ).all()
+
+    counts: dict[str, dict[str, int]] = {a: {} for a in selected_actions}
+    period_labels: dict[str, str] = {}
+    period_ranges: dict[str, tuple[str, str]] = {}
+    for r in rows:
+        key, label, d_from, d_to = _period_bucket(to_local(r.created_at), granularity)
+        counts[r.action.value][key] = counts[r.action.value].get(key, 0) + 1
+        period_labels[key] = label
+        period_ranges[key] = (d_from.isoformat(), d_to.isoformat())
+
+    periods_desc = sorted(period_labels.keys(), reverse=True)[:REPORT_MAX_PERIODS]
+    periods = list(reversed(periods_desc))
+
+    grid = [
+        {
+            "action": a,
+            "label": ACTION_LABELS.get(a, a),
+            "cells": [
+                {
+                    "period": p,
+                    "count": counts[a].get(p, 0),
+                    "date_from": period_ranges[p][0],
+                    "date_to": period_ranges[p][1],
+                }
+                for p in periods
+            ],
+        }
+        for a in selected_actions
+    ]
+
+    available_actions = sorted(a for a in valid_action_values if a not in selected_actions)
+
+    return {
+        "selected_actions": selected_actions,
+        "available_actions": available_actions,
+        "periods": periods,
+        "period_labels": period_labels,
+        "grid": grid,
+    }
+
+
+@router.get("/reports", response_class=HTMLResponse)
+def reports_page(
+    request: Request,
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    granularity: str = Query(default="month"),
+    actions: list[str] = Query(default=[]),
+):
+    active_club = get_active_club(current_user, db)
+    if granularity not in ("year", "month", "week"):
+        granularity = "month"
+
+    report = _build_report(db, active_club.id, granularity, actions)
+
+    actions_qs = "".join(f"&actions={a}" for a in report["selected_actions"])
+    for g in report["grid"]:
+        other_actions = [a for a in report["selected_actions"] if a != g["action"]]
+        g["remove_qs"] = f"granularity={granularity}" + "".join(f"&actions={a}" for a in other_actions)
+
+    return templates.TemplateResponse(
+        "admin_reports.html",
+        {
+            "request": request,
+            "user": current_user,
+            "active_club": active_club,
+            "is_club_admin": is_active_club_admin(current_user, active_club),
+            "all_clubs": list_clubs_for_switcher(current_user, db),
+            "granularity": granularity,
+            "action_labels": ACTION_LABELS,
+            "actions_qs": actions_qs,
+            **report,
+        },
+    )
+
+
+@router.get("/reports/export")
+def reports_export(
+    current_user: User = Depends(require_superadmin),
+    db: Session = Depends(get_db_dep),
+    granularity: str = Query(default="month"),
+    actions: list[str] = Query(default=[]),
+):
+    active_club = get_active_club(current_user, db)
+    if granularity not in ("year", "month", "week"):
+        granularity = "month"
+
+    report = _build_report(db, active_club.id, granularity, actions)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Reporte"
+    ws.cell(row=1, column=1, value="Acción")
+    for col, p in enumerate(report["periods"], start=2):
+        ws.cell(row=1, column=col, value=report["period_labels"][p])
+    for row_idx, g in enumerate(report["grid"], start=2):
+        ws.cell(row=row_idx, column=1, value=g["label"])
+        for col_idx, cell in enumerate(g["cells"], start=2):
+            ws.cell(row=row_idx, column=col_idx, value=cell["count"])
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    filename = f"reporte_{active_club.name}_{granularity}.xlsx".replace(" ", "_")
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 ACTIVITY_LOG_PAGE_SIZE = 50

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Reportes — Admin{% endblock %}
+
+{% block content %}
+<style>
+  #reports-page .pm-input:focus { border-color: #a78bfa; }
+  #reports-page .pm-btn-primary { background: #a78bfa; }
+  .report-gran-btn { padding: 0.4rem 0.9rem; font-size: 0.78rem; border-radius: 6px; border: 1px solid #2A2A35; color: #7A7680; }
+  .report-gran-btn.active { background: #a78bfa; color: #1F1D2B; border-color: #a78bfa; font-weight: 600; }
+  .report-table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+  .report-table th, .report-table td { border: 1px solid #2A2A35; padding: 0.5rem 0.65rem; text-align: right; white-space: nowrap; }
+  .report-table th:first-child, .report-table td:first-child { text-align: left; position: sticky; left: 0; background: #15151A; }
+  .report-table th { color: #92929D; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .report-cell-link { color: #FFFCFC; text-decoration: none; }
+  .report-cell-link:hover { color: #a78bfa; text-decoration: underline; }
+  .report-cell-zero { color: #5A5762; }
+</style>
+
+<div id="reports-page" class="pm-panel" style="max-width:76rem;margin:0 auto">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem">
+    <div>
+      <h1 class="pm-title" style="font-size:1.5rem">Reportes — {{ active_club.name }}</h1>
+      <p style="font-size:0.85rem;color:#7A7680;margin-top:0.25rem">
+        Cantidad de acciones por período. Tocá un número para ver el detalle en Activity log.
+      </p>
+    </div>
+    <a href="/admin/reports/export?granularity={{ granularity }}{{ actions_qs }}"
+      class="pm-btn-secondary" style="padding:0.5rem 1rem;font-size:0.8rem;white-space:nowrap"
+    >⬇ Descargar XLS</a>
+  </div>
+
+  {# ── Selector de período ── #}
+  <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem">
+    <a href="/admin/reports?granularity=year{{ actions_qs }}" class="report-gran-btn {% if granularity == 'year' %}active{% endif %}">Año</a>
+    <a href="/admin/reports?granularity=month{{ actions_qs }}" class="report-gran-btn {% if granularity == 'month' %}active{% endif %}">Mes</a>
+    <a href="/admin/reports?granularity=week{{ actions_qs }}" class="report-gran-btn {% if granularity == 'week' %}active{% endif %}">Semana</a>
+  </div>
+
+  {# ── Agregar acción ── #}
+  <form method="get" action="/admin/reports" style="display:flex;align-items:end;gap:0.6rem;margin-bottom:1.5rem;flex-wrap:wrap">
+    <input type="hidden" name="granularity" value="{{ granularity }}">
+    {% for a in selected_actions %}
+    <input type="hidden" name="actions" value="{{ a }}">
+    {% endfor %}
+    <div>
+      <label style="display:block;font-size:0.72rem;color:#7A7680;margin-bottom:0.35rem">Agregar acción al reporte</label>
+      <select name="actions" class="pm-input" style="padding:0.5rem 0.7rem">
+        {% for a in available_actions %}
+        <option value="{{ a }}">{{ action_labels.get(a, a) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="pm-btn-primary" style="padding:0.5rem 1rem;font-size:0.8rem">+ Agregar</button>
+  </form>
+
+  {# ── Grilla ── #}
+  {% if not periods %}
+  <div style="text-align:center;padding:4rem 0;color:#7A7680">
+    <p style="font-size:1.05rem">No hay datos todavía para las acciones elegidas.</p>
+  </div>
+  {% else %}
+  <div style="overflow-x:auto">
+    <table class="report-table">
+      <thead>
+        <tr>
+          <th>Acción</th>
+          {% for p in periods %}
+          <th>{{ period_labels[p] }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grid %}
+        <tr>
+          <td>
+            {{ row.label }}
+            <a href="/admin/reports?{{ row.remove_qs }}" title="Sacar del reporte" style="color:#5A5762;margin-left:0.4rem;text-decoration:none">&times;</a>
+          </td>
+          {% for cell in row.cells %}
+          <td>
+            {% if cell.count %}
+            <a class="report-cell-link" href="/admin/activity-log?action={{ row.action }}&date_from={{ cell.date_from }}&date_to={{ cell.date_to }}">{{ cell.count }}</a>
+            {% else %}
+            <span class="report-cell-zero">0</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

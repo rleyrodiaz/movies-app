@@ -44,6 +44,7 @@
     'Clubes' if path == '/admin/clubs' else
     'Settings' if path == '/admin/settings' else
     'Feedback' if path == '/admin/feedback' else
+    'Reportes' if path == '/admin/reports' else
     ''
   %}
 
@@ -139,6 +140,7 @@
                   <span class="bg-violet-600 text-white text-xs font-bold rounded-full px-1.5 leading-tight">{{ fb_count }}</span>
                   {% endif %}
                 </a>
+                <a href="/admin/reports" class="block px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">Reportes</a>
               </div>
               {% endif %}
             </div>
@@ -279,6 +281,10 @@
             {% if fb_count_m %}
             <span class="bg-violet-600 text-white text-xs font-bold rounded-full px-1.5 leading-tight">{{ fb_count_m }}</span>
             {% endif %}
+          </a>
+          <a href="/admin/reports" onclick="closeMobileNav()"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+            Reportes
           </a>
           <a href="/admin/settings" onclick="closeMobileNav()"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">

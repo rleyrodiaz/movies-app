@@ -1,8 +1,10 @@
 import time
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 
 from app.config import get_settings
+from app.models.user import User
+from app.services.auth import get_current_user
 from app.services.emails import send_visit_notification
 from app.services.visit import get_client_ip, get_geo, parse_device
 
@@ -28,7 +30,7 @@ def _visit_email_allowed(ip: str) -> bool:
     return True
 
 
-def _notify_visit(ip: str, user_agent: str, entry_page: str, referrer: str, session_id: str) -> None:
+def _notify_visit(ip: str, user_agent: str, entry_page: str, referrer: str, session_id: str, display_name: str) -> None:
     if not _visit_email_allowed(ip):
         return
     geo = get_geo(ip)
@@ -43,16 +45,23 @@ def _notify_visit(ip: str, user_agent: str, entry_page: str, referrer: str, sess
         referrer=referrer,
         entry_page=entry_page,
         session_id=session_id,
+        display_name=display_name,
     )
 
 
 @router.post("/api/session/start")
-async def session_start(request: Request, background_tasks: BackgroundTasks):
+async def session_start(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_user: User | None = Depends(get_current_user),
+):
     """Ping público (sin login) que dispara el aviso por email una vez por
     sesión de navegador — el frontend lo llama solo la primera vez que ve
     la página en esa pestaña (dedup vía sessionStorage). Además, del lado
     del servidor, una misma IP no puede gatillar más de un email cada
-    VISIT_EMAIL_COOLDOWN_SEG segundos, aunque le peguen directo al endpoint."""
+    VISIT_EMAIL_COOLDOWN_SEG segundos, aunque le peguen directo al endpoint.
+    Si quien visita ya tiene una sesión activa (ej. reabre la app instalada
+    estando logueado), se identifica en el aviso — si no, queda anónimo."""
     try:
         body = await request.json()
     except Exception:
@@ -69,5 +78,6 @@ async def session_start(request: Request, background_tasks: BackgroundTasks):
         entry_page,
         referrer,
         session_id,
+        current_user.display_name if current_user else "",
     )
     return {"ok": True}
