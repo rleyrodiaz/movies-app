@@ -1,5 +1,6 @@
 import calendar
 import io
+import json
 import secrets
 from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
@@ -36,6 +37,7 @@ from app.services.auth import (
 from app.services import tmdb
 from app.services.clubs import get_active_club, is_active_club_admin, list_clubs_for_switcher
 from app.services.tz import to_local
+from app.services.visit import parse_device
 from app.services.version import APP_VERSION
 
 router = APIRouter(prefix="/admin")
@@ -718,6 +720,31 @@ def clubs_page(
     for membership in all_memberships:
         members_by_club.setdefault(membership.club_id, []).append(membership)
 
+    member_user_ids = [m.user_id for m in all_memberships]
+    login_logs = db.execute(
+        select(ActivityLog.user_id, ActivityLog.detail)
+        .where(ActivityLog.action == ActivityAction.user_login, ActivityLog.user_id.in_(member_user_ids))
+    ).all() if member_user_ids else []
+    device_buckets: dict[int, set[str]] = {}
+    for user_id, detail in login_logs:
+        if not detail:
+            continue
+        try:
+            user_agent = json.loads(detail).get("user_agent", "")
+        except (ValueError, AttributeError):
+            continue
+        device_type = parse_device(user_agent or "").get("device_type")
+        if device_type == "desktop":
+            device_buckets.setdefault(user_id, set()).add("desktop")
+        elif device_type in ("mobile", "tablet"):
+            device_buckets.setdefault(user_id, set()).add("mobile")
+    device_labels: dict[int, str] = {}
+    for user_id, buckets in device_buckets.items():
+        if len(buckets) > 1:
+            device_labels[user_id] = "Celular y desktop"
+        else:
+            device_labels[user_id] = "Celular" if "mobile" in buckets else "Desktop"
+
     clubs_data = [
         {"club": club, "member_count": count, "members": members_by_club.get(club.id, [])}
         for club, count in rows
@@ -734,6 +761,7 @@ def clubs_page(
             "is_club_admin": is_active_club_admin(current_user, active_club),
             "all_clubs": list_clubs_for_switcher(current_user, db),
             "reset_flash": reset_flash,
+            "device_labels": device_labels,
         },
     )
 

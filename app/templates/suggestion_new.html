@@ -80,6 +80,20 @@
   </div>
 </div>
 
+{# ── MODAL: CONFIRMAR BORRADO DE MI CALIFICACIÓN (sugerencia ya existente) ── #}
+<div id="confirm-existingrating-backdrop"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.6)">
+  <div class="pm-panel" style="width:100%;max-width:24rem;background:#15151A;border:1px solid #2A2A35;padding:1.5rem">
+    <h3 class="pm-title" style="font-size:1.05rem;margin-bottom:0.5rem">¿Borrar tu calificación?</h3>
+    <p style="font-size:0.85rem;color:#7A7680;margin-bottom:1.5rem">Se va a borrar tu comentario y tu calificación. Esta acción no se puede deshacer.</p>
+    <div class="flex gap-3 justify-end">
+      <button onclick="pmCloseModal()" class="pm-btn-secondary">Cancelar</button>
+      <button id="confirm-existingrating-btn" class="pm-btn-primary" style="background:#a78bfa;color:#1F1D2B">Borrar</button>
+    </div>
+  </div>
+</div>
+
 {# ── Sistema visual sd2 (mismo del feed / watchlist) ── #}
 <style>
 .sd2-root { font-family: 'Inter', system-ui, sans-serif; }
@@ -130,7 +144,7 @@
 }
 .sd2-providers { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .sd2-provider-chip { font-size: 0.72rem; color: #92929D; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 0.25rem 0.65rem; border-radius: 999px; }
-.sd2-activity-list { max-height: 15rem; overflow-y: auto; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.sd2-activity-list { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
 .sd2-activity-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 0.65rem 0.85rem; }
 .sd2-ratebar { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
 .sd2-ratebtn { width: 2rem; height: 2rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: #92929D; cursor: pointer; }
@@ -604,7 +618,12 @@ function buildExistingDetailHTML(d) {
           <div class="sd2-activity-row">
             <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.3rem">
               <span style="font-size:0.8rem;font-weight:600;color:#FFFCFC">${esc(e.user)}</span>
-              <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${e.rating}/10</span>
+              <div style="display:flex;align-items:center;gap:0.4rem">
+                <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${e.rating}/10</span>
+                ${e.is_mine ? `<button type="button" onclick="deleteExistingRating()" aria-label="Borrar mi calificación" title="Borrar mi calificación" style="background:none;border:none;cursor:pointer;padding:0.15rem;color:#686868;display:flex;align-items:center">
+                  <svg style="width:0.9rem;height:0.9rem" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                </button>` : ''}
+              </div>
             </div>
             ${e.comment
               ? `<p style="font-size:0.78rem;line-height:1.5;color:#92929D">${esc(e.comment)}</p>`
@@ -666,6 +685,26 @@ async function saveExistingRating(suggestionId) {
     await fetch(`/watchlist/${suggestionId}/rate`, { method: 'POST', body: fd });
   } catch (e) {}
   await refreshExistingDetail();
+}
+
+function deleteExistingRating() {
+  const backdrop = document.getElementById('confirm-existingrating-backdrop');
+  backdrop.classList.remove('hidden');
+  backdrop.classList.add('flex');
+  pmOpenModal(closeConfirmExistingRating);
+  const btn = document.getElementById('confirm-existingrating-btn');
+  btn.onclick = async () => {
+    if (!_existingCurrentId) return;
+    try { await fetch(`/watchlist/${_existingCurrentId}/remove`, { method: 'POST' }); } catch (e) {}
+    await refreshExistingDetail();
+    pmCloseModal();
+  };
+}
+
+function closeConfirmExistingRating() {
+  const backdrop = document.getElementById('confirm-existingrating-backdrop');
+  backdrop.classList.add('hidden');
+  backdrop.classList.remove('flex');
 }
 
 let _detailSelectedRating = null;

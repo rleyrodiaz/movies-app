@@ -94,6 +94,7 @@
             </div>
             <p style="font-size:0.72rem;color:#5A5762;margin-top:0.2rem">
               {% if m.user.last_login_at %}Último acceso: {{ (m.user.last_login_at|local_time).strftime('%d/%m/%Y %H:%M') }}{% else %}Nunca ingresó{% endif %}
+              {% if device_labels.get(m.user.id) %} · {{ device_labels.get(m.user.id) }}{% endif %}
             </p>
           </div>
           {% if not m.user.is_superadmin %}
