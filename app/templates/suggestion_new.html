@@ -498,6 +498,176 @@ function handleDetailBackdrop(e) {
   if (e.target === document.getElementById('detail-backdrop')) pmCloseModal();
 }
 
+/* ── Detalle de una sugerencia AJENA, elegida desde el buscador ── */
+let _existingCurrentId = null;
+let _existingSelectedRating = null;
+
+async function openExistingDetail(id) {
+  _existingCurrentId = id;
+  _existingSelectedRating = null;
+  document.getElementById('detail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">Cargando…</p>';
+  document.getElementById('detail-topbar-title').textContent = '';
+  document.getElementById('detail-backdrop').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  pmOpenModal(closeDetail);
+  try {
+    const resp = await fetch(`/suggestions/${id}/json`, { cache: 'no-store' });
+    if (!resp.ok) { document.getElementById('detail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">No se pudo cargar.</p>'; return; }
+    const d = await resp.json();
+    document.getElementById('detail-topbar-title').textContent = d.title;
+    const deleteBtn = document.getElementById('detail-delete-btn');
+    if (d.can_delete) {
+      deleteBtn.classList.add('sd2-active');
+      deleteBtn.style.cursor = 'pointer';
+      deleteBtn.title = 'Borrar sugerencia';
+      deleteBtn.onclick = () => deleteDetail(d.id);
+    } else {
+      deleteBtn.classList.remove('sd2-active');
+      deleteBtn.style.cursor = 'default';
+      deleteBtn.title = 'No se puede borrar porque otro miembro lo tiene en su WatchList o ya la calificó';
+      deleteBtn.onclick = null;
+    }
+    document.getElementById('detail-content').innerHTML = buildExistingDetailHTML(d);
+  } catch (e) {
+    document.getElementById('detail-content').innerHTML = '<p style="padding:3rem 1.5rem;text-align:center;color:#686868">No se pudo cargar.</p>';
+  }
+}
+
+async function refreshExistingDetail() {
+  if (!_existingCurrentId) return;
+  try {
+    const resp = await fetch(`/suggestions/${_existingCurrentId}/json`, { cache: 'no-store' });
+    if (!resp.ok) return;
+    const d = await resp.json();
+    _existingSelectedRating = null;
+    document.getElementById('detail-content').innerHTML = buildExistingDetailHTML(d);
+  } catch (e) {}
+}
+
+function buildExistingDetailHTML(d) {
+  const posterUrl = d.poster_path ? `https://image.tmdb.org/t/p/w342${d.poster_path}` : null;
+  const backdropUrl = d.backdrop_path ? `https://image.tmdb.org/t/p/w780${d.backdrop_path}` : null;
+  const heroHtml = backdropUrl
+    ? `<div class="sd2-hero-wrap"><img src="${backdropUrl}" alt=""><div class="sd2-hero-fade"></div></div>`
+    : '';
+
+  const directorHtml = d.director ? `<div>Director: <span class="sd2-info-link">${esc(d.director)}</span></div>` : '';
+  const castHtml = d.cast.length
+    ? `<div>Elenco: ${d.cast.map(c => `<span class="sd2-info-link">${esc(c)}</span>`).join(', ')}</div>`
+    : '';
+
+  const duration = formatSDuration(d.runtime_minutes);
+  const iconCalendar = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>`;
+  const iconClock = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+  const iconTag = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/></svg>`;
+  const iconFilm = `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 4.5a3 3 0 00-3 3v9a3 3 0 003 3h8.25a3 3 0 003-3v-9a3 3 0 00-3-3H4.5zM19.94 18.75l-2.69-2.69V7.94l2.69-2.69c.944-.945 2.56-.276 2.56 1.06v11.38c0 1.336-1.616 2.005-2.56 1.06z"/></svg>`;
+  const typeLabel = d.media_type === 'movie' ? 'Película' : 'Serie';
+  const typeColor = d.media_type === 'movie' ? '#60a5fa' : '#a78bfa';
+
+  const metaHtml = `
+    <div class="sd2-meta-row">
+      <span class="sd2-meta-item" style="color:${typeColor}">${iconFilm}${typeLabel}</span>
+      ${d.year ? `<span class="sd2-meta-item">${iconCalendar}${d.year}</span>` : ''}
+      ${duration ? `<span class="sd2-meta-item">${iconClock}${duration}</span>` : ''}
+    </div>
+    <div class="sd2-meta-row">
+      ${d.genres.length ? `<span class="sd2-meta-item">${iconTag}${esc(d.genres.join(', '))}</span>` : ''}
+      ${d.tmdb_rating ? `<span style="color:#f59e0b;font-size:0.8rem">★ ${(+d.tmdb_rating).toFixed(1)} <span style="color:#5A5762">TMDB</span></span>` : ''}
+      ${d.avg_rating ? `<span class="sd2-pill">&#9733; ${d.avg_rating} (${d.rating_count} <svg style="width:1.05em;height:1.05em;display:inline;vertical-align:-0.18em" fill="currentColor" viewBox="0 0 20 20"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/></svg>)</span>` : ''}
+    </div>`;
+
+  const overviewHtml = d.overview ? `<p class="sd2-synopsis">${esc(d.overview)}</p>` : '';
+
+  const ratingSection = (!d.is_owner && d.watchlist_status !== 'watched') ? `
+    <div class="sd2-section">
+      <p class="sd2-section-label">
+        Calificar
+        <span id="existing-rating-label" style="text-transform:none;color:#a78bfa;margin-left:0.35rem"></span>
+      </p>
+      <div class="sd2-ratebar">
+        ${Array.from({length:10}, (_,i) => {
+          const n = i+1;
+          return `<button type="button" onclick="selectExistingRating(${n})" id="exdrbtn-${n}" class="sd2-ratebtn">${n}</button>`;
+        }).join('')}
+      </div>
+      <textarea id="existing-comment-input" rows="2" placeholder="Tu comentario (opcional)..." class="sd2-textarea"></textarea>
+      <button id="existing-save-rating-btn" onclick="saveExistingRating(${d.id})" disabled class="sd2-btn-primary">
+        Guardar calificación
+      </button>
+    </div>` : '';
+
+  const activityHtml = !d.watched_entries.length ? '' : `
+    <div class="sd2-section">
+      <p class="sd2-section-label">Actividad del club</p>
+      <div class="sd2-activity-list">
+        ${d.watched_entries.map(e => `
+          <div class="sd2-activity-row">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:0.5rem;margin-bottom:0.3rem">
+              <span style="font-size:0.8rem;font-weight:600;color:#FFFCFC">${esc(e.user)}</span>
+              <span class="sd2-pill" style="padding:0.05rem 0.5rem;font-size:0.7rem">&#9733; ${e.rating}/10</span>
+            </div>
+            ${e.comment
+              ? `<p style="font-size:0.78rem;line-height:1.5;color:#92929D">${esc(e.comment)}</p>`
+              : `<p style="font-size:0.72rem;font-style:italic;color:#686868">Sin comentario.</p>`}
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  return `
+    ${heroHtml}
+    <div class="sd2-body">
+      <div class="sd2-overlap">
+        ${posterUrl
+          ? `<img src="${posterUrl}" alt="${esc(d.title)}" class="sd2-poster">`
+          : `<div class="sd2-poster" style="display:flex;align-items:center;justify-content:center;font-size:1.8rem;color:#4a4a55">🎬</div>`}
+        <div class="sd2-info">
+          ${directorHtml}
+          ${castHtml}
+          ${metaHtml}
+        </div>
+      </div>
+
+      ${overviewHtml}
+
+      <div class="sd2-section">
+        <p class="sd2-section-label">Disponible en</p>
+        <div class="sd2-providers">
+          ${d.providers.length
+            ? d.providers.map(p => `<span class="sd2-provider-chip">${esc(p)}</span>`).join('')
+            : `<span class="sd2-provider-chip">Sin datos</span>`}
+        </div>
+      </div>
+
+      ${ratingSection}
+      ${activityHtml}
+    </div>`;
+}
+
+function selectExistingRating(n) {
+  _existingSelectedRating = n;
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.getElementById(`exdrbtn-${i}`);
+    if (btn) btn.classList.toggle('sd2-selected', i === n);
+  }
+  const label = document.getElementById('existing-rating-label');
+  if (label) label.textContent = n + '/10';
+  const saveBtn = document.getElementById('existing-save-rating-btn');
+  if (saveBtn) saveBtn.disabled = false;
+}
+
+async function saveExistingRating(suggestionId) {
+  const n = _existingSelectedRating;
+  if (!n) return;
+  const comment = document.getElementById('existing-comment-input')?.value || '';
+  const fd = new FormData();
+  fd.append('rating', n);
+  fd.append('comment', comment);
+  try {
+    await fetch(`/watchlist/${suggestionId}/rate`, { method: 'POST', body: fd });
+  } catch (e) {}
+  await refreshExistingDetail();
+}
+
 let _detailSelectedRating = null;
 let _detailCurrentId = null;
 
@@ -655,7 +825,9 @@ window.handleAddBackdrop = function (e) {
       btn.addEventListener('click', () => {
         const item = cachedResults[parseInt(btn.dataset.idx)];
         if (item.already_suggested) {
-          window.location = '/suggestions/' + item.existing_id;
+          hideResults();
+          searchInput.value = '';
+          openExistingDetail(item.existing_id);
         } else {
           selectItem(item);
         }
