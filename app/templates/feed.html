@@ -272,7 +272,7 @@
       {% if suggesters|length > 1 %}
       <div>
         <p class="pm-label" style="margin-bottom:0.75rem">Recomendado por</p>
-        <div style="display:flex;flex-direction:column;gap:0.6rem;max-height:11rem;overflow-y:auto;padding-right:0.25rem">
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
           {% for uid, u in suggesters.items() %}
           <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
             <input type="checkbox" name="by" value="{{ uid }}" {% if uid in f_by %}checked{% endif %}
