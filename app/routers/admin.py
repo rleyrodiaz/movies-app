@@ -6,6 +6,9 @@ from datetime import date, datetime, timedelta, timezone
 from urllib.parse import quote, quote_plus
 
 import openpyxl
+from openpyxl.chart import LineChart, Reference
+from openpyxl.chart.data_source import StrRef
+from openpyxl.utils import get_column_letter
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -301,17 +304,12 @@ ACTION_LABELS = {
 }
 
 
-REPORT_DEFAULT_ACTIONS = ["suggestion_created", "watchlist_rated", "watchlist_added", "user_login", "reminder_created"]
-REPORT_MAX_PERIODS = 24
 MESES_ES = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
 
 def _period_bucket(local_dt: datetime, granularity: str) -> tuple[str, str, date, date]:
     """(clave, etiqueta, fecha_desde, fecha_hasta) del período al que pertenece
     local_dt, ya en hora local."""
-    if granularity == "year":
-        y = local_dt.year
-        return (str(y), str(y), date(y, 1, 1), date(y, 12, 31))
     if granularity == "week":
         iso_year, iso_week, _ = local_dt.isocalendar()
         start = date.fromisocalendar(iso_year, iso_week, 1)
@@ -326,8 +324,6 @@ def _period_bucket(local_dt: datetime, granularity: str) -> tuple[str, str, date
 def _build_report(db: Session, club_id: int, granularity: str, actions: list[str]) -> dict:
     valid_action_values = {a.value for a in ActivityAction}
     selected_actions = [a for a in dict.fromkeys(actions) if a in valid_action_values]
-    if not selected_actions:
-        selected_actions = list(REPORT_DEFAULT_ACTIONS)
 
     rows = db.scalars(
         select(ActivityLog).where(
@@ -336,17 +332,19 @@ def _build_report(db: Session, club_id: int, granularity: str, actions: list[str
         )
     ).all()
 
+    today = to_local(datetime.now(timezone.utc)).date()
     counts: dict[str, dict[str, int]] = {a: {} for a in selected_actions}
     period_labels: dict[str, str] = {}
     period_ranges: dict[str, tuple[str, str]] = {}
     for r in rows:
         key, label, d_from, d_to = _period_bucket(to_local(r.created_at), granularity)
+        if d_to > today:
+            continue  # período en curso, todavía no terminó
         counts[r.action.value][key] = counts[r.action.value].get(key, 0) + 1
         period_labels[key] = label
         period_ranges[key] = (d_from.isoformat(), d_to.isoformat())
 
-    periods_desc = sorted(period_labels.keys(), reverse=True)[:REPORT_MAX_PERIODS]
-    periods = list(reversed(periods_desc))
+    periods = sorted(period_labels.keys())
 
     grid = [
         {
@@ -385,7 +383,7 @@ def reports_page(
     actions: list[str] = Query(default=[]),
 ):
     active_club = get_active_club(current_user, db)
-    if granularity not in ("year", "month", "week"):
+    if granularity not in ("month", "week"):
         granularity = "month"
 
     report = _build_report(db, active_club.id, granularity, actions)
@@ -394,6 +392,12 @@ def reports_page(
     for g in report["grid"]:
         other_actions = [a for a in report["selected_actions"] if a != g["action"]]
         g["remove_qs"] = f"granularity={granularity}" + "".join(f"&actions={a}" for a in other_actions)
+
+    chart_series = [
+        {"action": g["action"], "label": g["label"], "data": [c["count"] for c in g["cells"]]}
+        for g in report["grid"]
+    ]
+    chart_period_labels = [report["period_labels"][p] for p in report["periods"]]
 
     return templates.TemplateResponse(
         "admin_reports.html",
@@ -406,6 +410,8 @@ def reports_page(
             "granularity": granularity,
             "action_labels": ACTION_LABELS,
             "actions_qs": actions_qs,
+            "chart_series": chart_series,
+            "chart_period_labels": chart_period_labels,
             **report,
         },
     )
@@ -419,7 +425,7 @@ def reports_export(
     actions: list[str] = Query(default=[]),
 ):
     active_club = get_active_club(current_user, db)
-    if granularity not in ("year", "month", "week"):
+    if granularity not in ("month", "week"):
         granularity = "month"
 
     report = _build_report(db, active_club.id, granularity, actions)
@@ -434,6 +440,26 @@ def reports_export(
         ws.cell(row=row_idx, column=1, value=g["label"])
         for col_idx, cell in enumerate(g["cells"], start=2):
             ws.cell(row=row_idx, column=col_idx, value=cell["count"])
+
+    if report["grid"] and report["periods"]:
+        last_row = len(report["grid"]) + 1
+        last_col = len(report["periods"]) + 1
+        chart = LineChart()
+        chart.title = "Evolución en el tiempo"
+        chart.y_axis.title = "Cantidad"
+        chart.x_axis.title = "Período"
+        chart.x_axis.delete = False
+        chart.y_axis.delete = False
+        chart.width = 10 + len(report["periods"])
+        data = Reference(ws, min_col=1, min_row=2, max_col=last_col, max_row=last_row)
+        chart.add_data(data, titles_from_data=True, from_rows=True)
+        cats = Reference(ws, min_col=2, min_row=1, max_col=last_col, max_row=1)
+        chart.set_categories(cats)
+        cat_formula = f"'{ws.title}'!${get_column_letter(2)}$1:${get_column_letter(last_col)}$1"
+        for s in chart.series:
+            s.cat.numRef = None
+            s.cat.strRef = StrRef(cat_formula)
+        ws.add_chart(chart, f"A{last_row + 3}")
 
     buffer = io.BytesIO()
     wb.save(buffer)
